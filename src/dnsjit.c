@@ -46,10 +46,11 @@ static void* _sighthr(void* arg)
 
 int main(int argc, char* argv[])
 {
-    lua_State* L;
-    int        n, err;
-    sigset_t   set;
-    pthread_t  sighthr;
+    lua_State*  L;
+    int         n, err;
+    sigset_t    set;
+    pthread_t   sighthr;
+    const char* file;
 
     sigfillset(&set);
     if ((err = pthread_sigmask(SIG_BLOCK, &set, 0))) {
@@ -70,26 +71,34 @@ int main(int argc, char* argv[])
     L = luaL_newstate();
     luaL_openlibs(L);
 
-    for (n = 1; n < argc; n++) {
-        if ((err = luaL_loadfile(L, argv[n]))) {
+    lua_createtable(L, argc, 0);
+    for (n = 0; n < argc; n++) {
+        lua_pushstring(L, argv[n]);
+        lua_rawseti(L, -2, n);
+    }
+    lua_setglobal(L, "arg");
+
+    if (argc > 0) {
+        file = argv[1];
+        if ((err = luaL_loadfile(L, file))) {
             switch (err) {
             case LUA_ERRSYNTAX:
-                glcritical("%s: syntax error during pre-compilation", argv[n]);
+                glcritical("%s: syntax error during pre-compilation", file);
                 break;
             case LUA_ERRMEM:
-                glcritical("%s: memory allocation error", argv[n]);
+                glcritical("%s: memory allocation error", file);
                 break;
             case LUA_ERRFILE:
-                glcritical("%s: cannot open/read file", argv[n]);
+                glcritical("%s: cannot open/read file", file);
                 break;
             default:
-                glcritical("%s: unknown error %d", argv[n], err);
+                glcritical("%s: unknown error %d", file, err);
                 break;
             }
             return 1;
         }
         if (lua_pcall(L, 0, 0, 0)) {
-            glcritical("%s: %s", argv[n], lua_tostring(L, -1));
+            glcritical("%s: %s", file, lua_tostring(L, -1));
             lua_pop(L, 1);
             return 1;
         }
