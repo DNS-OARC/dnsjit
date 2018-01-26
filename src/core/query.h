@@ -22,6 +22,7 @@
 #include "core/timespec.h"
 
 #include <stdlib.h>
+#include <sys/types.h>
 
 #ifndef __dnsjit_core_query_h
 #define __dnsjit_core_query_h

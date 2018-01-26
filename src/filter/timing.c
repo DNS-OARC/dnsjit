@@ -215,7 +215,7 @@ static int _receive(void* robj, query_t* q)
 #define SAVE_REALTIME 1
         /* sleep_to will be relative, need to check against now - last_time */
         if (self->mode != TIMING_MODE_BEST_EFFORT
-            && (sleep_to.tv_sec < (now.tv_sec - self->last_time.tv_sec)
+            && (sleep_to.tv_sec < (now.tv_sec - self->last_time.sec)
                    || (sleep_to.tv_sec == (now.tv_sec - self->last_time.sec) && sleep_to.tv_nsec < (now.tv_nsec - self->last_time.nsec)))) {
             ldebug("Unable to keep up with timings (process cost %lu.%09lu, packet diff %lu.%06lu, now %lu.%09lu, sleep to %lu.%09lu)",
                 pdiff.tv_sec, pdiff.tv_nsec,

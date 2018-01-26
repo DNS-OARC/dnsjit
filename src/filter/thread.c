@@ -66,6 +66,7 @@ int thread_destroy(thread_t* self)
     if (self->have_id) {
         thread_stop(self);
         thread_join(self);
+        free(self->id);
     }
     if (self->my_queues && self->qin) {
         sllq_flush(self->qin, _flush);
@@ -120,7 +121,6 @@ static void* _thread(void* v)
 
 int thread_create(thread_t* self, const char* bc, size_t len)
 {
-    pthread_t    id;
     struct _ctx* ctx;
 
     if (!self || !bc || !len || self->have_id) {
@@ -128,6 +128,12 @@ int thread_create(thread_t* self, const char* bc, size_t len)
     }
 
     ldebug("create %p %p %lu", self, bc, len);
+
+    if (!self->id) {
+        if (!(self->id = calloc(1, sizeof(pthread_t)))) {
+            return 1;
+        }
+    }
 
     if (!(self->qin = sllq_new())) {
         return 1;
@@ -151,15 +157,14 @@ int thread_create(thread_t* self, const char* bc, size_t len)
 
     ldebug("create %p qin %p", self, self->qin);
 
-    if (pthread_create(&id, 0, _thread, (void*)ctx)) {
+    if (pthread_create(self->id, 0, _thread, (void*)ctx)) {
         free(ctx->bc);
         free(ctx);
         return 1;
     }
-    self->id      = id;
     self->have_id = 1;
 
-    ldebug("create %p id %lu", self, self->id);
+    ldebug("create %p id %lu", self, *self->id);
 
     return 0;
 }
@@ -170,9 +175,9 @@ int thread_join(thread_t* self)
         return 1;
     }
 
-    ldebug("join %p %lu", self, self->id);
+    ldebug("join %p %lu", self, *self->id);
 
-    if (pthread_join(self->id, 0)) {
+    if (pthread_join(*self->id, 0)) {
         return 1;
     }
     self->have_id = 0;

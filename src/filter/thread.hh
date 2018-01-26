@@ -19,6 +19,7 @@
  */
 
 #if 0
+typedef struct {} pthread_t;
 typedef struct {} sllq_t;
 #endif
 //lua:require("dnsjit.core.log_h")
@@ -27,7 +28,7 @@ typedef struct thread {
     log_t          log;
     unsigned short have_id : 1;
     unsigned short my_queues : 1;
-    uint64_t       id;
+    pthread_t*     id;
     sllq_t*        qin;
     receiver_t     recv;
     void*          robj;
