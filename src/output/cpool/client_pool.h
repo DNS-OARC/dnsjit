@@ -19,11 +19,11 @@
  */
 
 #include "sllq/sllq.h"
-#include "output/client_pool/client.h"
+#include "output/cpool/client.h"
 #include "core/log.h"
 
-#ifndef __dnsjit_client_pool_h
-#define __dnsjit_client_pool_h
+#ifndef __dnsjit_output_cpool_client_pool_h
+#define __dnsjit_output_cpool_client_pool_h
 
 #include <pthread.h>
 #ifdef HAVE_LIBEV_EV_H

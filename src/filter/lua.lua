@@ -16,19 +16,25 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
 
+-- dnsjit.filter.lua
+-- Filter/output through custom Lua function
+-- TODO
+--
+-- TODO
 module(...,package.seeall)
 
+local ch = require("dnsjit.core.chelpers")
 local log = require("dnsjit.core.log")
 local query = require("dnsjit.core.query")
 require("dnsjit.filter.lua_h")
 local ffi = require("ffi")
 local C = ffi.C
 
-local type = "filter_lua_t"
+local _type = "filter_lua_t"
 local struct
 local mt = {
     __gc = function(self)
-        if ffi.istype(type, self) then
+        if ffi.istype(_type, self) then
             C.filter_lua_destroy(self)
         end
     end,
@@ -38,14 +44,14 @@ local mt = {
             if not self then
                 error("oom")
             end
-            if ffi.istype(type, self) then
+            if ffi.istype(_type, self) then
                 C.filter_lua_init(self)
                 return self
             end
         end
     }
 }
-struct = ffi.metatype(type, mt)
+struct = ffi.metatype(_type, mt)
 
 local Lua = {}
 
@@ -65,7 +71,22 @@ function Lua:func(func)
         error("is handler")
     end
     local bc = string.dump(func)
-    return C.filter_lua_func(self._, bc, string.len(bc))
+    return ch.z2n(C.filter_lua_func(self._, bc, string.len(bc)))
+end
+
+function Lua:push(var)
+    local t = type(var)
+    if t == "string" then
+        return ch.z2n(C.filter_lua_push_string(self._, var, string.len(var)))
+    elseif t == "number" then
+        local n = math.floor(var)
+        if n == var then
+            return ch.z2n(C.filter_lua_push_integer(self._, n))
+        else
+            return ch.z2n(C.filter_lua_push_double(self._, var))
+        end
+    end
+    return 1
 end
 
 function Lua:receive()
@@ -101,26 +122,26 @@ function Lua:decompile()
     self._recv = FILTER_LUA_RECV
     self._robj = FILTER_LUA_ROBJ
     self._func = loadstring(FILTER_LUA_BYTECODE)
-    return
 end
 
 function Lua:run()
     if not self.ishandler then
         error("not handler")
     end
+    local q = query.new(ffi.cast("query_t*", FILTER_LUA_QUERY))
     if self._func == nil then
         return
     end
-    local q = C.query_copy(FILTER_LUA_QUERY)
-    return self._func(self, query.new(q))
+    return self._func(self, q, FILTER_LUA_ARGS)
 end
 
 function Lua:send(q)
     if not self.ishandler then
         error("not handler")
     end
+    -- TODO: test replace with ffi.gc(q:struct(), nil)
     local q = C.query_copy(q:struct())
-    return C.receiver_call(self._recv, self._robj, q)
+    return ch.z2n(C.receiver_call(self._recv, self._robj, q))
 end
 
 return Lua

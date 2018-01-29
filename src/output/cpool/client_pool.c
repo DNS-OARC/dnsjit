@@ -20,7 +20,7 @@
 
 #include "config.h"
 
-#include "output/client_pool/client_pool.h"
+#include "output/cpool/client_pool.h"
 
 #include <string.h>
 #include <errno.h>

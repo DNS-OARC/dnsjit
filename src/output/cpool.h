@@ -20,11 +20,11 @@
 
 #include "core/log.h"
 #include "core/receiver.h"
-#include "output/client_pool/client_pool.h"
+#include "output/cpool/client_pool.h"
 
-#ifndef __dnsjit_output_client_pool_h
-#define __dnsjit_output_client_pool_h
+#ifndef __dnsjit_output_cpool_h
+#define __dnsjit_output_cpool_h
 
-#include "output/client_pool.hh"
+#include "output/cpool.hh"
 
 #endif

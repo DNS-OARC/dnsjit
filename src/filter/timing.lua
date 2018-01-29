@@ -16,6 +16,11 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
 
+-- dnsjit.filter.timing
+-- Filter to pass queries to the next receiver based on timing between packets
+-- TODO
+--
+-- TODO
 module(...,package.seeall)
 
 local log = require("dnsjit.core.log")
@@ -77,7 +82,7 @@ function Timing:multiply(factor)
     self._.mul = factor
 end
 
-function Timing:bestEffort()
+function Timing:best_effort()
     self._.mode = "TIMING_MODE_BEST_EFFORT"
 end
 

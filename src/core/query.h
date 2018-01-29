@@ -20,20 +20,21 @@
 
 #include "core/log.h"
 #include "core/timespec.h"
-
-#include <stdlib.h>
-#include <sys/types.h>
+#include "omg-dns/omg_dns.h"
 
 #ifndef __dnsjit_core_query_h
 #define __dnsjit_core_query_h
 
+#include <netinet/in.h>
+
 #include "core/query.hh"
+
+int query_set_src(query_t* self, int af, const void* addr, size_t len);
+int query_set_dst(query_t* self, int af, const void* addr, size_t len);
+int query_set_parsed_header(query_t* self, omg_dns_t dns);
 
 int query_is_udp(const query_t* query);
 int query_is_tcp(const query_t* query);
-int query_have_ipv4(const query_t* query);
-int query_have_ipv6(const query_t* query);
-int query_have_port(const query_t* query);
 int query_have_raw(const query_t* query);
 size_t query_length(const query_t* query);
 const u_char* query_raw(const query_t* query);

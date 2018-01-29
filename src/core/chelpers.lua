@@ -16,20 +16,30 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
 
--- dnsjit.core.mutex
--- Core mutex functions
+-- dnsjit.core.chelpers
+-- C helper functions
 -- TODO
 --
 -- TODO
 module(...,package.seeall)
 
-require("dnsjit.core.mutex_h")
-local C = require("ffi").C
-
-function lock()
-    return C.core_mutex_lock()
+function b2i(bool)
+    if bool == true then
+        return 1
+    elseif bool == false then
+        return 0
+    end
 end
 
-function unlock()
-    return C.core_mutex_unlock()
+function i2b(int)
+    if int == 0 then
+        return false
+    end
+    return true
+end
+
+function z2n(int)
+    if not int == 0 then
+        return int
+    end
 end

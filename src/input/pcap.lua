@@ -16,8 +16,14 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
 
+-- dnsjit.input.lua
+-- Read input from an interface or PCAP file
+-- TODO
+--
+-- TODO
 module(...,package.seeall)
 
+local ch = require("dnsjit.core.chelpers")
 local log = require("dnsjit.core.log")
 require("dnsjit.input.pcap_h")
 local ffi = require("ffi")
@@ -65,32 +71,11 @@ function Pcap:receiver(o)
     self._receiver = o
 end
 
-function bool2int(bool)
-    if bool == true then
-        return 1
-    elseif bool == false then
-        return 0
-    end
-end
-
-function int2bool(int)
-    if int == 0 then
-        return false
-    end
-    return true
-end
-
-function zero2none(int)
-    if not int == 0 then
-        return int
-    end
-end
-
 function Pcap:only_queries(bool)
     if bool == nil then
-        return int2bool(self._.only_queries)
+        return ch.i2b(self._.only_queries)
     end
-    local b = bool2int(bool)
+    local b = ch.b2i(bool)
     if b == nil then
         return 1
     end
@@ -105,63 +90,63 @@ function Pcap:snaplen(len)
     if len == nil then
         return C.pcap_thread_snaplen(self._.pt)
     end
-    return zero2none(C.pcap_thread_set_snaplen(self._.pt, len))
+    return ch.z2n(C.pcap_thread_set_snaplen(self._.pt, len))
 end
 
 function Pcap:promiscuous(bool)
     if bool == nil then
-        return int2bool(C.pcap_thread_promiscuous(self._.pt))
+        return ch.i2b(C.pcap_thread_promiscuous(self._.pt))
     end
-    local b = bool2int(bool)
+    local b = ch.b2i(bool)
     if b == nil then
         return 1
     end
-    return zero2none(C.pcap_thread_set_promiscuous(self._.pt, b))
+    return ch.z2n(C.pcap_thread_set_promiscuous(self._.pt, b))
 end
 
 function Pcap:monitor()
     if bool == nil then
-        return int2bool(C.pcap_thread_monitor(self._.pt))
+        return ch.i2b(C.pcap_thread_monitor(self._.pt))
     end
-    local b = bool2int(bool)
+    local b = ch.b2i(bool)
     if b == nil then
         return 1
     end
-    return zero2none(C.pcap_thread_set_monitor(self._.pt, b))
+    return ch.z2n(C.pcap_thread_set_monitor(self._.pt, b))
 end
 
 function Pcap:timeout(ms)
     if ms == nil then
         return C.pcap_thread_timeout(self._.pt)
     end
-    return zero2none(C.pcap_thread_set_timeout(self._.pt, ms))
+    return ch.z2n(C.pcap_thread_set_timeout(self._.pt, ms))
 end
 
 function Pcap:buffer_size(size)
     if size == nil then
         return C.pcap_thread_buffer_size(self._.pt)
     end
-    return zero2none(C.pcap_thread_set_buffer_size(self._.pt, size))
+    return ch.z2n(C.pcap_thread_set_buffer_size(self._.pt, size))
 end
 
 function Pcap:immediate_mode()
     if bool == nil then
-        return int2bool(C.pcap_thread_immediate_mode(self._.pt))
+        return ch.i2b(C.pcap_thread_immediate_mode(self._.pt))
     end
-    local b = bool2int(bool)
+    local b = ch.b2i(bool)
     if b == nil then
         return 1
     end
-    return zero2none(C.pcap_thread_set_immediate_mode(self._.pt, b))
+    return ch.z2n(C.pcap_thread_set_immediate_mode(self._.pt, b))
 end
 
 function Pcap:filter(pf)
     if pf == nil then
         return ffi.string(C.pcap_thread_filter(self._.pt))
     elseif pf == false then
-        return zero2none(C.pcap_thread_clear_filter(self._.pt))
+        return ch.z2n(C.pcap_thread_clear_filter(self._.pt))
     end
-    return zero2none(C.pcap_thread_set_filter(self._.pt, pf, string.len(pf)))
+    return ch.z2n(C.pcap_thread_set_filter(self._.pt, pf, string.len(pf)))
 end
 
 function Pcap:filter_errno()
@@ -170,20 +155,20 @@ end
 
 function Pcap:filter_optimize()
     if bool == nil then
-        return int2bool(C.pcap_thread_filter_optimize(self._.pt))
+        return ch.i2b(C.pcap_thread_filter_optimize(self._.pt))
     end
-    local b = bool2int(bool)
+    local b = ch.b2i(bool)
     if b == nil then
         return 1
     end
-    return zero2none(C.pcap_thread_set_filter_optimize(self._.pt, b))
+    return ch.z2n(C.pcap_thread_set_filter_optimize(self._.pt, b))
 end
 
 function Pcap:filter_netmask(netmask)
     if netmask == nil then
         return C.pcap_thread_filter_netmask(self._.pt)
     end
-    return zero2none(C.pcap_thread_set_filter_netmask(self._.pt, netmask))
+    return ch.z2n(C.pcap_thread_set_filter_netmask(self._.pt, netmask))
 end
 
 function Pcap:open(device)

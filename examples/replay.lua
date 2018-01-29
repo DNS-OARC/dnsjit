@@ -9,7 +9,7 @@ if pcap == nil or host == nil or port == nil then
 end
 
 local input = require("dnsjit.input.pcap").new()
-local output = require("dnsjit.output.client_pool").new(host, port)
+local output = require("dnsjit.output.cpool").new(host, port)
 
 input:only_queries(true)
 input:open_offline(pcap)

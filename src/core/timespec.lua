@@ -16,20 +16,11 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
 
--- dnsjit.core.mutex
--- Core mutex functions
+-- dnsjit.core.receiver
+-- Non-system depended time specification structure definition
 -- TODO
 --
 -- TODO
 module(...,package.seeall)
 
-require("dnsjit.core.mutex_h")
-local C = require("ffi").C
-
-function lock()
-    return C.core_mutex_lock()
-end
-
-function unlock()
-    return C.core_mutex_unlock()
-end
+error("This should not be included, only here for documentation generation")

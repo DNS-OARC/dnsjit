@@ -18,10 +18,10 @@
  * along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <stdint.h>
-
 #ifndef __dnsjit_core_timespec_h
 #define __dnsjit_core_timespec_h
+
+#include <stdint.h>
 
 #include "core/timespec.hh"
 

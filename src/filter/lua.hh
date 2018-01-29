@@ -28,10 +28,14 @@ typedef struct filter_lua {
     lua_State* L;
     receiver_t recv;
     void*      robj;
+    size_t     args;
 } filter_lua_t;
 
 int filter_lua_init(filter_lua_t* self);
 int filter_lua_destroy(filter_lua_t* self);
 int filter_lua_func(filter_lua_t* self, const char* bc, size_t len);
+int filter_lua_push_string(filter_lua_t* self, const char* s, size_t l);
+int filter_lua_push_integer(filter_lua_t* self, int i);
+int filter_lua_push_double(filter_lua_t* self, double d);
 
 receiver_t filter_lua_receiver();

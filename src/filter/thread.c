@@ -130,7 +130,7 @@ int thread_create(thread_t* self, const char* bc, size_t len)
     ldebug("create %p %p %lu", self, bc, len);
 
     if (!self->id) {
-        if (!(self->id = calloc(1, sizeof(pthread_t)))) {
+        if (!(self->id = malloc(sizeof(pthread_t)))) {
             return 1;
         }
     }
@@ -142,7 +142,7 @@ int thread_create(thread_t* self, const char* bc, size_t len)
     sllq_init(self->qin);
     self->my_queues = 1;
 
-    if (!(ctx = calloc(1, sizeof(struct _ctx)))) {
+    if (!(ctx = malloc(sizeof(struct _ctx)))) {
         return 1;
     }
     if (!(ctx->bc = malloc(len))) {

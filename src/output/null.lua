@@ -16,6 +16,11 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
 
+-- dnsjit.output.null
+-- Output to nothing (/dev/null)
+-- TODO
+--
+-- TODO
 module(...,package.seeall)
 
 local log = require("dnsjit.core.log")

@@ -20,8 +20,8 @@
 
 #include "core/query.h"
 
-#ifndef __dnsjit_client_h
-#define __dnsjit_client_h
+#ifndef __dnsjit_output_cpool_client_h
+#define __dnsjit_output_cpool_client_h
 
 #ifdef HAVE_LIBEV_EV_H
 #include <libev/ev.h>

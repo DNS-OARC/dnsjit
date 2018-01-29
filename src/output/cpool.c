@@ -20,14 +20,14 @@
 
 #include "config.h"
 
-#include "output/client_pool.h"
+#include "output/cpool.h"
 
-static output_client_pool_t _defaults = {
+static output_cpool_t _defaults = {
     LOG_T_INIT,
     0
 };
 
-int output_client_pool_init(output_client_pool_t* self, const char* host, const char* port)
+int output_cpool_init(output_cpool_t* self, const char* host, const char* port)
 {
     if (!self || !host || !port) {
         return 1;
@@ -44,7 +44,7 @@ int output_client_pool_init(output_client_pool_t* self, const char* host, const 
     return 0;
 }
 
-int output_client_pool_destroy(output_client_pool_t* self)
+int output_cpool_destroy(output_cpool_t* self)
 {
     if (!self) {
         return 1;
@@ -57,14 +57,14 @@ int output_client_pool_destroy(output_client_pool_t* self)
     return 0;
 }
 
-void output_client_pool_updatelog(output_client_pool_t* self)
+void output_cpool_updatelog(output_cpool_t* self)
 {
     if (self && self->p) {
         self->p->log = self->log;
     }
 }
 
-size_t output_client_pool_max_clients(output_client_pool_t* self)
+size_t output_cpool_max_clients(output_cpool_t* self)
 {
     if (!self || !self->p) {
         return 0;
@@ -73,7 +73,7 @@ size_t output_client_pool_max_clients(output_client_pool_t* self)
     return self->p->max_clients;
 }
 
-int output_client_pool_set_max_clients(output_client_pool_t* self, size_t max_clients)
+int output_cpool_set_max_clients(output_cpool_t* self, size_t max_clients)
 {
     if (!self || !self->p) {
         return 1;
@@ -86,7 +86,7 @@ int output_client_pool_set_max_clients(output_client_pool_t* self, size_t max_cl
     return 0;
 }
 
-double output_client_pool_client_ttl(output_client_pool_t* self)
+double output_cpool_client_ttl(output_cpool_t* self)
 {
     if (!self || !self->p) {
         return 0;
@@ -95,7 +95,7 @@ double output_client_pool_client_ttl(output_client_pool_t* self)
     return self->p->client_ttl;
 }
 
-int output_client_pool_set_client_ttl(output_client_pool_t* self, double client_ttl)
+int output_cpool_set_client_ttl(output_cpool_t* self, double client_ttl)
 {
     if (!self || !self->p) {
         return 1;
@@ -108,7 +108,7 @@ int output_client_pool_set_client_ttl(output_client_pool_t* self, double client_
     return 0;
 }
 
-size_t output_client_pool_max_reuse_clients(output_client_pool_t* self)
+size_t output_cpool_max_reuse_clients(output_cpool_t* self)
 {
     if (!self || !self->p) {
         return 0;
@@ -117,7 +117,7 @@ size_t output_client_pool_max_reuse_clients(output_client_pool_t* self)
     return self->p->max_reuse_clients;
 }
 
-int output_client_pool_set_max_reuse_clients(output_client_pool_t* self, size_t max_reuse_clients)
+int output_cpool_set_max_reuse_clients(output_cpool_t* self, size_t max_reuse_clients)
 {
     if (!self || !self->p) {
         return 1;
@@ -130,7 +130,7 @@ int output_client_pool_set_max_reuse_clients(output_client_pool_t* self, size_t 
     return 0;
 }
 
-int output_client_pool_skip_reply(output_client_pool_t* self)
+int output_cpool_skip_reply(output_cpool_t* self)
 {
     if (!self || !self->p) {
         return 0;
@@ -139,7 +139,7 @@ int output_client_pool_skip_reply(output_client_pool_t* self)
     return self->p->client_skip_reply;
 }
 
-int output_client_pool_set_skip_reply(output_client_pool_t* self, int skip_reply)
+int output_cpool_set_skip_reply(output_cpool_t* self, int skip_reply)
 {
     if (!self || !self->p) {
         return 1;
@@ -152,7 +152,7 @@ int output_client_pool_set_skip_reply(output_client_pool_t* self, int skip_reply
     return 0;
 }
 
-const char* output_client_pool_sendas(output_client_pool_t* self)
+const char* output_cpool_sendas(output_cpool_t* self)
 {
     if (!self || !self->p) {
         return "unknown";
@@ -172,7 +172,7 @@ const char* output_client_pool_sendas(output_client_pool_t* self)
     return "unknown";
 }
 
-int output_client_pool_set_sendas_original(output_client_pool_t* self)
+int output_cpool_set_sendas_original(output_cpool_t* self)
 {
     if (!self || !self->p) {
         return 1;
@@ -185,7 +185,7 @@ int output_client_pool_set_sendas_original(output_client_pool_t* self)
     return 0;
 }
 
-int output_client_pool_set_sendas_udp(output_client_pool_t* self)
+int output_cpool_set_sendas_udp(output_cpool_t* self)
 {
     if (!self || !self->p) {
         return 1;
@@ -198,7 +198,7 @@ int output_client_pool_set_sendas_udp(output_client_pool_t* self)
     return 0;
 }
 
-int output_client_pool_set_sendas_tcp(output_client_pool_t* self)
+int output_cpool_set_sendas_tcp(output_cpool_t* self)
 {
     if (!self || !self->p) {
         return 1;
@@ -211,7 +211,7 @@ int output_client_pool_set_sendas_tcp(output_client_pool_t* self)
     return 0;
 }
 
-int output_client_pool_dry_run(output_client_pool_t* self)
+int output_cpool_dry_run(output_cpool_t* self)
 {
     if (!self || !self->p) {
         return 0;
@@ -220,7 +220,7 @@ int output_client_pool_dry_run(output_client_pool_t* self)
     return self->p->dry_run;
 }
 
-int output_client_pool_set_dry_run(output_client_pool_t* self, int dry_run)
+int output_cpool_set_dry_run(output_cpool_t* self, int dry_run)
 {
     if (!self || !self->p) {
         return 1;
@@ -233,7 +233,7 @@ int output_client_pool_set_dry_run(output_client_pool_t* self, int dry_run)
     return 0;
 }
 
-int output_client_pool_start(output_client_pool_t* self)
+int output_cpool_start(output_cpool_t* self)
 {
     if (!self || !self->p) {
         return 1;
@@ -246,7 +246,7 @@ int output_client_pool_start(output_client_pool_t* self)
     return 0;
 }
 
-int output_client_pool_stop(output_client_pool_t* self)
+int output_cpool_stop(output_cpool_t* self)
 {
     if (!self || !self->p) {
         return 1;
@@ -261,8 +261,8 @@ int output_client_pool_stop(output_client_pool_t* self)
 
 static int _receive(void* robj, query_t* q)
 {
-    output_client_pool_t* self = (output_client_pool_t*)robj;
-    query_t*              copy;
+    output_cpool_t* self = (output_cpool_t*)robj;
+    query_t*        copy;
 
     if (!self || !q || !self->p) {
         query_free(q);
@@ -285,7 +285,7 @@ static int _receive(void* robj, query_t* q)
     return 0;
 }
 
-receiver_t output_client_pool_receiver()
+receiver_t output_cpool_receiver()
 {
     return _receive;
 }

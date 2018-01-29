@@ -16,6 +16,11 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
 
+-- dnsjit.filter.roundrobin
+-- Passthrough to other receivers in a round robin fashion
+-- TODO
+--
+-- TODO
 module(...,package.seeall)
 
 local log = require("dnsjit.core.log")
@@ -46,9 +51,9 @@ local mt = {
 }
 struct = ffi.metatype(type, mt)
 
-local RoundRobin = {}
+local Roundrobin = {}
 
-function RoundRobin.new()
+function Roundrobin.new()
     local o = struct.new()
     local log = log.new(o.log)
     log:debug("new()")
@@ -56,23 +61,24 @@ function RoundRobin.new()
         _ = o,
         log = log,
         receivers = {},
-    }, {__index = RoundRobin})
+    }, {__index = Roundrobin})
 end
 
-function RoundRobin:receive()
+function Roundrobin:receive()
     self.log:debug("receive()")
     return C.filter_roundrobin_receiver(), self._
 end
 
-function RoundRobin:receiver(o)
+function Roundrobin:receiver(o)
     self.log:debug("receiver()")
     local recv, robj
     recv, robj = o:receive()
     local ret = C.filter_roundrobin_add(self._, recv, robj)
     if ret == 0 then
         table.insert(self.receivers, o)
+        return
     end
     return ret
 end
 
-return RoundRobin
+return Roundrobin

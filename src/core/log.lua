@@ -16,6 +16,47 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
 
+-- dnsjit.core.log
+-- Core logging facility
+-- .SS Usage to control global log level
+--   local log = require("dnsjit.core.log")
+--   log:enable("all")
+-- .SS Usage in C module
+-- Add the log struct into the C module struct with the name
+-- .IR log .
+--   log_t log;
+-- .LP
+-- Initialize it with the defaults.
+--   static log_t _log_defaults = LOG_T_INIT;
+--   self->log = _log_defaults;
+-- .SS Bind logging in C module to Lua module
+-- TODO
+-- .SS Usage in pure Lua module
+-- TODO
+--
+-- Core logging facility used by all modules.
+-- .SS Log levels
+-- .TP
+-- all
+-- Keyword to enable/disable all changeable log levels.
+-- .TP
+-- debug
+-- Used for debug information.
+-- .TP
+-- info
+-- Used for informational processing messages.
+-- .TP
+-- notice
+-- Used for messages of that may have impact on processing.
+-- .TP
+-- warning
+-- Used for messages that has impact on processing.
+-- .TP
+-- critical
+-- Used for messages that have severe impact on processing, this level can not be disabled.
+-- .TP
+-- fatal
+-- Used to display a message before stopping all processing and existing, this level can not be disabled.
 module(...,package.seeall)
 
 require("dnsjit.core.log_h")
@@ -25,6 +66,7 @@ local O = C.core_log()
 
 local Log = {}
 
+-- Create a new Log object.
 function Log.new(o)
     if not ffi.istype("log_t", o) then
         error("not a log_t")
@@ -32,6 +74,7 @@ function Log.new(o)
     return setmetatable({ _ = o, cb = nil }, { __index = Log })
 end
 
+-- Set a callback function to call when the log level is changed.
 function Log:cb(func)
     if not type(func) == "function" then
         error("func not function")
@@ -39,6 +82,7 @@ function Log:cb(func)
     self.cb = func
 end
 
+-- Enable specified log level.
 function Log:enable(level)
     local struct
     if type(self) == "string" then
@@ -68,6 +112,7 @@ function Log:enable(level)
     end
 end
 
+-- Disable specified log level.
 function Log:disable(level)
     local struct
     if type(self) == "string" then
@@ -97,6 +142,7 @@ function Log:disable(level)
     end
 end
 
+-- Clear specified log level, which means it will revert back to default or inherited settings.
 function Log:clear(level)
     local struct
     if type(self) == "string" then
@@ -126,6 +172,7 @@ function Log:clear(level)
     end
 end
 
+-- Generate a debug message.
 function Log:debug(format, ...)
     if self._.debug == 3 or (O.debug == 3 and self._.debug ~= 2) then
         local info = debug.getinfo(2, "S")
@@ -133,6 +180,7 @@ function Log:debug(format, ...)
     end
 end
 
+-- Generate an info message.
 function Log:info(format, ...)
     if self._.info == 3 or (O.info == 3 and self._.info ~= 2) then
         local info = debug.getinfo(2, "S")
@@ -140,6 +188,7 @@ function Log:info(format, ...)
     end
 end
 
+-- Generate a notice message.
 function Log:notice(format, ...)
     if self._.notice == 3 or (O.notice == 3 and self._.notice ~= 2) then
         local info = debug.getinfo(2, "S")
@@ -147,6 +196,7 @@ function Log:notice(format, ...)
     end
 end
 
+-- Generate a warning message.
 function Log:warning(format, ...)
     if self._.warning == 3 or (O.warning == 3 and self._.warning ~= 2) then
         local info = debug.getinfo(2, "S")
@@ -154,11 +204,13 @@ function Log:warning(format, ...)
     end
 end
 
+-- Generate a critical message.
 function Log:critical(format, ...)
     local info = debug.getinfo(2, "S")
     print(string.format("%s[%d] critical: "..format, info.source, info.linedefined, ...))
 end
 
+-- Generate a fatal message.
 function Log:fatal(format, ...)
     local info = debug.getinfo(2, "S")
     error(string.format("%s[%d] fatal: "..format, info.source, info.linedefined, ...))

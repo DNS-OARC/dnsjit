@@ -27,7 +27,7 @@
 
 static filter_lua_t _defaults = {
     LOG_T_INIT,
-    0, 0, 0
+    0, 0, 0, 0
 };
 
 int filter_lua_init(filter_lua_t* self)
@@ -40,8 +40,12 @@ int filter_lua_init(filter_lua_t* self)
 
     *self = _defaults;
 
-    self->L = luaL_newstate();
+    if (!(self->L = luaL_newstate())) {
+        return 1;
+    }
     luaL_openlibs(self->L);
+    lua_newtable(self->L);
+    lua_setglobal(self->L, "FILTER_LUA_ARGS");
     if (luaL_dostring(self->L, "FILTER_LUA = require(\"dnsjit.filter.lua\").handler()")) {
         lcritical("%s", lua_tostring(self->L, -1));
         lua_pop(self->L, 1);
@@ -89,6 +93,48 @@ int filter_lua_func(filter_lua_t* self, const char* bc, size_t len)
     return 0;
 }
 
+int filter_lua_push_string(filter_lua_t* self, const char* s, size_t l)
+{
+    if (!self || !self->L || !s) {
+        return 1;
+    }
+
+    lua_getglobal(self->L, "FILTER_LUA_ARGS");
+    lua_pushlstring(self->L, s, l);
+    lua_rawseti(self->L, -2, self->args);
+    self->args++;
+
+    return 0;
+}
+
+int filter_lua_push_integer(filter_lua_t* self, int i)
+{
+    if (!self || !self->L) {
+        return 1;
+    }
+
+    lua_getglobal(self->L, "FILTER_LUA_ARGS");
+    lua_pushinteger(self->L, i);
+    lua_rawseti(self->L, -2, self->args);
+    self->args++;
+
+    return 0;
+}
+
+int filter_lua_push_double(filter_lua_t* self, double d)
+{
+    if (!self || !self->L) {
+        return 1;
+    }
+
+    lua_getglobal(self->L, "FILTER_LUA_ARGS");
+    lua_pushnumber(self->L, d);
+    lua_rawseti(self->L, -2, self->args);
+    self->args++;
+
+    return 0;
+}
+
 static int _receive(void* robj, query_t* q)
 {
     filter_lua_t* self = (filter_lua_t*)robj;
@@ -108,7 +154,6 @@ static int _receive(void* robj, query_t* q)
         return 1;
     }
 
-    query_free(q);
     return 0;
 }
 

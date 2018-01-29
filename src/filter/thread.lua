@@ -16,8 +16,14 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
 
+-- dnsjit.filter.thread
+-- Filter/output to custom Lua code running in a real thread
+-- TODO
+--
+-- TODO
 module(...,package.seeall)
 
+local ch = require("dnsjit.core.chelpers")
 local log = require("dnsjit.core.log")
 local query = require("dnsjit.core.query")
 require("dnsjit.filter.thread_h")
@@ -101,7 +107,7 @@ function Thread:stop()
         error("not usable within a thread context")
     end
     self.log:debug("stop()")
-    return C.thread_stop(self._)
+    return ch.z2n(C.thread_stop(self._))
 end
 
 function Thread:join()
@@ -112,7 +118,7 @@ function Thread:join()
         error("not usable within a thread context")
     end
     self.log:debug("join()")
-    return C.thread_join(self._)
+    return ch.z2n(C.thread_join(self._))
 end
 
 function Thread:receive()
@@ -156,7 +162,8 @@ function Thread:send(q)
         error("only usable within a thread context")
     end
     self.log:debug("send()")
-    return C.thread_send(self._, q:struct())
+    -- TODO: test replace with ffi.gc(q:struct(), nil)
+    return ch.z2n(C.thread_send(self._, q:struct()))
 end
 
 return Thread

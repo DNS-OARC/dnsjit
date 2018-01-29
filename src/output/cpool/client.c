@@ -20,7 +20,7 @@
 
 #include "config.h"
 
-#include "output/client_pool/client.h"
+#include "output/cpool/client.h"
 
 #include <stdlib.h>
 #include <unistd.h>

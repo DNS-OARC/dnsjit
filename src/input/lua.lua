@@ -16,8 +16,14 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
 
+-- dnsjit.input.lua
+-- Generate input from Lua
+-- TODO
+--
+-- TODO
 module(...,package.seeall)
 
+local ch = require("dnsjit.core.chelpers")
 local log = require("dnsjit.core.log")
 require("dnsjit.core.log_h")
 require("dnsjit.core.receiver_h")
@@ -47,7 +53,7 @@ end
 
 function Lua:send(q)
     self.log:debug("send()")
-    return C.receiver_call(self._recv, self._robj, q:struct())
+    return ch.z2n(C.receiver_call(self._recv, self._robj, q:struct()))
 end
 
 return Lua
