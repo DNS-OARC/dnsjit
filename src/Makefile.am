@@ -28,7 +28,7 @@ AM_CFLAGS = -I$(srcdir) \
 	-I$(srcdir)/luajit/src \
     $(PTHREAD_CFLAGS)
 
-EXTRA_DIST = luajit gen-manpage.lua
+EXTRA_DIST = luajit gen-manpage.lua dnsjit.1in
 
 bin_PROGRAMS = dnsjit
 
@@ -63,7 +63,7 @@ dist_dnsjit_SOURCES += \
     output/cpool.hh output/null.hh
 # Lua sources
 dist_dnsjit_SOURCES += \
-	core.lua core/chelpers.lua core/log.lua core/mutex.lua core/query.lua src/core/receiver.lua src/core/timespec.lua \
+	core.lua core/chelpers.lua core/log.lua core/mutex.lua core/query.lua core/receiver.lua core/timespec.lua \
     input.lua input/lua.lua input/pcap.lua \
 	filter.lua filter/lua.lua filter/roundrobin.lua filter/thread.lua filter/timing.lua \
     output.lua output/cpool.lua output/null.lua
