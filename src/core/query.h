@@ -26,6 +26,7 @@
 #define __dnsjit_core_query_h
 
 #include <netinet/in.h>
+#include <sys/types.h>
 
 #include "core/query.hh"
 

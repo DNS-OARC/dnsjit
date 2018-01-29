@@ -24,6 +24,7 @@
 
 #include <string.h>
 #include <arpa/inet.h>
+#include <sys/socket.h>
 
 #if INET_ADDRSTRLEN > INET6_ADDRSTRLEN
 #define NTOP_BUFSIZE INET_ADDRSTRLEN
