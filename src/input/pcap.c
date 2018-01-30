@@ -30,7 +30,7 @@ static void _udp(u_char* user, const pcap_thread_packet_t* packet, const u_char*
     input_pcap_t*               self = (input_pcap_t*)user;
     query_t*                    q;
     const pcap_thread_packet_t* p;
-    omg_dns_t dns = OMG_DNS_T_INIT;
+    omg_dns_t                   dns = OMG_DNS_T_INIT;
 
     self->pkts++;
 
@@ -66,6 +66,14 @@ static void _udp(u_char* user, const pcap_thread_packet_t* packet, const u_char*
             return;
         }
     }
+    if (!packet->have_udphdr) {
+        query_free(q);
+        self->drop++;
+        return;
+    }
+    q->is_udp = 1;
+    q->sport  = packet->udphdr.uh_sport;
+    q->dport  = packet->udphdr.uh_dport;
     for (p = packet; p; p = p->prevpkt) {
         if (p->have_pkthdr) {
             q->ts.sec  = p->pkthdr.ts.tv_sec;
@@ -78,7 +86,6 @@ static void _udp(u_char* user, const pcap_thread_packet_t* packet, const u_char*
         self->drop++;
         return;
     }
-    q->is_udp = 1;
     if (query_set_raw(q, (const char*)payload, length)) {
         query_free(q);
         self->drop++;
@@ -98,6 +105,7 @@ static void _tcp(u_char* user, const pcap_thread_packet_t* packet, const u_char*
     input_pcap_t*               self = (input_pcap_t*)user;
     query_t*                    q;
     const pcap_thread_packet_t* p;
+    omg_dns_t                   dns = OMG_DNS_T_INIT;
 
     self->pkts++;
 
@@ -113,8 +121,6 @@ static void _tcp(u_char* user, const pcap_thread_packet_t* packet, const u_char*
     length -= 2;
 
     if (self->only_queries) {
-        omg_dns_t dns = OMG_DNS_T_INIT;
-
         if (omg_dns_parse_header(&dns, payload, length)) {
             self->drop++;
             return;
@@ -131,6 +137,29 @@ static void _tcp(u_char* user, const pcap_thread_packet_t* packet, const u_char*
         self->drop++;
         return;
     }
+    if (packet->have_iphdr) {
+        if (query_set_src(q, AF_INET, &packet->iphdr.ip_src, sizeof(packet->iphdr.ip_src))
+            || query_set_dst(q, AF_INET, &packet->iphdr.ip_dst, sizeof(packet->iphdr.ip_dst))) {
+            query_free(q);
+            self->drop++;
+            return;
+        }
+    } else if (packet->have_ip6hdr) {
+        if (query_set_src(q, AF_INET6, &packet->ip6hdr.ip6_src, sizeof(packet->ip6hdr.ip6_src))
+            || query_set_dst(q, AF_INET6, &packet->ip6hdr.ip6_dst, sizeof(packet->ip6hdr.ip6_dst))) {
+            query_free(q);
+            self->drop++;
+            return;
+        }
+    }
+    if (!packet->have_tcphdr) {
+        query_free(q);
+        self->drop++;
+        return;
+    }
+    q->is_tcp = 1;
+    q->sport  = packet->tcphdr.th_sport;
+    q->dport  = packet->tcphdr.th_dport;
     for (p = packet; p; p = p->prevpkt) {
         if (p->have_pkthdr) {
             q->ts.sec  = p->pkthdr.ts.tv_sec;
@@ -138,8 +167,17 @@ static void _tcp(u_char* user, const pcap_thread_packet_t* packet, const u_char*
             break;
         }
     }
-    q->is_tcp = 1;
+    if (!p) {
+        query_free(q);
+        self->drop++;
+        return;
+    }
     if (query_set_raw(q, (const char*)payload, length)) {
+        query_free(q);
+        self->drop++;
+        return;
+    }
+    if (self->only_queries && query_set_parsed_header(q, dns)) {
         query_free(q);
         self->drop++;
         return;

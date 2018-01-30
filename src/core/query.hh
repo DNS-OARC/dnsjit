@@ -28,7 +28,7 @@ typedef struct query {
     unsigned short is_ipv6 : 1;
     unsigned short have_raw : 1;
 
-    uint16_t   port;
+    uint16_t   sport, dport;
     timespec_t ts;
 
     char   small[64];
@@ -51,7 +51,7 @@ typedef struct query {
     unsigned short have_nscount : 1;
     unsigned short have_arcount : 1;
 
-    uint16_t id;
+    uint16_t       id;
     unsigned short qr : 1;
     unsigned short opcode : 4;
     unsigned short aa : 1;
@@ -62,10 +62,15 @@ typedef struct query {
     unsigned short ad : 1;
     unsigned short cd : 1;
     unsigned short rcode : 4;
-    uint16_t qdcount;
-    uint16_t ancount;
-    uint16_t nscount;
-    uint16_t arcount;
+    uint16_t       qdcount;
+    uint16_t       ancount;
+    uint16_t       nscount;
+    uint16_t       arcount;
+
+    size_t questions;
+    size_t answers;
+    size_t authorities;
+    size_t additionals;
 } query_t;
 
 query_t* query_new();
@@ -77,3 +82,10 @@ query_t* query_copy(query_t* self);
 const char* query_src(query_t* self);
 const char* query_dst(query_t* self);
 int query_parse_header(query_t* self);
+int query_parse(query_t* self);
+int query_rr_next(query_t* self);
+int query_rr_ok(query_t* self);
+const char* query_rr_label(query_t* self);
+uint16_t query_rr_type(query_t* self);
+uint16_t query_rr_class(query_t* self);
+uint32_t query_rr_ttl(query_t* self);
