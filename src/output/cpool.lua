@@ -18,9 +18,19 @@
 
 -- dnsjit.output.cpool
 -- Send queries to a target by emulating clients (a client pool)
--- TODO
+--   local output = require("dnsjit.output.cpool").new(host, port)
+--   input:receiver(output)
+--   output:start()
+--   ...
+--   output:stop()
 --
--- TODO
+-- Output module to send queries to a target with options to emulate a set
+-- number of clients, send queries over other protocols and more.
+-- This is handled by starting another thread and passing the queries to it
+-- via a queue and using EV as the event engine to send them.
+-- .LP
+-- .B NOTE
+-- there is currently no functionality implemented to retrieve the responses.
 module(...,package.seeall)
 
 local ch = require("dnsjit.core.chelpers")
@@ -54,6 +64,7 @@ struct = ffi.metatype(type, mt)
 
 local Cpool = {}
 
+-- Create a new Cpool output.
 function Cpool.new(host, port)
     local o = struct.new(host, port)
     local log = log.new(o.log)
@@ -68,6 +79,9 @@ function Cpool.new(host, port)
     }, {__index = Cpool})
 end
 
+-- Set the maximum clients to emulate, if
+-- .I max
+-- is not specified then return the current maximum clients.
 function Cpool:max_clients(max)
     if max == nil then
         return C.output_cpool_max_clients(self._)
@@ -75,6 +89,11 @@ function Cpool:max_clients(max)
     return ch.z2n(C.output_cpool_set_max_clients(self._, max))
 end
 
+-- Set the client ttl (a float/double), if
+-- .I ttl
+-- is not specified then return the current client ttl.
+-- This TTL is used to timeout clients and is specified as fractions of
+-- seconds meaning 0.1 is 100 ms.
 function Cpool:client_ttl(ttl)
     if ttl == nil then
         return C.output_cpool_client_ttl(self._)
@@ -82,6 +101,9 @@ function Cpool:client_ttl(ttl)
     return ch.z2n(C.output_cpool_set_client_ttl(self._, ttl))
 end
 
+-- Set the maximum clients to keep around to reuse later on, if
+-- .I reuse
+-- is not specified then return the current maximum clients to reuse.
 function Cpool:max_reuse_clients(reuse)
     if reuse == nil then
         return C.output_cpool_max_reuse_clients(self._)
@@ -89,6 +111,9 @@ function Cpool:max_reuse_clients(reuse)
     return ch.z2n(C.output_cpool_set_max_reuse_clients(self._, reuse))
 end
 
+-- Enable (true) or disable (false) not waiting for a reply, if
+-- .I bool
+-- is not specified then return if skipping reply is on (true) or off (false).
 function Cpool:skip_reply(bool)
     if bool == nil then
         return ch.i2b(C.output_cpool_skip_reply(self._))
@@ -100,6 +125,13 @@ function Cpool:skip_reply(bool)
     return ch.z2n(C.output_cpool_set_skip_reply(self._, b))
 end
 
+-- Set the protocol to send queries as, if
+-- .I type
+-- is not specified then return the current way to send queries.
+-- Valid ways are;
+-- .IR original ,
+-- .IR udp ,
+-- .IR tcp .
 function Cpool:sendas(type)
     if type == nil then
         return C.output_cpool_sendas(self._)
@@ -113,6 +145,9 @@ function Cpool:sendas(type)
     return 1
 end
 
+-- Enable (true) or disable (false) dry run mode, if
+-- .I bool
+-- is not specified then return if dry run is on (true) or off (false).
 function Cpool:dry_run(bool)
     if bool == nil then
         return ch.i2b(C.output_cpool_dry_run(self._))
@@ -124,10 +159,12 @@ function Cpool:dry_run(bool)
     return ch.z2n(C.output_cpool_set_dry_run(self._, b))
 end
 
+-- Start the processing of queries sent to the queue.
 function Cpool:start()
     return ch.z2n(C.output_cpool_start(self._))
 end
 
+-- Stop the processing of queries.
 function Cpool:stop()
     return ch.z2n(C.output_cpool_stop(self._))
 end

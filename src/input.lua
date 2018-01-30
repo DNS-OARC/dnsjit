@@ -18,9 +18,8 @@
 
 -- dnsjit.input
 -- Input modules for dnsjit
--- TODO
 --
--- TODO
+-- Input modules used to read DNS messages in various ways.
 module(...,package.seeall)
 
 error("This should not be included, only here for documentation generation")

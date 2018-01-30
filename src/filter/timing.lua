@@ -18,9 +18,12 @@
 
 -- dnsjit.filter.timing
 -- Filter to pass queries to the next receiver based on timing between packets
--- TODO
+--   local filter = require("dnsjit.filter.timing").new()
+--   ...
+--   filter:receiver(...)
 --
--- TODO
+-- Filter to manipulate processing so it simulates the actual timing when
+-- packets arrived or to delay processing.
 module(...,package.seeall)
 
 local log = require("dnsjit.core.log")
@@ -53,6 +56,7 @@ struct = ffi.metatype(type, mt)
 
 local Timing = {}
 
+-- Create a new Timing filter.
 function Timing.new()
     local o = struct.new()
     local log = log.new(o.log)
@@ -63,25 +67,34 @@ function Timing.new()
     }, {__index = Timing})
 end
 
+-- Set the timing mode to keep the timing between packets.
 function Timing:keep()
     self._.mode = "TIMING_MODE_KEEP"
 end
 
+-- Set the timing mode to increase the timing between packets by the given
+-- number of nanoseconds.
 function Timing:increase(ns)
     self._.mode = "TIMING_MODE_INCREASE"
     self._.inc = ns
 end
 
+-- Set the timing mode to reduce the timing between packets by the given
+-- number of nanoseconds.
 function Timing:reduce(ns)
     self._.mode = "TIMING_MODE_REDUCE"
     self._.red = ns
 end
 
+-- Set the timing mode to multiply the timing between packets by the given
+-- factor (float/double).
 function Timing:multiply(factor)
     self._.mode = "TIMING_MODE_MULTIPLY"
     self._.mul = factor
 end
 
+-- Set the timing mode to keep the timing between packets but ignore any
+-- issues in doing so.
 function Timing:best_effort()
     self._.mode = "TIMING_MODE_BEST_EFFORT"
 end
@@ -91,6 +104,7 @@ function Timing:receive()
     return C.filter_timing_receiver(), self._
 end
 
+-- Set the receiver to pass queries to.
 function Timing:receiver(o)
     self.log:debug("receiver()")
     self._.recv, self._.robj = o:receive()

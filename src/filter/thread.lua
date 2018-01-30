@@ -17,10 +17,25 @@
 -- along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
 
 -- dnsjit.filter.thread
--- Filter/output to custom Lua code running in a real thread
--- TODO
+-- Filter through custom Lua code running in a real thread
+--   local filter = require("dnsjit.filter.thread").new()
+--   filter:create(function(thread)
+--       while true do
+--           local query = thread:recv()
+--           if query == nil then
+--               return
+--           end
+--           ...
+--           thread:send(query)
+--       end
+--   end)
+--   ...
+--   filter:stop()
+--   filter:join()
 --
--- TODO
+-- Filter module to run custom Lua code on received queries with the option
+-- to send them to the next receiver.
+-- This module start a real thread and passes queries through a queue.
 module(...,package.seeall)
 
 local ch = require("dnsjit.core.chelpers")
@@ -55,6 +70,7 @@ struct = ffi.metatype(type, mt)
 
 local Thread = {}
 
+-- Create a new Thread filter.
 function Thread.new()
     local o = struct.new()
     local log = log.new(o.log)
@@ -84,6 +100,8 @@ function Thread:run()
     assert(loadstring(THREAD_BYTECODE))(self)
 end
 
+-- Create a new thread and call the function in it, this function runs in
+-- it's own Lua state and in so does not shared any global variables.
 function Thread:create(func)
     if self.created then
         error("already created thread")
@@ -99,6 +117,7 @@ function Thread:create(func)
     self.created = true
 end
 
+-- Stop the running thread by sending a special stop query.
 function Thread:stop()
     if not self.created then
         error("no thread created yet")
@@ -110,6 +129,7 @@ function Thread:stop()
     return ch.z2n(C.thread_stop(self._))
 end
 
+-- Wait for the thread to join after stopping it.
 function Thread:join()
     if not self.created then
         error("no thread created yet")
@@ -133,6 +153,7 @@ function Thread:receive()
     return C.thread_receiver(), self._
 end
 
+-- Set the receiver to pass queries to.
 function Thread:receiver(o)
     if self.created then
         error("unable to set receiver after thread has been created")
@@ -145,6 +166,8 @@ function Thread:receiver(o)
     self._receiver = o
 end
 
+-- Called in the thread function to receive queries, returns nil when the
+-- special stop query has been received.
 function Thread:recv()
     if not self.inthread then
         error("only usable within a thread context")
@@ -157,6 +180,7 @@ function Thread:recv()
     end
 end
 
+-- Called in the thread function to send the query to the next receiver.
 function Thread:send(q)
     if not self.inthread then
         error("only usable within a thread context")
@@ -166,4 +190,5 @@ function Thread:send(q)
     return ch.z2n(C.thread_send(self._, q:struct()))
 end
 
+-- dnsjit.filter.lua (3)
 return Thread

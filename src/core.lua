@@ -18,9 +18,9 @@
 
 -- dnsjit.core
 -- Core modules for dnsjit
--- TODO
 --
--- TODO
+-- Core modules for handling things like logging, DNS messages and
+-- receiver/receive functionality.
 module(...,package.seeall)
 
 error("This should not be included, only here for documentation generation")

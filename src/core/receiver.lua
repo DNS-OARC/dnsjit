@@ -18,9 +18,16 @@
 
 -- dnsjit.core.receiver
 -- Receiver data structure definition
--- TODO
+--   require("dnsjit.core.receiver_h")
+--   local C = require("ffi").C
+--   C.receiver_call(recv_c_function_ptr, recv_c_function_data, query:struct()
 --
--- TODO
+-- Receiver and receive interfaces and data structure definitions used by
+-- input, filter and output modules to pass query objects for processing.
 module(...,package.seeall)
 
 error("This should not be included, only here for documentation generation")
+
+-- dnsjit.core.query (3),
+-- dnsjit.input.lua (3)
+return

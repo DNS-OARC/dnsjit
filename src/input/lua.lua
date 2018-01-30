@@ -18,9 +18,14 @@
 
 -- dnsjit.input.lua
 -- Generate input from Lua
--- TODO
+--   local input = require("dnsjit.input.lua").new()
+--   input:receiver(filter_or_output)
+--   input:send(query)
 --
--- TODO
+-- An input module to generate input from Lua.
+-- .LP
+-- .B NOTE
+-- there is no way to create queries yet.
 module(...,package.seeall)
 
 local ch = require("dnsjit.core.chelpers")
@@ -32,6 +37,7 @@ local C = ffi.C
 
 local Lua = {}
 
+-- Create a new Lua input.
 function Lua.new()
     local o = ffi.new("log_t")
     local log = log.new(o)
@@ -45,15 +51,18 @@ function Lua.new()
     }, {__index = Lua})
 end
 
+-- Set the receiver to pass queries to.
 function Lua:receiver(o)
     self.log:debug("receiver()")
     self._recv, self._robj = o:receive()
     self._receiver = o
 end
 
+-- Send a query to the receiver.
 function Lua:send(q)
     self.log:debug("send()")
     return ch.z2n(C.receiver_call(self._recv, self._robj, q:struct()))
 end
 
+-- dnsjit.core.query (3)
 return Lua

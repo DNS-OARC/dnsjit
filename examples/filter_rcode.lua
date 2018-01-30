@@ -12,7 +12,7 @@ local output = require("dnsjit.filter.lua").new()
 
 output:push(tonumber(rcode))
 output:func(function(filter, query, args)
-    local rcode = args[0]
+    local rcode = unpack(args, 0)
     query:parse()
     if query:rcode() == rcode then
         print(query:id(), query:src().." -> "..query:dst())

@@ -18,18 +18,24 @@
 
 -- dnsjit.core.mutex
 -- Core mutex functions
--- TODO
+--   local mutex = require("dnsjit.core.mutex")
+--   mutex.lock()
+--   mutex.unlock()
 --
--- TODO
+-- Provide an interface to a mutex that is shared between all threads and
+-- Lua states, this can be used to guarantee propper handling of Lua global
+-- variables or anything else that might otherwise be thread unsafe.
 module(...,package.seeall)
 
 require("dnsjit.core.mutex_h")
 local C = require("ffi").C
 
+-- Lock the global shared mutex
 function lock()
     return C.core_mutex_lock()
 end
 
+-- Unlock the global shared mutex
 function unlock()
     return C.core_mutex_unlock()
 end

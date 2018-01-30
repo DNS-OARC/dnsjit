@@ -36,7 +36,7 @@ output:func(function(filter, query)
         n = query:additionals()
         while n > 0 and query:rr_next() == 0 do
             if query:rr_ok() == 1 then
-                print("  ad:", query:rr_class(), query:rr_type(), query:rr_ttl(), query:rr_label())
+                print("  ar:", query:rr_class(), query:rr_type(), query:rr_ttl(), query:rr_label())
             end
             n = n - 1
         end

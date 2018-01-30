@@ -18,11 +18,18 @@
 
 -- dnsjit.core.chelpers
 -- C helper functions
--- TODO
+--   local ch = require("dnsjit.core.chelpers")
+--   function Example()
+--       return ch.z2n(C.function())
+--   end
 --
--- TODO
+-- The C helper functions can be used to facilitate the handling of arguments
+-- to and from C functions.
 module(...,package.seeall)
 
+-- Convert the Lua
+-- .I bool
+-- to 1 (true) or 0 (false)
 function b2i(bool)
     if bool == true then
         return 1
@@ -31,6 +38,9 @@ function b2i(bool)
     end
 end
 
+-- Convert a C
+-- .I int
+-- to false (0) or true (anything else)
 function i2b(int)
     if int == 0 then
         return false
@@ -38,6 +48,9 @@ function i2b(int)
     return true
 end
 
+-- Return the C
+-- .I int
+-- if it is 0, otherwise return nothing (empty list)
 function z2n(int)
     if not int == 0 then
         return int

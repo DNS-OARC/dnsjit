@@ -18,6 +18,8 @@ print[[
 .\" along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
 .\"]]
 
+sh_syn = false
+sh_desc = false
 ss_func = false
 doc = {}
 funcs = {}
@@ -31,21 +33,31 @@ for line in io.lines(arg[1]) do
         print(".TH "..doc[1].." 3 \"@PACKAGE_VERSION@\" \"dnsjit\"")
         print(".SH NAME")
         print(doc[1].." \\- "..doc[2])
-        print(".SH SYNOPSIS")
         n, line = next(doc, 2)
         while line and line > "" do
+            if not sh_syn then
+                print(".SH SYNOPSIS")
+                sh_syn = true
+            end
             print(line)
             n, line = next(doc, n)
         end
-        print(".SH DESCRIPTION")
         n, line = next(doc, n)
         while line and line > "" do
+            if not sh_desc then
+                print(".SH DESCRIPTION")
+                sh_desc = true
+            end
             print(line)
             n, line = next(doc, n)
         end
     elseif string.match(line, "^function") then
         if table.maxn(doc) > 0 then
             if not ss_func then
+                if not sh_desc then
+                    print(".SH DESCRIPTION")
+                    sh_desc = true
+                end
                 print(".SS Functions")
                 ss_func = true
             end

@@ -17,10 +17,18 @@
 -- along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
 
 -- dnsjit.filter.lua
--- Filter/output through custom Lua function
--- TODO
+-- Filter through custom Lua function
+--   local filter = require("dnsjit.filter.lua").new()
+--   filter:push("arg1")
+--   filter:push(2)
+--   filter:func(function(filter, query, args)
+--      local arg1, arg2 = unpack(args, 0)
+--      ...
+--      filter:send(query)
+--   end)
 --
--- TODO
+-- Filter module to run custom Lua code on received queries with the option
+-- to send them to the next receiver.
 module(...,package.seeall)
 
 local ch = require("dnsjit.core.chelpers")
@@ -55,6 +63,7 @@ struct = ffi.metatype(_type, mt)
 
 local Lua = {}
 
+-- Create a new Lua filter.
 function Lua.new()
     local o = struct.new()
     local log = log.new(o.log)
@@ -66,6 +75,8 @@ function Lua.new()
     }, {__index = Lua})
 end
 
+-- Set the function to call on each receive, this function runs in it's own
+-- Lua state and in so does not shared any global variables.
 function Lua:func(func)
     if self.ishandler then
         error("is handler")
@@ -74,6 +85,8 @@ function Lua:func(func)
     return ch.z2n(C.filter_lua_func(self._, bc, string.len(bc)))
 end
 
+-- Push additional arguments to send to the function, this is the way to
+-- pass variables into the new Lua state.
 function Lua:push(var)
     local t = type(var)
     if t == "string" then
@@ -97,6 +110,7 @@ function Lua:receive()
     return C.filter_lua_receiver(), self._
 end
 
+-- Set the receiver to pass queries to.
 function Lua:receiver(o)
     if self.ishandler then
         error("is handler")
@@ -135,6 +149,7 @@ function Lua:run()
     return self._func(self, q, FILTER_LUA_ARGS)
 end
 
+-- Used from the Lua function to send queries to the next receiver.
 function Lua:send(q)
     if not self.ishandler then
         error("not handler")
@@ -144,4 +159,5 @@ function Lua:send(q)
     return ch.z2n(C.receiver_call(self._recv, self._robj, q))
 end
 
+-- dnsjit.filter.thread (3)
 return Lua

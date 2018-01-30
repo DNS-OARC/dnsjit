@@ -18,9 +18,13 @@
 
 -- dnsjit.filter.roundrobin
 -- Passthrough to other receivers in a round robin fashion
--- TODO
+--   local filter = require("dnsjit.filter.roundrobin").new()
+--   filter.receiver(...)
+--   filter.receiver(...)
+--   filter.receiver(...)
+--   input.receiver(filter)
 --
--- TODO
+-- Filter to pass queries to others in a round robin fashion.
 module(...,package.seeall)
 
 local log = require("dnsjit.core.log")
@@ -53,6 +57,7 @@ struct = ffi.metatype(type, mt)
 
 local Roundrobin = {}
 
+-- Create a new Roundrobin filter.
 function Roundrobin.new()
     local o = struct.new()
     local log = log.new(o.log)
@@ -69,6 +74,8 @@ function Roundrobin:receive()
     return C.filter_roundrobin_receiver(), self._
 end
 
+-- Set the receiver to pass queries to, this can be called multiple times to
+-- set addtional receivers.
 function Roundrobin:receiver(o)
     self.log:debug("receiver()")
     local recv, robj

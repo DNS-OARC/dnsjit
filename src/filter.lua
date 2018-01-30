@@ -18,9 +18,8 @@
 
 -- dnsjit.filter
 -- Filter/processing modules for dnsjit
--- TODO
 --
--- TODO
+-- Filter modules to process or manipulate DNS messages.
 module(...,package.seeall)
 
 error("This should not be included, only here for documentation generation")

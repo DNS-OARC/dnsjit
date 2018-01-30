@@ -18,9 +18,10 @@
 
 -- dnsjit.core.receiver
 -- Non-system depended time specification structure definition
--- TODO
+--   require("dnsjit.core.timespec_h")
 --
--- TODO
+-- Mainly used in C modules for a system independent time specification
+-- structure that can be passed to Lua.
 module(...,package.seeall)
 
 error("This should not be included, only here for documentation generation")

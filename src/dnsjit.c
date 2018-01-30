@@ -52,6 +52,8 @@ int main(int argc, char* argv[])
     pthread_t   sighthr;
     const char* file;
 
+    fprintf(stderr, "<< " PACKAGE_NAME " v" PACKAGE_VERSION "-ALPHA (expect bugs) " PACKAGE_URL " >>\n");
+
     sigfillset(&set);
     if ((err = pthread_sigmask(SIG_BLOCK, &set, 0))) {
         glfatal("Unable to set blocked signals with pthread_sigmask()");
@@ -78,7 +80,7 @@ int main(int argc, char* argv[])
     }
     lua_setglobal(L, "arg");
 
-    if (argc > 0) {
+    if (argc > 1) {
         file = argv[1];
         if ((err = luaL_loadfile(L, file))) {
             switch (err) {

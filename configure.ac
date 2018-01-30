@@ -47,5 +47,6 @@ AC_CHECK_SIZEOF(void*)
 AC_CONFIG_FILES([
     Makefile
     src/Makefile
+    examples/Makefile
 ])
 AC_OUTPUT

@@ -18,9 +18,9 @@
 
 -- dnsjit.output
 -- Output modules for dnsjit
--- TODO
 --
--- TODO
+-- Output modules used to display DNS message, export to various formats or
+-- replay them against other targets.
 module(...,package.seeall)
 
 error("This should not be included, only here for documentation generation")

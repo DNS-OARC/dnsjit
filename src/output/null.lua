@@ -18,9 +18,9 @@
 
 -- dnsjit.output.null
 -- Output to nothing (/dev/null)
--- TODO
+--   local output = require("dnsjit.output.null").new()
 --
--- TODO
+-- Output module for those that doesn't really like queries.
 module(...,package.seeall)
 
 local log = require("dnsjit.core.log")
@@ -45,6 +45,7 @@ struct = ffi.metatype(type, mt)
 
 local Null = {}
 
+-- Create a new Null output.
 function Null.new()
     local o = struct.new()
     local log = log.new(o.log)
@@ -60,6 +61,7 @@ function Null:receive()
     return C.output_null_receiver(), self._
 end
 
+-- Return the number of queries we sent into the void.
 function Null:packets()
     return tonumber(self._.pkts)
 end
