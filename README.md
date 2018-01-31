@@ -27,6 +27,22 @@ The following Lua module categories exists:
 
 See each category's man-page for more information.
 
+## Dependencies
+
+- libluajit 2+
+- libpcap
+- libev
+- luajit (for building)
+- automake/autoconf/libtool/pkg-config (for building)
+
+Debian/Ubuntu: `apt-get install libluajit-5.1-dev libpcap-dev libev-dev luajit`
+
+CentOS: `yum install luajit-devel libpcap-devel libev-devel`
+
+FreeBSD: `pkg install luajit libpcap libev`
+
+OpenBSD: `pkg_add luajit libev` + manual install of libpcap
+
 ## Build
 
 ```shell

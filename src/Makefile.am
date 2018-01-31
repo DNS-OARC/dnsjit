@@ -17,22 +17,18 @@
 # along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
 
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
-CLEANFILES = luajit.built \
-    libluajit.a libluajit.a.linked \
-    luajit-cc jit luajit-cc.linked
+CLEANFILES =
 
 #SUBDIRS = test
 
 AM_CFLAGS = -I$(srcdir) \
     -I$(top_srcdir) \
-	-I$(srcdir)/luajit/src \
-    $(PTHREAD_CFLAGS)
+    $(PTHREAD_CFLAGS) \
+    $(luajit_CFLAGS)
 
-EXTRA_DIST = luajit gen-manpage.lua dnsjit.1in
+EXTRA_DIST = gen-manpage.lua dnsjit.1in
 
 bin_PROGRAMS = dnsjit
-
-BUILT_SOURCES = luajit-cc
 
 dnsjit_SOURCES = dnsjit.c \
     core/log.c core/mutex.c core/query.c core/receiver.c \
@@ -52,8 +48,7 @@ dist_dnsjit_SOURCES = \
     pcap-thread/pcap_thread.h \
     sllq/sllq.h \
 	output/cpool/client_pool.h output/cpool/client.h
-dnsjit_LDADD = libluajit.a \
-    $(PTHREAD_LIBS)
+dnsjit_LDADD = $(PTHREAD_LIBS) $(luajit_LIBS)
 
 # Lua headers
 dist_dnsjit_SOURCES += \
@@ -89,28 +84,11 @@ man3_MANS = dnsjit.core.3 dnsjit.core.chelpers.3 dnsjit.core.log.3 dnsjit.core.m
 	dnsjit.output.3 dnsjit.output.cpool.3 dnsjit.output.null.3
 CLEANFILES += *.3in $(man3_MANS)
 
-luajit.built:
-	$(MAKE) -C "$(srcdir)/luajit" all
-	touch luajit.built
-
-luajit-cc: luajit-cc.linked
-
-luajit-cc.linked: luajit.built
-	ln -sf "$(srcdir)/luajit/src/luajit" luajit-cc
-	ln -sf "$(srcdir)/luajit/src/jit" jit
-	touch luajit-cc.linked
-
-libluajit.a: libluajit.a.linked
-
-libluajit.a.linked: luajit.built
-	ln -sf "$(srcdir)/luajit/src/libluajit.a" libluajit.a
-	touch libluajit.a.linked
-
 .lua.luao:
-	./luajit-cc -bg -n "dnsjit.`echo \"$@\" | sed 's%\..*%%' | sed 's%/%.%g'`" -t o "$<" "$@"
+	$(LUAJIT) -bg -n "dnsjit.`echo \"$@\" | sed 's%\..*%%' | sed 's%/%.%g'`" -t o "$<" "$@"
 
 .luah.luaho:
-	./luajit-cc -bg -n "dnsjit.`echo \"$@\" | sed 's%\..*%%' | sed 's%/%.%g'`_h" -t o "$<" "$@"
+	$(LUAJIT) -bg -n "dnsjit.`echo \"$@\" | sed 's%\..*%%' | sed 's%/%.%g'`_h" -t o "$<" "$@"
 
 .hh.luah:
 	@echo 'module(...,package.seeall);' > "$@"
@@ -132,55 +110,55 @@ libluajit.a.linked: luajit.built
        < "$<" > "$@"
 
 dnsjit.core.3in: core.lua gen-manpage.lua
-	./luajit-cc "$(srcdir)/gen-manpage.lua" "$<" > "$@"
+	$(LUAJIT) "$(srcdir)/gen-manpage.lua" "$<" > "$@"
 
 dnsjit.core.chelpers.3in: core/chelpers.lua gen-manpage.lua
-	./luajit-cc "$(srcdir)/gen-manpage.lua" "$<" > "$@"
+	$(LUAJIT) "$(srcdir)/gen-manpage.lua" "$<" > "$@"
 
 dnsjit.core.log.3in: core/log.lua gen-manpage.lua
-	./luajit-cc "$(srcdir)/gen-manpage.lua" "$<" > "$@"
+	$(LUAJIT) "$(srcdir)/gen-manpage.lua" "$<" > "$@"
 
 dnsjit.core.mutex.3in: core/mutex.lua gen-manpage.lua
-	./luajit-cc "$(srcdir)/gen-manpage.lua" "$<" > "$@"
+	$(LUAJIT) "$(srcdir)/gen-manpage.lua" "$<" > "$@"
 
 dnsjit.core.query.3in: core/query.lua gen-manpage.lua
-	./luajit-cc "$(srcdir)/gen-manpage.lua" "$<" > "$@"
+	$(LUAJIT) "$(srcdir)/gen-manpage.lua" "$<" > "$@"
 
 dnsjit.core.receiver.3in: core/receiver.lua gen-manpage.lua
-	./luajit-cc "$(srcdir)/gen-manpage.lua" "$<" > "$@"
+	$(LUAJIT) "$(srcdir)/gen-manpage.lua" "$<" > "$@"
 
 dnsjit.core.timespec.3in: core/timespec.lua gen-manpage.lua
-	./luajit-cc "$(srcdir)/gen-manpage.lua" "$<" > "$@"
+	$(LUAJIT) "$(srcdir)/gen-manpage.lua" "$<" > "$@"
 
 dnsjit.input.3in: input.lua gen-manpage.lua
-	./luajit-cc "$(srcdir)/gen-manpage.lua" "$<" > "$@"
+	$(LUAJIT) "$(srcdir)/gen-manpage.lua" "$<" > "$@"
 
 dnsjit.input.lua.3in: input/lua.lua gen-manpage.lua
-	./luajit-cc "$(srcdir)/gen-manpage.lua" "$<" > "$@"
+	$(LUAJIT) "$(srcdir)/gen-manpage.lua" "$<" > "$@"
 
 dnsjit.input.pcap.3in: input/pcap.lua gen-manpage.lua
-	./luajit-cc "$(srcdir)/gen-manpage.lua" "$<" > "$@"
+	$(LUAJIT) "$(srcdir)/gen-manpage.lua" "$<" > "$@"
 
 dnsjit.filter.3in: filter.lua gen-manpage.lua
-	./luajit-cc "$(srcdir)/gen-manpage.lua" "$<" > "$@"
+	$(LUAJIT) "$(srcdir)/gen-manpage.lua" "$<" > "$@"
 
 dnsjit.filter.lua.3in: filter/lua.lua gen-manpage.lua
-	./luajit-cc "$(srcdir)/gen-manpage.lua" "$<" > "$@"
+	$(LUAJIT) "$(srcdir)/gen-manpage.lua" "$<" > "$@"
 
 dnsjit.filter.roundrobin.3in: filter/roundrobin.lua gen-manpage.lua
-	./luajit-cc "$(srcdir)/gen-manpage.lua" "$<" > "$@"
+	$(LUAJIT) "$(srcdir)/gen-manpage.lua" "$<" > "$@"
 
 dnsjit.filter.thread.3in: filter/thread.lua gen-manpage.lua
-	./luajit-cc "$(srcdir)/gen-manpage.lua" "$<" > "$@"
+	$(LUAJIT) "$(srcdir)/gen-manpage.lua" "$<" > "$@"
 
 dnsjit.filter.timing.3in: filter/timing.lua gen-manpage.lua
-	./luajit-cc "$(srcdir)/gen-manpage.lua" "$<" > "$@"
+	$(LUAJIT) "$(srcdir)/gen-manpage.lua" "$<" > "$@"
 
 dnsjit.output.3in: output.lua gen-manpage.lua
-	./luajit-cc "$(srcdir)/gen-manpage.lua" "$<" > "$@"
+	$(LUAJIT) "$(srcdir)/gen-manpage.lua" "$<" > "$@"
 
 dnsjit.output.cpool.3in: output/cpool.lua gen-manpage.lua
-	./luajit-cc "$(srcdir)/gen-manpage.lua" "$<" > "$@"
+	$(LUAJIT) "$(srcdir)/gen-manpage.lua" "$<" > "$@"
 
 dnsjit.output.null.3in: output/null.lua gen-manpage.lua
-	./luajit-cc "$(srcdir)/gen-manpage.lua" "$<" > "$@"
+	$(LUAJIT) "$(srcdir)/gen-manpage.lua" "$<" > "$@"

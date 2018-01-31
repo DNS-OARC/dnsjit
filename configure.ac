@@ -39,6 +39,8 @@ AC_CHECK_LIB([ev], [ev_now], [], AC_MSG_ERROR([libev not found]))
 AC_CHECK_HEADER([ev.h], [AC_CHECK_HEADERS([ev.h])], [AC_CHECK_HEADER([libev/ev.h], [AC_CHECK_HEADERS([libev/ev.h])], [AC_MSG_ERROR([libev header not found])])])
 AC_SEARCH_LIBS([clock_gettime],[rt])
 AC_CHECK_FUNCS([clock_nanosleep nanosleep])
+PKG_CHECK_MODULES([luajit], [luajit >= 2],,AC_MSG_ERROR([luajit v2+ not found]))
+AC_PATH_PROG([LUAJIT], [luajit])
 
 # Checks for sizes
 AC_CHECK_SIZEOF(void*)
