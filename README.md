@@ -1,5 +1,7 @@
 # Engine for capturing, parsing and replaying DNS
 
+[![Build Status](https://travis-ci.org/DNS-OARC/dnsjit.svg?branch=develop)](https://travis-ci.org/DNS-OARC/dnsjit) [![Coverity Scan Build Status](https://scan.coverity.com/projects/15008/badge.svg)](https://scan.coverity.com/projects/dns-oarc-dnsjit)
+
 **dnsjit** is a combination of parts taken from **dsc**, **dnscap**, **drool**,
 and put together around Lua to create a script-based engine for easy
 capturing, parsing and statistics gathering of DNS message while also
