@@ -1,4 +1,7 @@
 dist: xenial
+env:
+  global:
+   - secure: "NJqhFAJwOlrFs4bezz9ze0+bf3grgCJN5ZMB63gwyCbIk4CsE2xYeAmfXSMbhq2S6j7LjzT21FEPVF652lXrrdAEeYOOhqqV65Tj1AmuMeXjUFPVFOLzERHNjOTjcfGjpV2+n0XTbLaw8jvKsw48CnhTMPt45cohcI5YOehMUR+uxen0yCL6nYo/PLqgBUfFUCHLL7ZIIgdEaPcPhNBaPyCkYmEYFVLuSMdvlOFkx5TxGJz7gQxjN764ik3nJZ+UnjclQ7k8OenWmSHWlwg/Xn92KeWXeJ+IQsMdXjh0vtGXyz9O2DpvUweeAubcB1+1WbFXeiu7ClIFPTfPv/lojDDcX+0abQnuUjRp5rA0iR0PqvobIC+0rXh1wt4kawQkA79a7+OlcDVtoTRII53r14icZYPO7Ajw1nE67JaJ2PHL6NQyMwtsHOfAlBZxNaod784Bs0IX/ML+SKMA1GltqKYKS//jdwbylKqNbQGXoS+echMsWvWWlugJkarrq1bqgKMq7hRwT/ZLrs7stm1naQD3CH8SnsS0tVlX6FQTUNZv+ce8goPM8DIVHhlBujju1bSrD0kHWwJXIuO5n5HUPbN46ox1qdp6/ghF2qJ6IN2h4ooaFrD8SRJUEDZWFuDBaml2YTAjr/rR5fZS0HjxPzBhhk2mUqOSQth9ITT+VNE="
 addons:
   apt:
     update: true
@@ -9,18 +12,15 @@ addons:
     - liblmdb-dev
     - libck-dev
     - libgnutls28-dev
+  coverity_scan:
+    project:
+      name: "DNS-OARC/dnsjit"
+      description: "Build submitted via Travis CI"
+    notification_email: lundstrom.jerry@gmail.com
+    build_command_prepend: "./autogen.sh && ./configure && make clean"
+    build_command: "make"
+    branch_pattern: coverity_scan
 language: c
 compiler:
-  - clang
   - gcc
-install: ./autogen.sh
-script:
-  - ./configure --enable-warn-all
-  - make dist
-  - tar zxvf *.tar.gz
-  - cd dnsjit-[0-9]*
-  - mkdir build
-  - cd build
-  - ../configure --enable-warn-all
-  - make
-  - make test
+script: true
