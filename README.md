@@ -1,4 +1,4 @@
-# DNS engine based around LuaJIT for capturing, parsing, replaying and statistics gathering
+# Engine for capturing, parsing and replaying DNS
 
 **dnsjit** is a combination of parts taken from **dsc**, **dnscap**, **drool**,
 and put together around Lua to create a script-based engine for easy
@@ -16,14 +16,10 @@ even if the messages are non-compliant with the DNS standards.
 set and may be changed or removed.
 
 The following Lua module categories exists:
-- dnsjit.core
-  Core modules for handling things like logging, DNS messages and receiver/receive functionality.
-- dnsjit.input
-  Input modules used to read DNS messages in various ways.
-- dnsjit.filter
-  Filter modules to process or manipulate DNS messages.
-- dnsjit.output
-  Output modules used to display DNS message, export to various formats or replay them against other targets.
+- `dnsjit.core`: Core modules for handling things like logging, DNS messages and receiver/receive functionality.
+- `dnsjit.input`: Input modules used to read DNS messages in various ways.
+- `dnsjit.filter`: Filter modules to process or manipulate DNS messages.
+- `dnsjit.output`: Output modules used to display DNS message, export to various formats or replay them against other targets.
 
 See each category's man-page for more information.
 

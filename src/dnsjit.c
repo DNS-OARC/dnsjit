@@ -46,13 +46,17 @@ static void* _sighthr(void* arg)
 
 int main(int argc, char* argv[])
 {
-    lua_State*  L;
-    int         n, err;
-    sigset_t    set;
-    pthread_t   sighthr;
-    const char* file;
+    lua_State* L;
+    int        n, err;
+    sigset_t   set;
+    pthread_t  sighthr;
 
-    fprintf(stderr, "<< " PACKAGE_NAME " v" PACKAGE_VERSION "-ALPHA (expect bugs) " PACKAGE_URL " >>\n");
+    fprintf(stderr, "<< " PACKAGE_NAME " v" PACKAGE_VERSION " " PACKAGE_URL " >>\n");
+
+    if (argc < 2) {
+        fprintf(stderr, "usage: %s <file.lua> ...\n", argv[0]);
+        exit(1);
+    }
 
     sigfillset(&set);
     if ((err = pthread_sigmask(SIG_BLOCK, &set, 0))) {
@@ -79,33 +83,28 @@ int main(int argc, char* argv[])
         lua_rawseti(L, -2, n);
     }
     lua_setglobal(L, "arg");
-
-    if (argc > 1) {
-        file = argv[1];
-        if ((err = luaL_loadfile(L, file))) {
-            switch (err) {
-            case LUA_ERRSYNTAX:
-                glcritical("%s: syntax error during pre-compilation", file);
-                break;
-            case LUA_ERRMEM:
-                glcritical("%s: memory allocation error", file);
-                break;
-            case LUA_ERRFILE:
-                glcritical("%s: cannot open/read file", file);
-                break;
-            default:
-                glcritical("%s: unknown error %d", file, err);
-                break;
-            }
-            return 1;
+    if ((err = luaL_loadfile(L, argv[1]))) {
+        switch (err) {
+        case LUA_ERRSYNTAX:
+            glcritical("%s: syntax error during pre-compilation", argv[1]);
+            break;
+        case LUA_ERRMEM:
+            glcritical("%s: memory allocation error", argv[1]);
+            break;
+        case LUA_ERRFILE:
+            glcritical("%s: cannot open/read file", argv[1]);
+            break;
+        default:
+            glcritical("%s: unknown error %d", argv[1], err);
+            break;
         }
-        if (lua_pcall(L, 0, 0, 0)) {
-            glcritical("%s: %s", file, lua_tostring(L, -1));
-            lua_pop(L, 1);
-            return 1;
-        }
+        return 1;
     }
-
+    if (lua_pcall(L, 0, 0, 0)) {
+        glcritical("%s: %s", argv[1], lua_tostring(L, -1));
+        lua_pop(L, 1);
+        return 1;
+    }
     lua_close(L);
 
     return 0;
