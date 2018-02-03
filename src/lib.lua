@@ -16,29 +16,11 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
 
--- dnsjit.core
--- Core modules for dnsjit
---
--- Core modules for handling things like logging, DNS messages and
--- receiver/receive functionality.
--- .SS Global Variables
--- The following global variables exists in
--- .IR dnsjit .
--- .TP
--- .B arg
--- A table with the arguments given on the command line, the first will be
--- the path to the
--- .I dnsjit
--- binary, second will be the path to the
--- .IR script .
+-- dnsjit.lib
+-- Various helpful libraries
 module(...,package.seeall)
 
 error("This should not be included, only here for documentation generation")
 
--- dnsjit.core.chelpers (3),
--- dnsjit.core.log (3),
--- dnsjit.core.mutex (3),
--- dnsjit.core.query (3),
--- dnsjit.core.receiver (3),
--- dnsjit.core.timespec (3)
+-- dnsjit.lib.getopt (3)
 return
