@@ -24,9 +24,9 @@ ss_func = false
 doc = {}
 funcs = {}
 for line in io.lines(arg[1]) do
-    if string.match(line, "^[-][-]") then
-        table.insert(doc, string.sub(line, 4))
-    elseif string.match(line, "^module") then
+    if line:match("^[-][-]") then
+        table.insert(doc, line:sub(4))
+    elseif line:match("^module") then
         if table.maxn(doc) < 2 then
             error("Minimum required module doc missing")
         end
@@ -34,24 +34,30 @@ for line in io.lines(arg[1]) do
         print(".SH NAME")
         print(doc[1].." \\- "..doc[2])
         n, line = next(doc, 2)
-        while line and line > "" do
-            if not sh_syn then
-                print(".SH SYNOPSIS")
-                sh_syn = true
+        if n and n > 2 then
+            local n2 = n
+            while line and line > "" do
+                if not sh_syn then
+                    print(".SH SYNOPSIS")
+                    sh_syn = true
+                end
+                print(line)
+                n2 = n
+                n, line = next(doc, n)
             end
-            print(line)
             n, line = next(doc, n)
-        end
-        n, line = next(doc, n)
-        while line and line > "" do
-            if not sh_desc then
-                print(".SH DESCRIPTION")
-                sh_desc = true
+            if n and n > n2 then
+                while line and line > "" do
+                    if not sh_desc then
+                        print(".SH DESCRIPTION")
+                        sh_desc = true
+                    end
+                    print(line)
+                    n, line = next(doc, n)
+                end
             end
-            print(line)
-            n, line = next(doc, n)
         end
-    elseif string.match(line, "^function") then
+    elseif line:match("^function") then
         if table.maxn(doc) > 0 then
             if not ss_func then
                 if not sh_desc then
@@ -62,12 +68,17 @@ for line in io.lines(arg[1]) do
                 ss_func = true
             end
             print(".TP")
-            print(".BR "..string.sub(line, 10))
+            local fn,fd = line:match("(%S+)(%(.+)")
+            if fn and fd then
+                print(".BR "..fn.." \""..fd.."\"")
+            else
+                print(".B "..line:sub(10))
+            end
             for _, line in pairs(doc) do
                 print(line)
             end
         end
-    elseif string.match(line, "^return") then
+    elseif line:match("^return") then
         if table.maxn(doc) > 0 then
             print(".SH SEE ALSO")
             for _, line in pairs(doc) do
