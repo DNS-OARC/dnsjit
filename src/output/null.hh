@@ -18,10 +18,8 @@
  * along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-//lua:require("dnsjit.core.log_h")
 //lua:require("dnsjit.core.receiver_h")
 typedef struct output_null {
-    log_t  log;
     size_t pkts;
 } output_null_t;
 

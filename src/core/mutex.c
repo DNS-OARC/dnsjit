@@ -25,16 +25,22 @@
 
 #include <pthread.h>
 
+static log_t           _log   = LOG_T_INIT("core.mutex");
 static pthread_mutex_t _mutex = PTHREAD_MUTEX_INITIALIZER;
+
+log_t* core_mutex_log()
+{
+    return &_log;
+}
 
 int core_mutex_lock()
 {
-    gldebug("core.mutex.lock()");
+    mldebug("lock()");
     return pthread_mutex_lock(&_mutex);
 }
 
 int core_mutex_unlock()
 {
-    gldebug("core.mutex.unlock()");
+    mldebug("unlock()");
     return pthread_mutex_unlock(&_mutex);
 }

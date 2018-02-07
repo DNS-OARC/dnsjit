@@ -58,8 +58,9 @@ typedef struct _query {
     char label_buf[512];
 } _query_t;
 
+static log_t   _log      = LOG_T_INIT("core.query");
 static query_t _defaults = {
-    LOG_T_INIT,
+    LOG_T_INIT_OBJ("core.query"),
     0, 0, 0, 0,
     0, 0, { 0, 0 },
     "", 0, 0,
@@ -68,6 +69,11 @@ static query_t _defaults = {
     0, 0, 0, 0
 };
 static omg_dns_t _omg_dns_defaults = OMG_DNS_T_INIT;
+
+log_t* query_log()
+{
+    return &_log;
+}
 
 static int _label_callback(const omg_dns_label_t* label, void* context)
 {
@@ -104,22 +110,24 @@ query_t* query_new()
     query_t*  self  = malloc(sizeof(_query_t));
     _query_t* _self = (_query_t*)self;
 
-    ldebug("new %p", self);
+    if (self) {
+        *self         = _defaults;
+        _self->af     = AF_UNSPEC;
+        _self->dns    = _omg_dns_defaults;
+        _self->parsed = 0;
 
-    *self         = _defaults;
-    _self->af     = AF_UNSPEC;
-    _self->dns    = _omg_dns_defaults;
-    _self->parsed = 0;
+        ldebug("new");
 
-    omg_dns_set_rr_callback(&_self->dns, _rr_callback, (void*)_self);
-    omg_dns_set_label_callback(&_self->dns, _label_callback, (void*)_self);
+        omg_dns_set_rr_callback(&_self->dns, _rr_callback, (void*)_self);
+        omg_dns_set_label_callback(&_self->dns, _label_callback, (void*)_self);
+    }
 
     return self;
 }
 
 void query_free(query_t* self)
 {
-    ldebug("free %p", self);
+    ldebug("free");
 
     if (self) {
         free(self->raw);
@@ -133,7 +141,7 @@ int query_set_raw(query_t* self, const char* raw, size_t len)
         return 1;
     }
 
-    ldebug("set raw %p %p %lu", self, raw, len);
+    ldebug("set raw %p %lu", raw, len);
 
     if (self->raw) {
         free(self->raw);
@@ -159,7 +167,7 @@ query_t* query_copy(query_t* self)
 {
     query_t* q = query_new();
 
-    ldebug("copy %p -> %p", self, q);
+    ldebug("copy %p", q);
 
     if (q) {
         _query_t* _q = (_query_t*)q;

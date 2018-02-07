@@ -34,7 +34,6 @@
 module(...,package.seeall)
 
 local ch = require("dnsjit.core.chelpers")
-local log = require("dnsjit.core.log")
 require("dnsjit.output.cpool_h")
 local ffi = require("ffi")
 local C = ffi.C
@@ -67,16 +66,17 @@ local Cpool = {}
 -- Create a new Cpool output.
 function Cpool.new(host, port)
     local o = struct.new(host, port)
-    local log = log.new(o.log)
-    log:cb(function ()
-        C.output_cpool_updatelog(o)
-    end)
-    log:debug("new()")
-    C.output_cpool_updatelog(o)
     return setmetatable({
         _ = o,
-        log = log,
     }, {__index = Cpool})
+end
+
+-- Return the Log object to control logging of this instance or module.
+function Cpool:log()
+    if self == nil then
+        return C.output_cpool_log()
+    end
+    return self._._log
 end
 
 -- Set the maximum clients to emulate, if
@@ -173,7 +173,7 @@ function Cpool:receive()
     if self.ishandler then
         error("is handler")
     end
-    self.log:debug("receive()")
+    self._._log:debug("receive()")
     return C.output_cpool_receiver(), self._
 end
 

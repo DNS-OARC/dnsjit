@@ -50,11 +50,30 @@
 --   multi config; on one line;
 module(...,package.seeall)
 
+local log = require("dnsjit.core.log")
+
 Parseconf = {}
+local module_log = log.new("lib.parseconf")
 
 -- Create a new Parseconf object.
 function Parseconf.new()
-    return setmetatable({ conf = {}, cf = {} }, { __index = Parseconf })
+    local self = setmetatable({
+        conf = {},
+        cf = {},
+        _log = log.new("lib.parseconf", module_log),
+    }, { __index = Parseconf })
+
+    self._log:debug("new()")
+
+    return self
+end
+
+-- Return the Log object to control logging of this instance or module.
+function Parseconf:log()
+    if self == nil then
+        return module_log
+    end
+    return self._log
 end
 
 -- Set a function to call when config

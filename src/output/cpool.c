@@ -22,10 +22,16 @@
 
 #include "output/cpool.h"
 
+static log_t          _log      = LOG_T_INIT("output.cpool");
 static output_cpool_t _defaults = {
-    LOG_T_INIT,
+    LOG_T_INIT_OBJ("output.cpool"),
     0
 };
+
+log_t* output_cpool_log()
+{
+    return &_log;
+}
 
 int output_cpool_init(output_cpool_t* self, const char* host, const char* port)
 {
@@ -40,6 +46,7 @@ int output_cpool_init(output_cpool_t* self, const char* host, const char* port)
     if (!(self->p = client_pool_new(host, port))) {
         lfatal("oom");
     }
+    self->p->_log = &self->_log;
 
     return 0;
 }
@@ -55,13 +62,6 @@ int output_cpool_destroy(output_cpool_t* self)
     client_pool_free(self->p);
 
     return 0;
-}
-
-void output_cpool_updatelog(output_cpool_t* self)
-{
-    if (self && self->p) {
-        self->p->log = self->log;
-    }
 }
 
 size_t output_cpool_max_clients(output_cpool_t* self)

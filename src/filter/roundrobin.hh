@@ -18,7 +18,7 @@
  * along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-//lua:require("dnsjit.core.log_h")
+//lua:require("dnsjit.core.log")
 //lua:require("dnsjit.core.receiver_h")
 typedef struct filter_roundrobin_recv filter_roundrobin_recv_t;
 struct filter_roundrobin_recv {
@@ -27,11 +27,12 @@ struct filter_roundrobin_recv {
     void*                     robj;
 };
 typedef struct filter_roundrobin {
-    log_t                     log;
+    log_t                     _log;
     filter_roundrobin_recv_t* recv_list;
     filter_roundrobin_recv_t* recv;
 } filter_roundrobin_t;
 
+log_t* filter_roundrobin_log();
 int filter_roundrobin_init(filter_roundrobin_t* self);
 int filter_roundrobin_destroy(filter_roundrobin_t* self);
 int filter_roundrobin_add(filter_roundrobin_t* self, receiver_t recv, void* robj);

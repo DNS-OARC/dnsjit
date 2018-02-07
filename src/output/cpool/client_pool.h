@@ -84,7 +84,7 @@ struct client_pool {
 
     client_pool_sendas_t sendas;
 
-    log_t log;
+    log_t* _log;
 };
 
 client_pool_t* client_pool_new(const char* host, const char* port);

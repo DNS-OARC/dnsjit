@@ -23,25 +23,41 @@
 
 #include <stdlib.h>
 
-#define LOG_T_INIT \
-    {              \
-        0, 0, 0, 0 \
+#define LOG_SETTINGS_T_INIT \
+    {                       \
+        0, 0, 0, 0, 0       \
     }
+#define LOG_T_INIT(name)                \
+    {                                   \
+        name, 0, LOG_SETTINGS_T_INIT, 0 \
+    }
+#define LOG_T_INIT_OBJ(name)                         \
+    {                                                \
+        name, 1, LOG_SETTINGS_T_INIT, &_log.settings \
+    }
+
 #include "core/log.hh"
 
-void log_debug(const log_t* l, const char* file, size_t line, const char* msg, ...);
-void log_info(const log_t* l, const char* file, size_t line, const char* msg, ...);
-void log_notice(const log_t* l, const char* file, size_t line, const char* msg, ...);
-void log_warning(const log_t* l, const char* file, size_t line, const char* msg, ...);
-void log_critical(const log_t* l, const char* file, size_t line, const char* msg, ...);
-void log_fatal(const log_t* l, const char* file, size_t line, const char* msg, ...);
+#define ldebug(msg...) log_debug(&self->_log, __FILE__, __LINE__, msg)
+#define linfo(msg...) log_info(&self->_log, __FILE__, __LINE__, msg)
+#define lnotice(msg...) log_notice(&self->_log, __FILE__, __LINE__, msg)
+#define lwarning(msg...) log_warning(&self->_log, __FILE__, __LINE__, msg)
+#define lcritical(msg...) log_critical(&self->_log, __FILE__, __LINE__, msg)
+#define lfatal(msg...) log_fatal(&self->_log, __FILE__, __LINE__, msg)
 
-#define ldebug(msg...) log_debug(&self->log, __FILE__, __LINE__, msg)
-#define linfo(msg...) log_info(&self->log, __FILE__, __LINE__, msg)
-#define lnotice(msg...) log_notice(&self->log, __FILE__, __LINE__, msg)
-#define lwarning(msg...) log_warning(&self->log, __FILE__, __LINE__, msg)
-#define lcritical(msg...) log_critical(&self->log, __FILE__, __LINE__, msg)
-#define lfatal(msg...) log_fatal(&self->log, __FILE__, __LINE__, msg)
+#define lpdebug(msg...) log_debug(self->_log, __FILE__, __LINE__, msg)
+#define lpinfo(msg...) log_info(self->_log, __FILE__, __LINE__, msg)
+#define lpnotice(msg...) log_notice(self->_log, __FILE__, __LINE__, msg)
+#define lpwarning(msg...) log_warning(self->_log, __FILE__, __LINE__, msg)
+#define lpcritical(msg...) log_critical(self->_log, __FILE__, __LINE__, msg)
+#define lpfatal(msg...) log_fatal(self->_log, __FILE__, __LINE__, msg)
+
+#define mldebug(msg...) log_debug(&_log, __FILE__, __LINE__, msg)
+#define mlinfo(msg...) log_info(&_log, __FILE__, __LINE__, msg)
+#define mlnotice(msg...) log_notice(&_log, __FILE__, __LINE__, msg)
+#define mlwarning(msg...) log_warning(&_log, __FILE__, __LINE__, msg)
+#define mlcritical(msg...) log_critical(&_log, __FILE__, __LINE__, msg)
+#define mlfatal(msg...) log_fatal(&_log, __FILE__, __LINE__, msg)
 
 #define gldebug(msg...) log_debug(0, __FILE__, __LINE__, msg)
 #define glinfo(msg...) log_info(0, __FILE__, __LINE__, msg)

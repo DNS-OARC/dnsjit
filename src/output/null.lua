@@ -23,7 +23,6 @@
 -- Output module for those that doesn't really like queries.
 module(...,package.seeall)
 
-local log = require("dnsjit.core.log")
 require("dnsjit.output.null_h")
 local ffi = require("ffi")
 local C = ffi.C
@@ -48,16 +47,12 @@ local Null = {}
 -- Create a new Null output.
 function Null.new()
     local o = struct.new()
-    local log = log.new(o.log)
-    log:debug("new()")
     return setmetatable({
         _ = o,
-        log = log,
     }, {__index = Null})
 end
 
 function Null:receive()
-    self.log:debug("receive()")
     return C.output_null_receiver(), self._
 end
 

@@ -30,7 +30,6 @@
 module(...,package.seeall)
 
 local ch = require("dnsjit.core.chelpers")
-local log = require("dnsjit.core.log")
 require("dnsjit.core.query_h")
 local ffi = require("ffi")
 local C = ffi.C
@@ -46,19 +45,24 @@ function Query.new(o)
         error("is not query_t")
     end
     ffi.gc(o, C.query_free)
-    local log = log.new(o.log)
-    log:debug("new()")
     return setmetatable({
         _ = o,
-        log = log,
     }, {__index = Query})
+end
+
+-- Return the Log object to control logging of this instance or module.
+function Query:log()
+    if self == nil then
+        return C.query_log()
+    end
+    return self._._log
 end
 
 -- Return the
 -- .I query_t
 -- C structure bound to this object.
 function Query:struct()
-    self.log:debug("struct()")
+    self._._log:debug("struct()")
     return self._
 end
 

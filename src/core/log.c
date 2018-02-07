@@ -26,50 +26,271 @@
 #include <stdarg.h>
 #include <stdio.h>
 
-static log_t _log = LOG_T_INIT;
+static log_t _log = LOG_T_INIT("core");
 
-log_t* core_log()
+void log_debug(const log_t* l, const char* file, size_t line, const char* msg, ...)
 {
-    return &_log;
-}
-
-struct _name {
-    const char* debug;
-    const char* info;
-    const char* notice;
-    const char* warning;
-    const char* critical;
-    const char* fatal;
-};
-static struct _name _name = {
-    "debug",
-    "info",
-    "notice",
-    "warning",
-    "critical",
-    "fatal"
-};
-
-#define log_func(name, level)                                                      \
-    void name(const log_t* l, const char* file, size_t line, const char* msg, ...) \
-    {                                                                              \
-        char    buf[512];                                                          \
-        va_list ap;                                                                \
-        if (!l)                                                                    \
-            l = &_log;                                                             \
-        if (l->level == 3 || (_log.level == 3 && l->level != 2)) {                 \
-            va_start(ap, msg);                                                     \
-            vsnprintf(buf, sizeof(buf), msg, ap);                                  \
-            va_end(ap);                                                            \
-            buf[sizeof(buf) - 1] = 0;                                              \
-            printf("%s[%lu] %s: %s\n", file, line, _name.level, buf);              \
-        }                                                                          \
+    char    buf[512];
+    va_list ap;
+    if (!l) {
+        if (_log.settings.debug != 3) {
+            return;
+        }
+    } else {
+        if (l->settings.debug) {
+            if (l->settings.debug != 3) {
+                return;
+            }
+        } else if (l->module && l->module->debug) {
+            if (l->module->debug != 3) {
+                return;
+            }
+        } else if (_log.settings.debug != 3) {
+            return;
+        }
+    }
+    va_start(ap, msg);
+    vsnprintf(buf, sizeof(buf), msg, ap);
+    va_end(ap);
+    buf[sizeof(buf) - 1] = 0;
+    for (;;) {
+        if (!l) {
+            if (_log.settings.display_file_line != 3) {
+                break;
+            }
+        } else {
+            if (l->settings.display_file_line) {
+                if (l->settings.display_file_line != 3) {
+                    break;
+                }
+            } else if (l->module && l->module->display_file_line) {
+                if (l->module->display_file_line != 3) {
+                    break;
+                }
+            } else if (_log.settings.display_file_line != 3) {
+                break;
+            }
+        }
+        if (l) {
+            if (l->is_obj) {
+                printf("%s[%lu] %s[%p] debug: %s\n", file, line, l->name, l, buf);
+                return;
+            }
+            printf("%s[%lu] %s debug: %s\n", file, line, l->name, buf);
+            return;
+        }
+        printf("%s[%lu] %s debug: %s\n", file, line, _log.name, buf);
+        return;
     }
 
-log_func(log_debug, debug);
-log_func(log_info, info);
-log_func(log_notice, notice);
-log_func(log_warning, warning);
+    if (l) {
+        if (l->is_obj) {
+            printf("%s[%p] debug: %s\n", l->name, l, buf);
+            return;
+        }
+        printf("%s debug: %s\n", l->name, buf);
+        return;
+    }
+    printf("%s debug: %s\n", _log.name, buf);
+}
+
+void log_info(const log_t* l, const char* file, size_t line, const char* msg, ...)
+{
+    char    buf[512];
+    va_list ap;
+    if (!l) {
+        if (_log.settings.info != 3) {
+            return;
+        }
+    } else {
+        if (l->settings.info) {
+            if (l->settings.info != 3) {
+                return;
+            }
+        } else if (l->module && l->module->info) {
+            if (l->module->info != 3) {
+                return;
+            }
+        } else if (_log.settings.info != 3) {
+            return;
+        }
+    }
+    va_start(ap, msg);
+    vsnprintf(buf, sizeof(buf), msg, ap);
+    va_end(ap);
+    buf[sizeof(buf) - 1] = 0;
+    for (;;) {
+        if (!l) {
+            if (_log.settings.display_file_line != 3) {
+                break;
+            }
+        } else {
+            if (l->settings.display_file_line) {
+                if (l->settings.display_file_line != 3) {
+                    break;
+                }
+            } else if (l->module && l->module->display_file_line) {
+                if (l->module->display_file_line != 3) {
+                    break;
+                }
+            } else if (_log.settings.display_file_line != 3) {
+                break;
+            }
+        }
+        if (l) {
+            if (l->is_obj) {
+                printf("%s[%lu] %s[%p] info: %s\n", file, line, l->name, l, buf);
+                return;
+            }
+            printf("%s[%lu] %s info: %s\n", file, line, l->name, buf);
+            return;
+        }
+        printf("%s[%lu] %s info: %s\n", file, line, _log.name, buf);
+        return;
+    }
+
+    if (l) {
+        if (l->is_obj) {
+            printf("%s[%p] info: %s\n", l->name, l, buf);
+            return;
+        }
+        printf("%s info: %s\n", l->name, buf);
+        return;
+    }
+    printf("%s info: %s\n", _log.name, buf);
+}
+
+void log_notice(const log_t* l, const char* file, size_t line, const char* msg, ...)
+{
+    char    buf[512];
+    va_list ap;
+    if (!l) {
+        if (_log.settings.notice != 3) {
+            return;
+        }
+    } else {
+        if (l->settings.notice) {
+            if (l->settings.notice != 3) {
+                return;
+            }
+        } else if (l->module && l->module->notice) {
+            if (l->module->notice != 3) {
+                return;
+            }
+        } else if (_log.settings.notice != 3) {
+            return;
+        }
+    }
+    va_start(ap, msg);
+    vsnprintf(buf, sizeof(buf), msg, ap);
+    va_end(ap);
+    buf[sizeof(buf) - 1] = 0;
+    for (;;) {
+        if (!l) {
+            if (_log.settings.display_file_line != 3) {
+                break;
+            }
+        } else {
+            if (l->settings.display_file_line) {
+                if (l->settings.display_file_line != 3) {
+                    break;
+                }
+            } else if (l->module && l->module->display_file_line) {
+                if (l->module->display_file_line != 3) {
+                    break;
+                }
+            } else if (_log.settings.display_file_line != 3) {
+                break;
+            }
+        }
+        if (l) {
+            if (l->is_obj) {
+                printf("%s[%lu] %s[%p] notice: %s\n", file, line, l->name, l, buf);
+                return;
+            }
+            printf("%s[%lu] %s notice: %s\n", file, line, l->name, buf);
+            return;
+        }
+        printf("%s[%lu] %s notice: %s\n", file, line, _log.name, buf);
+        return;
+    }
+
+    if (l) {
+        if (l->is_obj) {
+            printf("%s[%p] notice: %s\n", l->name, l, buf);
+            return;
+        }
+        printf("%s notice: %s\n", l->name, buf);
+        return;
+    }
+    printf("%s notice: %s\n", _log.name, buf);
+}
+
+void log_warning(const log_t* l, const char* file, size_t line, const char* msg, ...)
+{
+    char    buf[512];
+    va_list ap;
+    if (!l) {
+        if (_log.settings.warning != 3) {
+            return;
+        }
+    } else {
+        if (l->settings.warning) {
+            if (l->settings.warning != 3) {
+                return;
+            }
+        } else if (l->module && l->module->warning) {
+            if (l->module->warning != 3) {
+                return;
+            }
+        } else if (_log.settings.warning != 3) {
+            return;
+        }
+    }
+    va_start(ap, msg);
+    vsnprintf(buf, sizeof(buf), msg, ap);
+    va_end(ap);
+    buf[sizeof(buf) - 1] = 0;
+    for (;;) {
+        if (!l) {
+            if (_log.settings.display_file_line != 3) {
+                break;
+            }
+        } else {
+            if (l->settings.display_file_line) {
+                if (l->settings.display_file_line != 3) {
+                    break;
+                }
+            } else if (l->module && l->module->display_file_line) {
+                if (l->module->display_file_line != 3) {
+                    break;
+                }
+            } else if (_log.settings.display_file_line != 3) {
+                break;
+            }
+        }
+        if (l) {
+            if (l->is_obj) {
+                printf("%s[%lu] %s[%p] warning: %s\n", file, line, l->name, l, buf);
+                return;
+            }
+            printf("%s[%lu] %s warning: %s\n", file, line, l->name, buf);
+            return;
+        }
+        printf("%s[%lu] %s warning: %s\n", file, line, _log.name, buf);
+        return;
+    }
+
+    if (l) {
+        if (l->is_obj) {
+            printf("%s[%p] warning: %s\n", l->name, l, buf);
+            return;
+        }
+        printf("%s warning: %s\n", l->name, buf);
+        return;
+    }
+    printf("%s warning: %s\n", _log.name, buf);
+}
 
 void log_critical(const log_t* l, const char* file, size_t line, const char* msg, ...)
 {
@@ -79,7 +300,45 @@ void log_critical(const log_t* l, const char* file, size_t line, const char* msg
     vsnprintf(buf, sizeof(buf), msg, ap);
     va_end(ap);
     buf[sizeof(buf) - 1] = 0;
-    printf("%s[%lu] %s: %s\n", file, line, _name.critical, buf);
+    for (;;) {
+        if (!l) {
+            if (_log.settings.display_file_line != 3) {
+                break;
+            }
+        } else {
+            if (l->settings.display_file_line) {
+                if (l->settings.display_file_line != 3) {
+                    break;
+                }
+            } else if (l->module && l->module->display_file_line) {
+                if (l->module->display_file_line != 3) {
+                    break;
+                }
+            } else if (_log.settings.display_file_line != 3) {
+                break;
+            }
+        }
+        if (l) {
+            if (l->is_obj) {
+                printf("%s[%lu] %s[%p] critical: %s\n", file, line, l->name, l, buf);
+                return;
+            }
+            printf("%s[%lu] %s critical: %s\n", file, line, l->name, buf);
+            return;
+        }
+        printf("%s[%lu] %s critical: %s\n", file, line, _log.name, buf);
+        return;
+    }
+
+    if (l) {
+        if (l->is_obj) {
+            printf("%s[%p] critical: %s\n", l->name, l, buf);
+            return;
+        }
+        printf("%s critical: %s\n", l->name, buf);
+        return;
+    }
+    printf("%s critical: %s\n", _log.name, buf);
 }
 
 void log_fatal(const log_t* l, const char* file, size_t line, const char* msg, ...)
@@ -90,6 +349,49 @@ void log_fatal(const log_t* l, const char* file, size_t line, const char* msg, .
     vsnprintf(buf, sizeof(buf), msg, ap);
     va_end(ap);
     buf[sizeof(buf) - 1] = 0;
-    printf("%s[%lu] %s: %s\n", file, line, _name.fatal, buf);
+    for (;;) {
+        if (!l) {
+            if (_log.settings.display_file_line != 3) {
+                break;
+            }
+        } else {
+            if (l->settings.display_file_line) {
+                if (l->settings.display_file_line != 3) {
+                    break;
+                }
+            } else if (l->module && l->module->display_file_line) {
+                if (l->module->display_file_line != 3) {
+                    break;
+                }
+            } else if (_log.settings.display_file_line != 3) {
+                break;
+            }
+        }
+        if (l) {
+            if (l->is_obj) {
+                printf("%s[%lu] %s[%p] fatal: %s\n", file, line, l->name, l, buf);
+                exit(1);
+            }
+            printf("%s[%lu] %s fatal: %s\n", file, line, l->name, buf);
+            exit(1);
+        }
+        printf("%s[%lu] %s fatal: %s\n", file, line, _log.name, buf);
+        exit(1);
+    }
+
+    if (l) {
+        if (l->is_obj) {
+            printf("%s[%p] fatal: %s\n", l->name, l, buf);
+            exit(1);
+        }
+        printf("%s fatal: %s\n", l->name, buf);
+        exit(1);
+    }
+    printf("%s fatal: %s\n", _log.name, buf);
     exit(1);
+}
+
+log_t* core_log()
+{
+    return &_log;
 }

@@ -30,12 +30,21 @@ module(...,package.seeall)
 require("dnsjit.core.mutex_h")
 local C = require("ffi").C
 
+Mutex = {}
+
+-- Return the Log object to control logging of this module.
+function Mutex.log()
+    return C.core_mutex_log()
+end
+
 -- Lock the global shared mutex
-function lock()
+function Mutex.lock()
     return C.core_mutex_lock()
 end
 
 -- Unlock the global shared mutex
-function unlock()
+function Mutex.unlock()
     return C.core_mutex_unlock()
 end
+
+return Mutex

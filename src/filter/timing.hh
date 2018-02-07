@@ -18,11 +18,11 @@
  * along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-//lua:require("dnsjit.core.log_h")
+//lua:require("dnsjit.core.log")
 //lua:require("dnsjit.core.receiver_h")
 //lua:require("dnsjit.core.timespec_h")
 typedef struct filter_timing {
-    log_t      log;
+    log_t      _log;
     receiver_t recv;
     void*      robj;
 
@@ -43,6 +43,7 @@ typedef struct filter_timing {
 
 } filter_timing_t;
 
+log_t* filter_timing_log();
 int filter_timing_init(filter_timing_t* self);
 int filter_timing_destroy(filter_timing_t* self);
 

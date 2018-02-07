@@ -56,26 +56,34 @@ dist_dnsjit_SOURCES += \
     input/pcap.hh \
 	filter/lua.hh filter/roundrobin.hh filter/thread.hh filter/timing.hh \
     output/cpool.hh output/null.hh
-# Lua sources
-dist_dnsjit_SOURCES += \
-	core.lua core/chelpers.lua core/log.lua core/mutex.lua core/query.lua core/receiver.lua core/timespec.lua \
-	lib.lua lib/getopt.lua lib/parseconf.lua \
-    input.lua input/lua.lua input/pcap.lua \
-	filter.lua filter/lua.lua filter/roundrobin.lua filter/thread.lua filter/timing.lua \
-    output.lua output/cpool.lua output/null.lua
-dnsjit_LDFLAGS = -Wl,-E
-lua_objects = \
-	core/chelpers.luao core/log.luao core/log.luaho core/mutex.luaho core/query.luaho core/receiver.luaho core/timespec.luaho \
-	lib.luao lib/getopt.luao lib/parseconf.luao \
+lua_hobjects = \
+	core/log.luaho core/mutex.luaho core/query.luaho core/receiver.luaho core/timespec.luaho \
     input/pcap.luaho \
 	filter/lua.luaho filter/roundrobin.luaho filter/thread.luaho filter/timing.luaho \
-    output/cpool.luaho output/null.luaho \
-	core/mutex.luao core/query.luao \
+    output/cpool.luaho output/null.luaho
+# Lua sources
+dist_dnsjit_SOURCES += \
+	core/chelpers.lua core/log.lua core/mutex.lua core/query.lua \
+	lib/getopt.lua lib/parseconf.lua \
+    input/lua.lua input/pcap.lua \
+	filter/lua.lua filter/roundrobin.lua filter/thread.lua filter/timing.lua \
+    output/cpool.lua output/null.lua
+lua_objects = \
+	core/chelpers.luao core/log.luao core/mutex.luao core/query.luao \
+	lib/getopt.luao lib/parseconf.luao \
     input/lua.luao input/pcap.luao \
 	filter/lua.luao filter/roundrobin.luao filter/thread.luao filter/timing.luao \
     output/cpool.luao output/null.luao
-dnsjit_LDADD += $(lua_objects)
-CLEANFILES += $(lua_objects)
+# Documentation only sources
+dist_dnsjit_SOURCES += \
+	core.lua core/receiver.lua core/timespec.lua \
+	lib.lua \
+    input.lua \
+	filter.lua \
+    output.lua
+dnsjit_LDFLAGS = -Wl,-E
+dnsjit_LDADD += $(lua_hobjects) $(lua_objects)
+CLEANFILES += $(lua_hobjects) $(lua_objects)
 
 man1_MANS = dnsjit.1
 CLEANFILES += $(man1_MANS)

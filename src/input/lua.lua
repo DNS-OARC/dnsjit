@@ -30,37 +30,45 @@ module(...,package.seeall)
 
 local ch = require("dnsjit.core.chelpers")
 local log = require("dnsjit.core.log")
-require("dnsjit.core.log_h")
 require("dnsjit.core.receiver_h")
 local ffi = require("ffi")
 local C = ffi.C
 
 local Lua = {}
+local module_log = log.new("input.lua")
 
 -- Create a new Lua input.
 function Lua.new()
-    local o = ffi.new("log_t")
-    local log = log.new(o)
-    log:debug("new()")
-    return setmetatable({
+    local self = setmetatable({
         _recv = nil,
         _robj = nil,
         _receiver = nil,
-        _log = o,
-        log = log,
-    }, {__index = Lua})
+        _log = log.new("input.lua", module_log),
+    }, { __index = Lua })
+
+    self._log:debug("new()")
+
+    return self
+end
+
+-- Return the Log object to control logging of this instance or module.
+function Lua:log()
+    if self == nil then
+        return module_log
+    end
+    return self._log
 end
 
 -- Set the receiver to pass queries to.
 function Lua:receiver(o)
-    self.log:debug("receiver()")
+    self._log:debug("receiver()")
     self._recv, self._robj = o:receive()
     self._receiver = o
 end
 
 -- Send a query to the receiver.
 function Lua:send(q)
-    self.log:debug("send()")
+    self._log:debug("send()")
     return ch.z2n(C.receiver_call(self._recv, self._robj, q:struct()))
 end
 
