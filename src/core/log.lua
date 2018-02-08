@@ -20,19 +20,115 @@
 -- Core logging facility
 -- .SS Usage to control global log level
 --   local log = require("dnsjit.core.log")
---   log:enable("all")
+--   log.enable("all")
+--   log.disable("debug")
+-- .SS Usage to control module log level
+--   local example = require("example") -- Example as below
+--   example.log():enable("all")
+--   example.log():disable("debug")
+-- .SS Usage to control object instance log level
+--   local example = require("example") -- Example as below
+--   local obj = example.new()
+--   obj:log():enable("all")
+--   obj:log():disable("debug")
 -- .SS Usage in C module
--- Add the log struct into the C module struct with the name
--- .IR log .
---   log_t log;
+-- .B NOTE
+-- naming of variables and module only globals are required to exactly as
+-- described in order for the macros to work;
+-- .B self
+-- is the pointer to the object instance,
+-- .B self->_log
+-- is the object instance logging configuration struct,
+-- .B _log
+-- is the module logging configuration struct.
 -- .LP
--- Initialize it with the defaults.
---   static log_t _log_defaults = LOG_T_INIT;
---   self->log = _log_defaults;
--- .SS Bind logging in C module to Lua module
--- TODO
+-- Include logging:
+--   #include "core/log.h"
+-- .LP
+-- Add the logging struct to the module struct:
+--   typedef struct example {
+--       log_t _log;
+--       ...
+--   } example_t;
+-- .LP
+-- Add a module logging configuration and a struct default:
+--   static log_t _log = LOG_T_INIT("example");
+--   static example_t _defaults = {
+--       LOG_T_INIT_OBJ("example"),
+--       ...
+--   };
+-- .LP
+-- Use new/free and/or init/destroy functions (depends if you create the
+-- object in Lua or not):
+--   example_t* example_new() {
+--       example_t* self = calloc(1, sizeof(example_t));
+-- .
+--       *self = _defaults;
+--       ldebug("new()");
+-- .
+--       return self;
+--   }
+-- .
+--   void example_free(example_t* self) {
+--       ldebug("free()");
+--       free(self);
+--   }
+-- .
+--   int example_init(example_t* self) {
+--       *self = _defaults;
+-- .
+--       ldebug("init()");
+-- .
+--       return 0;
+--   }
+-- .
+--   void example_destroy(example_t* self) {
+--       ldebug("destroy()");
+--       ...
+--   }
+-- .LP
+-- In the Lua part of the C module you need to create a function that
+-- returns either the object instance Log or the modules Log.
+-- .LP
+-- Add C function to get module only Log:
+--   log_t* example_log() {
+--       return &_log;
+--   }
+-- .LP
+-- For the structures metatable add the following function:
+--   local ffi = require("ffi")
+--   local C = ffi.C
+-- .
+--   function Example:log()
+--       if self == nil then
+--           return C.example_log()
+--       end
+--       return self._log
+--   end
 -- .SS Usage in pure Lua module
--- TODO
+--   local log = require("dnsjit.core.log")
+--   local ffi = require("ffi")
+--   local C = ffi.C
+-- .
+--   local Example = {}
+--   local module_log = log.new("example")
+-- .
+--   function Example.new()
+--       local self = setmetatable({
+--           _log = log.new("example", module_log),
+--       }, { __index = Example })
+-- .
+--       self._log:debug("new()")
+-- .
+--       return self
+--   end
+-- .
+--   function Example:log()
+--       if self == nil then
+--           return module_log
+--       end
+--       return self._log
+--   end
 --
 -- Core logging facility used by all modules.
 -- .SS Log levels
@@ -57,163 +153,455 @@
 -- .TP
 -- fatal
 -- Used to display a message before stopping all processing and existing, this level can not be disabled.
+-- .SS C macros
+-- .TP
+-- Object instance macros
+-- The following macros uses
+-- .IR &self->_log :
+-- .BR ldebug(msg...) ,
+-- .BR linfo(msg...) ,
+-- .BR lnotice(msg...) ,
+-- .BR lwarning(msg...) ,
+-- .BR lcritical(msg...) ,
+-- .BR lfatal(msg...) .
+-- .TP
+-- Object pointer instance macros
+-- The following macros uses
+-- .IR self->_log :
+-- .BR lpdebug(msg...) ,
+-- .BR lpinfo(msg...) ,
+-- .BR lpnotice(msg...) ,
+-- .BR lpwarning(msg...) ,
+-- .BR lpcritical(msg...) ,
+-- .BR lpfatal(msg...) .
+-- .TP
+-- Module macros
+-- The following macros uses
+-- .IR &_log :
+-- .BR mldebug(msg...) ,
+-- .BR mlinfo(msg...) ,
+-- .BR mlnotice(msg...) ,
+-- .BR mlwarning(msg...) ,
+-- .BR mlcritical(msg...) ,
+-- .BR mlfatal(msg...) .
+-- .TP
+-- Global macros
+-- The following macros uses the global logging configuration:
+-- .BR gldebug(msg...) ,
+-- .BR glinfo(msg...) ,
+-- .BR glnotice(msg...) ,
+-- .BR glwarning(msg...) ,
+-- .BR glcritical(msg...) ,
+-- .BR glfatal(msg...) .
 module(...,package.seeall)
 
 require("dnsjit.core.log_h")
 local ffi = require("ffi")
 local C = ffi.C
-local O = C.core_log()
+local L = C.core_log()
 
+local t_name = "log_t"
+local log_t
 local Log = {}
 
--- Create a new Log object.
-function Log.new(o)
-    if not ffi.istype("log_t", o) then
-        error("not a log_t")
+-- Create a new Log object with the given module
+-- .I name
+-- and an optional shared
+-- .I module
+-- Log object.
+function Log.new(name, module)
+    if ffi.istype(t_name, module) then
+        return log_t({ name = name, is_obj = 1, module = module.settings })
     end
-    return setmetatable({ _ = o, cb = nil }, { __index = Log })
-end
-
--- Set a callback function to call when the log level is changed.
-function Log:cb(func)
-    if not type(func) == "function" then
-        error("func not function")
-    end
-    self.cb = func
+    return log_t({ name = name })
 end
 
 -- Enable specified log level.
 function Log:enable(level)
-    local struct
-    if type(self) == "string" then
+    if not ffi.istype(t_name, self) then
         level = self
-        struct = O
-    else
-        struct = self._
+        self = L
     end
     if level == "all" then
-        struct.debug = 3;
-        struct.info = 3;
-        struct.notice = 3;
-        struct.warning = 3;
+        self.settings.debug = 3;
+        self.settings.info = 3;
+        self.settings.notice = 3;
+        self.settings.warning = 3;
     elseif level == "debug" then
-        struct.debug = 3;
+        self.settings.debug = 3;
     elseif level == "info" then
-        struct.info = 3;
+        self.settings.info = 3;
     elseif level == "notice" then
-        struct.notice = 3;
+        self.settings.notice = 3;
     elseif level == "warning" then
-        struct.warning = 3;
+        self.settings.warning = 3;
     else
         error("invalid log level: "..level)
-    end
-    if not self.cb == nil then
-        self.cb()
     end
 end
 
 -- Disable specified log level.
 function Log:disable(level)
-    local struct
-    if type(self) == "string" then
+    if not ffi.istype(t_name, self) then
         level = self
-        struct = O
-    else
-        struct = self._
+        self = L
     end
     if level == "all" then
-        struct.debug = 2;
-        struct.info = 2;
-        struct.notice = 2;
-        struct.warning = 2;
+        self.settings.debug = 2;
+        self.settings.info = 2;
+        self.settings.notice = 2;
+        self.settings.warning = 2;
     elseif level == "debug" then
-        struct.debug = 2;
+        self.settings.debug = 2;
     elseif level == "info" then
-        struct.info = 2;
+        self.settings.info = 2;
     elseif level == "notice" then
-        struct.notice = 2;
+        self.settings.notice = 2;
     elseif level == "warning" then
-        struct.warning = 2;
+        self.settings.warning = 2;
     else
         error("invalid log level: "..level)
-    end
-    if not self.cb == nil then
-        self.cb()
     end
 end
 
 -- Clear specified log level, which means it will revert back to default or inherited settings.
 function Log:clear(level)
-    local struct
-    if type(self) == "string" then
+    if not ffi.istype(t_name, self) then
         level = self
-        struct = O
-    else
-        struct = self._
+        self = L
     end
     if level == "all" then
-        struct.debug = 0;
-        struct.info = 0;
-        struct.notice = 0;
-        struct.warning = 0;
+        self.settings.debug = 0;
+        self.settings.info = 0;
+        self.settings.notice = 0;
+        self.settings.warning = 0;
     elseif level == "debug" then
-        struct.debug = 0;
+        self.settings.debug = 0;
     elseif level == "info" then
-        struct.info = 0;
+        self.settings.info = 0;
     elseif level == "notice" then
-        struct.notice = 0;
+        self.settings.notice = 0;
     elseif level == "warning" then
-        struct.warning = 0;
+        self.settings.warning = 0;
     else
         error("invalid log level: "..level)
-    end
-    if not self.cb == nil then
-        self.cb()
     end
 end
 
 -- Generate a debug message.
-function Log:debug(format, ...)
-    if self._.debug == 3 or (O.debug == 3 and self._.debug ~= 2) then
-        local info = debug.getinfo(2, "S")
-        print(string.format("%s[%d] debug: "..format, info.source, info.linedefined, ...))
+function Log.debug(self, ...)
+    local format
+    if not ffi.istype(t_name, self) then
+        format = self
+        self = nil
     end
+    if not self then
+        if not L.settings.debug == 3 then
+            return
+        end
+    else
+        if not self.settings.debug == 0 then
+            if not self.settings.debug == 3 then
+                return
+            end
+        elseif not self.module and not self.module.debug == 0 then
+            if not self.module.debug == 3 then
+                return
+            end
+        elseif not L.settings.debug == 3 then
+            return
+        end
+    end
+    while true do
+        if not self then
+            if not L.settings.display_file_line == 3 then
+                break
+            end
+        else
+            if not self.settings.display_file_line == 0 then
+                if not self.settings.display_file_line == 3 then
+                    break
+                end
+            elseif not self.module and not self.module.display_file_line == 0 then
+                if not self.module.display_file_line == 3 then
+                    break
+                end
+            elseif not L.settings.display_file_line == 3 then
+                break
+            end
+        end
+        local info = debug.getinfo(2, "S")
+        if format then
+            C.log_debug(self, info.source, info.linedefined, format, ...)
+            return
+        end
+        C.log_debug(self, info.source, info.linedefined, ...)
+        return
+    end
+
+    if format then
+        C.log_debug(self, nil, 0, format, ...)
+        return
+    end
+    C.log_debug(self, nil, 0, ...)
 end
 
 -- Generate an info message.
 function Log:info(format, ...)
-    if self._.info == 3 or (O.info == 3 and self._.info ~= 2) then
-        local info = debug.getinfo(2, "S")
-        print(string.format("%s[%d] info: "..format, info.source, info.linedefined, ...))
+    local format
+    if not ffi.istype(t_name, self) then
+        format = self
+        self = nil
     end
+    if not self then
+        if not L.settings.info == 3 then
+            return
+        end
+    else
+        if not self.settings.info == 0 then
+            if not self.settings.info == 3 then
+                return
+            end
+        elseif not self.module and not self.module.info == 0 then
+            if not self.module.info == 3 then
+                return
+            end
+        elseif not L.settings.info == 3 then
+            return
+        end
+    end
+    while true do
+        if not self then
+            if not L.settings.display_file_line == 3 then
+                break
+            end
+        else
+            if not self.settings.display_file_line == 0 then
+                if not self.settings.display_file_line == 3 then
+                    break
+                end
+            elseif not self.module and not self.module.display_file_line == 0 then
+                if not self.module.display_file_line == 3 then
+                    break
+                end
+            elseif not L.settings.display_file_line == 3 then
+                break
+            end
+        end
+        local info = debug.getinfo(2, "S")
+        if format then
+            C.log_info(self, info.source, info.linedefined, format, ...)
+            return
+        end
+        C.log_info(self, info.source, info.linedefined, ...)
+        return
+    end
+
+    if format then
+        C.log_info(self, nil, 0, format, ...)
+        return
+    end
+    C.log_info(self, nil, 0, ...)
 end
 
 -- Generate a notice message.
 function Log:notice(format, ...)
-    if self._.notice == 3 or (O.notice == 3 and self._.notice ~= 2) then
-        local info = debug.getinfo(2, "S")
-        print(string.format("%s[%d] notice: "..format, info.source, info.linedefined, ...))
+    local format
+    if not ffi.istype(t_name, self) then
+        format = self
+        self = nil
     end
+    if not self then
+        if not L.settings.notice == 3 then
+            return
+        end
+    else
+        if not self.settings.notice == 0 then
+            if not self.settings.notice == 3 then
+                return
+            end
+        elseif not self.module and not self.module.notice == 0 then
+            if not self.module.notice == 3 then
+                return
+            end
+        elseif not L.settings.notice == 3 then
+            return
+        end
+    end
+    while true do
+        if not self then
+            if not L.settings.display_file_line == 3 then
+                break
+            end
+        else
+            if not self.settings.display_file_line == 0 then
+                if not self.settings.display_file_line == 3 then
+                    break
+                end
+            elseif not self.module and not self.module.display_file_line == 0 then
+                if not self.module.display_file_line == 3 then
+                    break
+                end
+            elseif not L.settings.display_file_line == 3 then
+                break
+            end
+        end
+        local info = debug.getinfo(2, "S")
+        if format then
+            C.log_notice(self, info.source, info.linedefined, format, ...)
+            return
+        end
+        C.log_notice(self, info.source, info.linedefined, ...)
+        return
+    end
+
+    if format then
+        C.log_notice(self, nil, 0, format, ...)
+        return
+    end
+    C.log_notice(self, nil, 0, ...)
 end
 
 -- Generate a warning message.
 function Log:warning(format, ...)
-    if self._.warning == 3 or (O.warning == 3 and self._.warning ~= 2) then
-        local info = debug.getinfo(2, "S")
-        print(string.format("%s[%d] warning: "..format, info.source, info.linedefined, ...))
+    local format
+    if not ffi.istype(t_name, self) then
+        format = self
+        self = nil
     end
+    if not self then
+        if not L.settings.warning == 3 then
+            return
+        end
+    else
+        if not self.settings.warning == 0 then
+            if not self.settings.warning == 3 then
+                return
+            end
+        elseif not self.module and not self.module.warning == 0 then
+            if not self.module.warning == 3 then
+                return
+            end
+        elseif not L.settings.warning == 3 then
+            return
+        end
+    end
+    while true do
+        if not self then
+            if not L.settings.display_file_line == 3 then
+                break
+            end
+        else
+            if not self.settings.display_file_line == 0 then
+                if not self.settings.display_file_line == 3 then
+                    break
+                end
+            elseif not self.module and not self.module.display_file_line == 0 then
+                if not self.module.display_file_line == 3 then
+                    break
+                end
+            elseif not L.settings.display_file_line == 3 then
+                break
+            end
+        end
+        local info = debug.getinfo(2, "S")
+        if format then
+            C.log_warning(self, info.source, info.linedefined, format, ...)
+            return
+        end
+        C.log_warning(self, info.source, info.linedefined, ...)
+        return
+    end
+
+    if format then
+        C.log_warning(self, nil, 0, format, ...)
+        return
+    end
+    C.log_warning(self, nil, 0, ...)
 end
 
 -- Generate a critical message.
 function Log:critical(format, ...)
-    local info = debug.getinfo(2, "S")
-    print(string.format("%s[%d] critical: "..format, info.source, info.linedefined, ...))
+    local format
+    if not ffi.istype(t_name, self) then
+        format = self
+        self = nil
+    end
+    while true do
+        if not self then
+            if not L.settings.display_file_line == 3 then
+                break
+            end
+        else
+            if not self.settings.display_file_line == 0 then
+                if not self.settings.display_file_line == 3 then
+                    break
+                end
+            elseif not self.module and not self.module.display_file_line == 0 then
+                if not self.module.display_file_line == 3 then
+                    break
+                end
+            elseif not L.settings.display_file_line == 3 then
+                break
+            end
+        end
+        local info = debug.getinfo(2, "S")
+        if format then
+            C.log_critical(self, info.source, info.linedefined, format, ...)
+            return
+        end
+        C.log_critical(self, info.source, info.linedefined, ...)
+        return
+    end
+
+    if format then
+        C.log_critical(self, nil, 0, format, ...)
+        return
+    end
+    C.log_critical(self, nil, 0, ...)
 end
 
 -- Generate a fatal message.
 function Log:fatal(format, ...)
-    local info = debug.getinfo(2, "S")
-    error(string.format("%s[%d] fatal: "..format, info.source, info.linedefined, ...))
+    local format
+    if not ffi.istype(t_name, self) then
+        format = self
+        self = nil
+    end
+    while true do
+        if not self then
+            if not L.settings.display_file_line == 3 then
+                break
+            end
+        else
+            if not self.settings.display_file_line == 0 then
+                if not self.settings.display_file_line == 3 then
+                    break
+                end
+            elseif not self.module and not self.module.display_file_line == 0 then
+                if not self.module.display_file_line == 3 then
+                    break
+                end
+            elseif not L.settings.display_file_line == 3 then
+                break
+            end
+        end
+        local info = debug.getinfo(2, "S")
+        if format then
+            C.log_fatal(self, info.source, info.linedefined, format, ...)
+            return
+        end
+        C.log_fatal(self, info.source, info.linedefined, ...)
+        return
+    end
+
+    if format then
+        C.log_fatal(self, nil, 0, format, ...)
+        return
+    end
+    C.log_fatal(self, nil, 0, ...)
 end
+
+log_t = ffi.metatype(t_name, { __index = Log })
 
 return Log

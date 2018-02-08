@@ -42,11 +42,11 @@ int pcap_thread_set_filter_optimize(pcap_thread_t* pcap_thread, const int filter
 uint32_t pcap_thread_filter_netmask(const pcap_thread_t* pcap_thread);
 int pcap_thread_set_filter_netmask(pcap_thread_t* pcap_thread, const uint32_t filter_netmask);
 #endif
-//lua:require("dnsjit.core.log_h")
+//lua:require("dnsjit.core.log")
 //lua:require("dnsjit.core.receiver_h")
 //lua:require("dnsjit.core.timespec_h")
 typedef struct input_pcap {
-    log_t          log;
+    log_t          _log;
     unsigned short setup_ok : 1;
     unsigned short only_queries : 1;
     pcap_thread_t* pt;
@@ -57,6 +57,7 @@ typedef struct input_pcap {
     int            err;
 } input_pcap_t;
 
+log_t* input_pcap_log();
 int input_pcap_init(input_pcap_t* self);
 int input_pcap_destroy(input_pcap_t* self);
 int input_pcap_open(input_pcap_t* self, const char* device);

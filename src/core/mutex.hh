@@ -18,5 +18,8 @@
  * along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+//Lua:require("dnsjit.core.log")
+log_t* core_mutex_log();
+
 int core_mutex_lock();
 int core_mutex_unlock();

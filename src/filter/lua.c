@@ -25,10 +25,16 @@
 #include <lualib.h>
 #include <lauxlib.h>
 
+static log_t        _log      = LOG_T_INIT("filter.lua");
 static filter_lua_t _defaults = {
-    LOG_T_INIT,
+    LOG_T_INIT_OBJ("filter.lua"),
     0, 0, 0, 0
 };
+
+log_t* filter_lua_log()
+{
+    return &_log;
+}
 
 int filter_lua_init(filter_lua_t* self)
 {
@@ -36,9 +42,8 @@ int filter_lua_init(filter_lua_t* self)
         return 1;
     }
 
-    ldebug("init %p", self);
-
     *self = _defaults;
+    ldebug("init", self);
 
     if (!(self->L = luaL_newstate())) {
         return 1;

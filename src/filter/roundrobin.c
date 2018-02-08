@@ -22,9 +22,15 @@
 
 #include "filter/roundrobin.h"
 
+static log_t               _log      = LOG_T_INIT("filter.roundrobin");
 static filter_roundrobin_t _defaults = {
-    LOG_T_INIT, 0, 0
+    LOG_T_INIT_OBJ("filter.roundrobin"), 0, 0
 };
+
+log_t* filter_roundrobin_log()
+{
+    return &_log;
+}
 
 int filter_roundrobin_init(filter_roundrobin_t* self)
 {

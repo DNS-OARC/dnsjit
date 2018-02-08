@@ -26,7 +26,6 @@
 -- packets arrived or to delay processing.
 module(...,package.seeall)
 
-local log = require("dnsjit.core.log")
 require("dnsjit.filter.timing_h")
 local ffi = require("ffi")
 local C = ffi.C
@@ -59,12 +58,17 @@ local Timing = {}
 -- Create a new Timing filter.
 function Timing.new()
     local o = struct.new()
-    local log = log.new(o.log)
-    log:debug("new()")
     return setmetatable({
         _ = o,
-        log = log,
     }, {__index = Timing})
+end
+
+-- Return the Log object to control logging of this instance or module.
+function Timing:log()
+    if self == nil then
+        return C.filter_timing_log()
+    end
+    return self._._log
 end
 
 -- Set the timing mode to keep the timing between packets.
@@ -100,13 +104,13 @@ function Timing:best_effort()
 end
 
 function Timing:receive()
-    self.log:debug("receive()")
+    self._._log:debug("receive()")
     return C.filter_timing_receiver(), self._
 end
 
 -- Set the receiver to pass queries to.
 function Timing:receiver(o)
-    self.log:debug("receiver()")
+    self._._log:debug("receiver()")
     self._.recv, self._.robj = o:receive()
     self._receiver = o
 end

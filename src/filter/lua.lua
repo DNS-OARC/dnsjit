@@ -32,7 +32,6 @@
 module(...,package.seeall)
 
 local ch = require("dnsjit.core.chelpers")
-local log = require("dnsjit.core.log")
 local query = require("dnsjit.core.query")
 require("dnsjit.filter.lua_h")
 local ffi = require("ffi")
@@ -66,13 +65,18 @@ local Lua = {}
 -- Create a new Lua filter.
 function Lua.new()
     local o = struct.new()
-    local log = log.new(o.log)
-    log:debug("new()")
     return setmetatable({
         _ = o,
-        log = log,
         ishandler = false,
     }, {__index = Lua})
+end
+
+-- Return the Log object to control logging of this instance or module.
+function Lua:log()
+    if self == nil then
+        return C.filter_lua_log()
+    end
+    return self._._log
 end
 
 -- Set the function to call on each receive, this function runs in it's own
@@ -106,7 +110,7 @@ function Lua:receive()
     if self.ishandler then
         error("is handler")
     end
-    self.log:debug("receive()")
+    self._._log:debug("receive()")
     return C.filter_lua_receiver(), self._
 end
 
@@ -115,7 +119,7 @@ function Lua:receiver(o)
     if self.ishandler then
         error("is handler")
     end
-    self.log:debug("receiver()")
+    self._._log:debug("receiver()")
     self._.recv, self._.robj = o:receive()
     self._receiver = o
 end

@@ -75,7 +75,7 @@ static inline void client_list_remove(client_pool_t* self, client_t* client, str
     if (self->clients) {
         self->clients--;
     } else {
-        ldebug("removed client but clients already zero");
+        lpdebug("removed client but clients already zero");
     }
 
     if (self->clients && ev_is_active(&(self->timeout))) {
@@ -91,7 +91,7 @@ static inline void client_close_free(client_pool_t* self, client_t* client, stru
     }
 
     if (client_close(client, loop)) {
-        ldebug("client close failed");
+        lpdebug("client close failed");
         client_free(client);
         return;
     }
@@ -120,7 +120,7 @@ static inline client_t* client_reuse_get(client_pool_t* self)
         if (self->reuse_clients) {
             self->reuse_clients--;
         } else {
-            ldebug("remove reuse client but reuse_clients already zero");
+            lpdebug("remove reuse client but reuse_clients already zero");
         }
         client_set_next(client, 0);
         client_set_prev(client, 0);
@@ -155,16 +155,16 @@ client_pool_t* client_pool_new(const char* host, const char* port)
         memset(&hints, 0, sizeof(struct addrinfo));
         hints.ai_family = AF_UNSPEC;
         if ((err = getaddrinfo(host, port, &hints, &(self->addrinfo)))) {
-            ldebug("getaddrinfo: %s", gai_strerror(err));
+            lpdebug("getaddrinfo: %s", gai_strerror(err));
             free(self);
             return 0;
         }
         if (!self->addrinfo) {
-            ldebug("getaddrinfo failed");
+            lpdebug("getaddrinfo failed");
             free(self);
             return 0;
         }
-        ldebug("getaddrinfo() flags: 0x%x family: 0x%x socktype: 0x%x protocol: 0x%x addrlen: %d",
+        lpdebug("getaddrinfo() flags: 0x%x family: 0x%x socktype: 0x%x protocol: 0x%x addrlen: %d",
             self->addrinfo->ai_flags,
             self->addrinfo->ai_family,
             self->addrinfo->ai_socktype,
@@ -228,9 +228,9 @@ static void* client_pool_engine(void* vp)
     assert(self);
     if (self) {
         assert(self->ev_loop);
-        ldebug("client pool ev run");
+        lpdebug("client pool ev run");
         ev_run(self->ev_loop, 0);
-        ldebug("client pool ev run exited");
+        lpdebug("client pool ev run exited");
     }
 
     return 0;
@@ -251,9 +251,9 @@ static void client_pool_client_callback(client_t* client, struct ev_loop* loop)
     }
 
     if (client_state(client) == CLIENT_CONNECTED) {
-        ldebug("client connected");
+        lpdebug("client connected");
         if (client_send(client, loop)) {
-            ldebug("client failed to send");
+            lpdebug("client failed to send");
         } else if (client_state(client) == CLIENT_RECIVING) {
             return;
         }
@@ -263,12 +263,12 @@ static void client_pool_client_callback(client_t* client, struct ev_loop* loop)
 
     switch (client_state(client)) {
     case CLIENT_SUCCESS:
-        ldebug("client success");
+        lpdebug("client success");
 
         if (client_is_dgram(client)
             && self->reuse_clients < self->max_reuse_clients) {
             client_reuse_add(self, client);
-            ldebug("client added to reuse (%lu/%lu)", self->reuse_clients, self->max_reuse_clients);
+            lpdebug("client added to reuse (%lu/%lu)", self->reuse_clients, self->max_reuse_clients);
         } else {
             client_close_free(self, client, loop);
         }
@@ -276,22 +276,22 @@ static void client_pool_client_callback(client_t* client, struct ev_loop* loop)
 
     case CLIENT_FAILED:
         /* TODO */
-        ldebug("client failed");
+        lpdebug("client failed");
         client_close_free(self, client, loop);
         break;
 
     case CLIENT_ERRNO:
-        ldebug("client errno");
+        lpdebug("client errno");
         client_close_free(self, client, loop);
         break;
 
     case CLIENT_CLOSED:
-        ldebug("client closed");
+        lpdebug("client closed");
         client_free(client);
         break;
 
     default:
-        ldebug("client state %d", client_state(client));
+        lpdebug("client state %d", client_state(client));
         client_close_free(self, client, loop);
         break;
     }
@@ -328,7 +328,7 @@ static void client_pool_engine_timeout(struct ev_loop* loop, ev_timer* w, int re
             continue;
         }
 
-        ldebug("client timeout");
+        lpdebug("client timeout");
         client_close_free(self, client, loop);
     }
 
@@ -394,26 +394,26 @@ static void client_pool_engine_query(struct ev_loop* loop, ev_async* w, int reve
             return;
         } else if (err) {
             if (err == SLLQ_ERRNO) {
-                ldebug("shift queue error %d: ", err);
+                lpdebug("shift queue error %d: ", err);
             } else {
-                ldebug("shift queue error %d", err);
+                lpdebug("shift queue error %d", err);
             }
             return;
         }
     }
 
     if (!query) {
-        ldebug("shift queue null?");
+        lpdebug("shift queue null?");
         ev_async_send(loop, &(self->notify_query));
         return;
     }
 
     if (self->dry_run) {
-        ldebug("shift queue, query %p (dry-run)", query);
+        lpdebug("shift queue, query %p (dry-run)", query);
         ev_async_send(loop, &(self->notify_query));
         return;
     } else {
-        ldebug("shift queue, query %p", query);
+        lpdebug("shift queue, query %p", query);
     }
 
     {
@@ -435,7 +435,7 @@ static void client_pool_engine_query(struct ev_loop* loop, ev_async* w, int reve
             } else if (query_is_tcp(query)) {
                 proto = IPPROTO_TCP;
             } else {
-                ldebug("unable to understand query protocol, surly a bug so please report this");
+                lpdebug("unable to understand query protocol, surly a bug so please report this");
                 query_free(query);
                 ev_async_send(loop, &(self->notify_query));
                 return;
@@ -447,7 +447,7 @@ static void client_pool_engine_query(struct ev_loop* loop, ev_async* w, int reve
             && self->reuse_client_list) {
             client = client_reuse_get(self);
             if (client_reuse(client, query)) {
-                ldebug("reuse client failed");
+                lpdebug("reuse client failed");
                 client_close_free(self, client, loop);
                 client = 0;
             } else {
@@ -456,7 +456,7 @@ static void client_pool_engine_query(struct ev_loop* loop, ev_async* w, int reve
             }
 
             if (client && client_set_start(client, ev_now(loop))) {
-                ldebug("reuse client start failed");
+                lpdebug("reuse client start failed");
                 query = client_release_query(client);
                 client_close_free(self, client, loop);
                 client = 0;
@@ -473,9 +473,9 @@ static void client_pool_engine_query(struct ev_loop* loop, ev_async* w, int reve
                 || (self->client_skip_reply && client_set_skip_reply(client))
                 || client_connect(client, proto, self->addrinfo->ai_addr, self->addrinfo->ai_addrlen, loop)) {
                 if (client_state(client) == CLIENT_ERRNO) {
-                    ldebug("client start/connect failed");
+                    lpdebug("client start/connect failed");
                 } else {
-                    ldebug("client start/connect failed");
+                    lpdebug("client start/connect failed");
                 }
                 query = client_release_query(client);
                 client_close_free(self, client, loop);
@@ -485,33 +485,33 @@ static void client_pool_engine_query(struct ev_loop* loop, ev_async* w, int reve
 
         if (client) {
             if (client_state(client) == CLIENT_CONNECTED && client_send(client, loop)) {
-                ldebug("client send failed");
+                lpdebug("client send failed");
                 client_close_free(self, client, loop);
             } else {
                 if (client_state(client) == CLIENT_SUCCESS) {
-                    ldebug("client success");
+                    lpdebug("client success");
 
                     if (client_is_dgram(client)
                         && self->reuse_clients < self->max_reuse_clients) {
                         client_reuse_add(self, client);
-                        ldebug("client added to reuse (%lu/%lu)", self->reuse_clients, self->max_reuse_clients);
+                        lpdebug("client added to reuse (%lu/%lu)", self->reuse_clients, self->max_reuse_clients);
                     } else {
                         client_close_free(self, client, loop);
                     }
                 } else {
                     client_list_add(self, client, loop);
-                    ldebug("new client (%lu/%lu)", self->clients, self->max_clients);
+                    lpdebug("new client (%lu/%lu)", self->clients, self->max_clients);
                 }
             }
         } else if (query) {
-            ldebug("unable to create client, query requeued");
+            lpdebug("unable to create client, query requeued");
             self->query = query;
             if (!ev_is_active(&(self->retry))) {
                 ev_timer_start(loop, &(self->retry));
             }
             return;
         } else {
-            ldebug("unable to create client, query lost");
+            lpdebug("unable to create client, query lost");
         }
     }
 
@@ -553,7 +553,7 @@ int client_pool_start(client_pool_t* self)
     }
     assert(self->ev_loop);
 
-    ldebug("client pool ev init");
+    lpdebug("client pool ev init");
 
     ev_async_init(&(self->notify_query), &client_pool_engine_query);
     ev_async_init(&(self->notify_stop), &client_pool_engine_stop);
@@ -563,7 +563,7 @@ int client_pool_start(client_pool_t* self)
     ev_async_start(self->ev_loop, &(self->notify_query));
     ev_async_start(self->ev_loop, &(self->notify_stop));
 
-    ldebug("client pool starting");
+    lpdebug("client pool starting");
 
     if ((err = pthread_create(&(self->thread_id), 0, &client_pool_engine, (void*)self))) {
         self->state = CLIENT_POOL_ERROR;
@@ -588,7 +588,7 @@ int client_pool_stop(client_pool_t* self)
     }
     assert(self->ev_loop);
 
-    ldebug("client pool stopping");
+    lpdebug("client pool stopping");
 
     ev_async_send(self->ev_loop, &(self->notify_stop));
 
@@ -600,7 +600,7 @@ int client_pool_stop(client_pool_t* self)
 
     self->state = CLIENT_POOL_STOPPED;
 
-    ldebug("client pool stopped");
+    lpdebug("client pool stopped");
 
     return 0;
 }
@@ -627,7 +627,7 @@ int client_pool_query(client_pool_t* self, query_t* query)
         struct timespec timeout;
 
         if (clock_gettime(CLOCK_REALTIME, &timeout)) {
-            ldebug("client pool query failed: clock_gettime()");
+            lpdebug("client pool query failed: clock_gettime()");
             return 1;
         }
         timeout.tv_nsec += 200000000;
@@ -641,14 +641,14 @@ int client_pool_query(client_pool_t* self, query_t* query)
 
     if (err) {
         if (err == SLLQ_ERRNO) {
-            ldebug("client pool query failed %d: ", err);
+            lpdebug("client pool query failed %d: ", err);
         } else {
-            ldebug("client pool query failed %d", err);
+            lpdebug("client pool query failed %d", err);
         }
         return 1;
     }
 
-    ldebug("client pool query ok, signaling");
+    lpdebug("client pool query ok, signaling");
 
     ev_async_send(self->ev_loop, &(self->notify_query));
 

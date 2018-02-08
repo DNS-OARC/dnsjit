@@ -21,15 +21,12 @@
 #include "config.h"
 
 #include "core/receiver.h"
-#include "core/log.h"
 
 int receiver_call(receiver_t recv, void* robj, query_t* q)
 {
     if (!recv) {
         return 1;
     }
-
-    gldebug("receiver_call %p(%p, %p)", recv, robj, q);
 
     return recv(robj, q);
 }

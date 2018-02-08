@@ -27,7 +27,6 @@
 -- Filter to pass queries to others in a round robin fashion.
 module(...,package.seeall)
 
-local log = require("dnsjit.core.log")
 require("dnsjit.filter.roundrobin_h")
 local ffi = require("ffi")
 local C = ffi.C
@@ -60,24 +59,29 @@ local Roundrobin = {}
 -- Create a new Roundrobin filter.
 function Roundrobin.new()
     local o = struct.new()
-    local log = log.new(o.log)
-    log:debug("new()")
     return setmetatable({
         _ = o,
-        log = log,
         receivers = {},
     }, {__index = Roundrobin})
 end
 
+-- Return the Log object to control logging of this instance or module.
+function Roundrobin:log()
+    if self == nil then
+        return C.filter_roundrobin_log()
+    end
+    return self._._log
+end
+
 function Roundrobin:receive()
-    self.log:debug("receive()")
+    self._._log:debug("receive()")
     return C.filter_roundrobin_receiver(), self._
 end
 
 -- Set the receiver to pass queries to, this can be called multiple times to
 -- set addtional receivers.
 function Roundrobin:receiver(o)
-    self.log:debug("receiver()")
+    self._._log:debug("receiver()")
     local recv, robj
     recv, robj = o:receive()
     local ret = C.filter_roundrobin_add(self._, recv, robj)

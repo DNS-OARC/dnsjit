@@ -41,6 +41,9 @@ for line in io.lines(arg[1]) do
                     print(".SH SYNOPSIS")
                     sh_syn = true
                 end
+                if line == "." then
+                    line = ""
+                end
                 print(line)
                 n2 = n
                 n, line = next(doc, n)
@@ -51,6 +54,9 @@ for line in io.lines(arg[1]) do
                     if not sh_desc then
                         print(".SH DESCRIPTION")
                         sh_desc = true
+                    end
+                    if line == "." then
+                        line = ""
                     end
                     print(line)
                     n, line = next(doc, n)
@@ -75,6 +81,9 @@ for line in io.lines(arg[1]) do
                 print(".B "..line:sub(10))
             end
             for _, line in pairs(doc) do
+                if line == "." then
+                    line = ""
+                end
                 print(line)
             end
         end

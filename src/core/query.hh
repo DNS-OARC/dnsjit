@@ -18,10 +18,10 @@
  * along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-//lua:require("dnsjit.core.log_h")
+//lua:require("dnsjit.core.log")
 //lua:require("dnsjit.core.timespec_h")
 typedef struct query {
-    log_t log;
+    log_t _log;
 
     unsigned short is_udp : 1;
     unsigned short is_tcp : 1;
@@ -73,6 +73,7 @@ typedef struct query {
     size_t additionals;
 } query_t;
 
+log_t*   query_log();
 query_t* query_new();
 void query_free(query_t* self);
 int query_init(query_t* self);

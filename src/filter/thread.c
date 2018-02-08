@@ -29,15 +29,19 @@
 #include <string.h>
 #include <stdlib.h>
 
-static thread_t _defaults = {
-    LOG_T_INIT,
+static log_t           _log      = LOG_T_INIT("filter.thread");
+static filter_thread_t _defaults = {
+    LOG_T_INIT_OBJ("filter.thread"),
     0, 0, 0, 0, 0, 0
 };
 static query_t _stop;
 
-#include <stdio.h>
+log_t* filter_thread_log()
+{
+    return &_log;
+}
 
-int thread_init(thread_t* self)
+int filter_thread_init(filter_thread_t* self)
 {
     if (!self) {
         return 1;
@@ -55,7 +59,7 @@ static void _flush(void* v)
     query_free((query_t*)v);
 }
 
-int thread_destroy(thread_t* self)
+int filter_thread_destroy(filter_thread_t* self)
 {
     if (!self) {
         return 1;
@@ -64,8 +68,8 @@ int thread_destroy(thread_t* self)
     ldebug("destroy %p", self);
 
     if (self->have_id) {
-        thread_stop(self);
-        thread_join(self);
+        filter_thread_stop(self);
+        filter_thread_join(self);
         free(self->id);
     }
     if (self->my_queues && self->qin) {
@@ -119,7 +123,7 @@ static void* _thread(void* v)
     return 0;
 }
 
-int thread_create(thread_t* self, const char* bc, size_t len)
+int filter_thread_create(filter_thread_t* self, const char* bc, size_t len)
 {
     struct _ctx* ctx;
 
@@ -169,7 +173,7 @@ int thread_create(thread_t* self, const char* bc, size_t len)
     return 0;
 }
 
-int thread_join(thread_t* self)
+int filter_thread_join(filter_thread_t* self)
 {
     if (!self || !self->have_id) {
         return 1;
@@ -185,7 +189,7 @@ int thread_join(thread_t* self)
     return 0;
 }
 
-int thread_stop(thread_t* self)
+int filter_thread_stop(filter_thread_t* self)
 {
     int             err;
     struct timespec ts;
@@ -217,10 +221,10 @@ int thread_stop(thread_t* self)
 
 static int _receive(void* robj, query_t* q)
 {
-    thread_t*       self = (thread_t*)robj;
-    query_t*        copy;
-    int             err;
-    struct timespec ts;
+    filter_thread_t* self = (filter_thread_t*)robj;
+    query_t*         copy;
+    int              err;
+    struct timespec  ts;
 
     if (!self || !q || !(copy = query_copy(q))) {
         query_free(q);
@@ -251,12 +255,12 @@ static int _receive(void* robj, query_t* q)
     return 0;
 }
 
-receiver_t thread_receiver()
+receiver_t filter_thread_receiver()
 {
     return _receive;
 }
 
-query_t* thread_recv(thread_t* self)
+query_t* filter_thread_recv(filter_thread_t* self)
 {
     query_t*        q = 0;
     int             err;
@@ -291,7 +295,7 @@ query_t* thread_recv(thread_t* self)
     return q;
 }
 
-int thread_send(thread_t* self, query_t* q)
+int filter_thread_send(filter_thread_t* self, query_t* q)
 {
     query_t* copy;
 

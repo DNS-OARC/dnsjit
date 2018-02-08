@@ -60,7 +60,10 @@
 -- is not already defined.
 module(...,package.seeall)
 
+local log = require("dnsjit.core.log")
+
 Getopt = {}
+local module_log = log.new("lib.getopt")
 
 -- Create a new Getopt object.
 -- .I args
@@ -71,7 +74,10 @@ function Getopt.new(args)
     local self = setmetatable({
         opt = {},
         s2l = {},
+        _log = log.new("lib.getopt", module_log),
     }, { __index = Getopt })
+
+    self._log:debug("new()")
 
     for k, v in pairs(args) do
         local short, long, default, help, extensions = unpack(v)
@@ -79,6 +85,14 @@ function Getopt.new(args)
     end
 
     return self
+end
+
+-- Return the Log object to control logging of this instance or module.
+function Getopt:log()
+    if self == nil then
+        return module_log
+    end
+    return self._log
 end
 
 -- Add an option.

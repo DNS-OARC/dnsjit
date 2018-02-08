@@ -22,24 +22,25 @@
 typedef struct {} pthread_t;
 typedef struct {} sllq_t;
 #endif
-//lua:require("dnsjit.core.log_h")
+//lua:require("dnsjit.core.log")
 //lua:require("dnsjit.core.receiver_h")
 typedef struct thread {
-    log_t          log;
+    log_t          _log;
     unsigned short have_id : 1;
     unsigned short my_queues : 1;
     pthread_t*     id;
     sllq_t*        qin;
     receiver_t     recv;
     void*          robj;
-} thread_t;
+} filter_thread_t;
 
-int thread_init(thread_t* self);
-int thread_destroy(thread_t* self);
-int thread_create(thread_t* self, const char* bc, size_t len);
-int thread_stop(thread_t* self);
-int thread_join(thread_t* self);
-receiver_t thread_receiver();
+log_t* filter_thread_log();
+int filter_thread_init(filter_thread_t* self);
+int filter_thread_destroy(filter_thread_t* self);
+int filter_thread_create(filter_thread_t* self, const char* bc, size_t len);
+int filter_thread_stop(filter_thread_t* self);
+int filter_thread_join(filter_thread_t* self);
+receiver_t filter_thread_receiver();
 
-query_t* thread_recv(thread_t* self);
-int thread_send(thread_t* self, query_t* q);
+query_t* filter_thread_recv(filter_thread_t* self);
+int filter_thread_send(filter_thread_t* self, query_t* q);

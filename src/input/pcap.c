@@ -25,6 +25,21 @@
 
 #include "omg-dns/omg_dns.h"
 
+static log_t        _log      = LOG_T_INIT("input.pcap");
+static input_pcap_t _defaults = {
+    LOG_T_INIT_OBJ("input.pcap"),
+    0, 0,
+    0, 0, 0,
+    { 0, 0 }, { 0, 0 },
+    0, 0, 0, 0,
+    PCAP_THREAD_OK
+};
+
+log_t* input_pcap_log()
+{
+    return &_log;
+}
+
 static void _udp(u_char* user, const pcap_thread_packet_t* packet, const u_char* payload, size_t length)
 {
     input_pcap_t*               self = (input_pcap_t*)user;
@@ -186,24 +201,15 @@ static void _tcp(u_char* user, const pcap_thread_packet_t* packet, const u_char*
     self->recv(self->robj, q);
 }
 
-static input_pcap_t _defaults = {
-    LOG_T_INIT,
-    0, 0,
-    0, 0, 0,
-    { 0, 0 }, { 0, 0 },
-    0, 0, 0, 0,
-    PCAP_THREAD_OK
-};
-
 int input_pcap_init(input_pcap_t* self)
 {
     if (!self) {
         return 1;
     }
 
-    ldebug("init %p", self);
-
     *self = _defaults;
+
+    ldebug("init");
 
     if (!(self->pt = pcap_thread_create())) {
         return 1;

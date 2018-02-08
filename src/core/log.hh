@@ -18,11 +18,26 @@
  * along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+typedef struct log_settings {
+    unsigned short debug : 2;
+    unsigned short info : 2;
+    unsigned short notice : 2;
+    unsigned short warning : 2;
+    unsigned short display_file_line : 2;
+} log_settings_t;
+
 typedef struct log {
-    int debug;
-    int info;
-    int notice;
-    int warning;
+    const char*           name;
+    unsigned short        is_obj : 1;
+    log_settings_t        settings;
+    const log_settings_t* module;
 } log_t;
+
+void log_debug(const log_t* l, const char* file, size_t line, const char* msg, ...);
+void log_info(const log_t* l, const char* file, size_t line, const char* msg, ...);
+void log_notice(const log_t* l, const char* file, size_t line, const char* msg, ...);
+void log_warning(const log_t* l, const char* file, size_t line, const char* msg, ...);
+void log_critical(const log_t* l, const char* file, size_t line, const char* msg, ...);
+void log_fatal(const log_t* l, const char* file, size_t line, const char* msg, ...);
 
 log_t* core_log();

@@ -27,7 +27,6 @@
 module(...,package.seeall)
 
 local ch = require("dnsjit.core.chelpers")
-local log = require("dnsjit.core.log")
 require("dnsjit.input.pcap_h")
 local ffi = require("ffi")
 local C = ffi.C
@@ -60,18 +59,23 @@ local Pcap = {}
 -- Create a new Pcap input.
 function Pcap.new()
     local o = struct.new()
-    local log = log.new(o.log)
-    log:debug("new()")
     return setmetatable({
         _ = o,
         _receiver = nil,
-        log = log,
     }, {__index = Pcap})
+end
+
+-- Return the Log object to control logging of this instance or module.
+function Pcap:log()
+    if self == nil then
+        return C.input_pcap_log()
+    end
+    return self._._log
 end
 
 -- Set the receiver to pass queries to.
 function Pcap:receiver(o)
-    self.log:debug("receiver()")
+    self._._log:debug("receiver()")
     self._.recv, self._.robj = o:receive()
     self._receiver = o
 end

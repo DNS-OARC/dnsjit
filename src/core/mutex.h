@@ -21,6 +21,8 @@
 #ifndef __dnsjit_core_mutex_h
 #define __dnsjit_core_mutex_h
 
+#include "core/log.h"
+
 #include "core/mutex.hh"
 
 #endif
