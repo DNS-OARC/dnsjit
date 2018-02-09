@@ -18,11 +18,36 @@
  * along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "config.h"
+
+#include "core/tracking.h"
 #include "core/log.h"
 
-#ifndef __dnsjit_core_mutex_h
-#define __dnsjit_core_mutex_h
+#include <pthread.h>
 
-#include "core/mutex.hh"
+static log_t           _log   = LOG_T_INIT("core.tracking");
+static pthread_mutex_t _mutex = PTHREAD_MUTEX_INITIALIZER;
+static uint64_t        _sid   = 1;
 
-#endif
+log_t* core_tracking_log()
+{
+    return &_log;
+}
+
+uint64_t core_tracking_new_sid()
+{
+    uint64_t sid;
+
+    if (pthread_mutex_lock(&_mutex)) {
+        return 0;
+    }
+    if (!_sid) {
+        /* 0 is error */
+        _sid++;
+    }
+    sid = _sid++;
+    if (pthread_mutex_unlock(&_mutex)) {
+        return 0;
+    }
+    return sid;
+}

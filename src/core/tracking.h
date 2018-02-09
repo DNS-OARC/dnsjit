@@ -20,9 +20,11 @@
 
 #include "core/log.h"
 
-#ifndef __dnsjit_core_mutex_h
-#define __dnsjit_core_mutex_h
+#ifndef __dnsjit_core_tracking_h
+#define __dnsjit_core_tracking_h
 
-#include "core/mutex.hh"
+#include <stdint.h>
+
+#include "core/tracking.hh"
 
 #endif

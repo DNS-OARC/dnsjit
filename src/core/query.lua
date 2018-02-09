@@ -86,6 +86,28 @@ function Query:dst()
     return ffi.string(C.query_dst(self._))
 end
 
+-- Return or set the source ID, used to track the unique source of the
+-- query.
+-- See also
+-- .BR dnsjit.core.tracking (3).
+function Query:sid(sid)
+    if sid == nil then
+        return self._.sid
+    end
+    self._.sid = sid
+end
+
+-- Return or set the query ID, used to track the unique query from a
+-- source.
+-- See also
+-- .BR dnsjit.core.tracking (3).
+function Query:qid(qid)
+    if qid == nil then
+        return self._.qid
+    end
+    self._.qid = qid
+end
+
 -- Return the source port.
 function Query:sport()
     return self._.sport
@@ -302,4 +324,5 @@ function Query:rr_ttl()
     return C.query_rr_ttl(self._)
 end
 
+-- dnsjit.core.tracking (3)
 return Query

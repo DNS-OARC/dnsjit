@@ -22,6 +22,7 @@
 
 #include "core/query.h"
 #include "input/pcap.h"
+#include "core/tracking.h"
 
 #include "omg-dns/omg_dns.h"
 
@@ -32,7 +33,8 @@ static input_pcap_t _defaults = {
     0, 0, 0,
     { 0, 0 }, { 0, 0 },
     0, 0, 0, 0,
-    PCAP_THREAD_OK
+    PCAP_THREAD_OK,
+    0, 1
 };
 
 log_t* input_pcap_log()
@@ -66,6 +68,12 @@ static void _udp(u_char* user, const pcap_thread_packet_t* packet, const u_char*
         self->drop++;
         return;
     }
+    q->sid = self->sid;
+    if (!self->qid) {
+        /* 0 is error */
+        self->qid++;
+    }
+    q->qid = self->qid++;
     if (packet->have_iphdr) {
         if (query_set_src(q, AF_INET, &packet->iphdr.ip_src, sizeof(packet->iphdr.ip_src))
             || query_set_dst(q, AF_INET, &packet->iphdr.ip_dst, sizeof(packet->iphdr.ip_dst))) {
@@ -152,6 +160,12 @@ static void _tcp(u_char* user, const pcap_thread_packet_t* packet, const u_char*
         self->drop++;
         return;
     }
+    q->sid = self->sid;
+    if (!self->qid) {
+        /* 0 is error */
+        self->qid++;
+    }
+    q->qid = self->qid++;
     if (packet->have_iphdr) {
         if (query_set_src(q, AF_INET, &packet->iphdr.ip_src, sizeof(packet->iphdr.ip_src))
             || query_set_dst(q, AF_INET, &packet->iphdr.ip_dst, sizeof(packet->iphdr.ip_dst))) {
@@ -207,7 +221,8 @@ int input_pcap_init(input_pcap_t* self)
         return 1;
     }
 
-    *self = _defaults;
+    *self     = _defaults;
+    self->sid = core_tracking_new_sid();
 
     ldebug("init");
 
