@@ -47,9 +47,9 @@ int filter_thread_init(filter_thread_t* self)
         return 1;
     }
 
-    ldebug("new %p", self);
-
     *self = _defaults;
+
+    ldebug("init");
 
     return 0;
 }
@@ -65,7 +65,7 @@ int filter_thread_destroy(filter_thread_t* self)
         return 1;
     }
 
-    ldebug("destroy %p", self);
+    ldebug("destroy");
 
     if (self->have_id) {
         filter_thread_stop(self);
@@ -131,7 +131,7 @@ int filter_thread_create(filter_thread_t* self, const char* bc, size_t len)
         return 1;
     }
 
-    ldebug("create %p %p %lu", self, bc, len);
+    ldebug("create %p %lu", bc, len);
 
     if (!self->id) {
         if (!(self->id = malloc(sizeof(pthread_t)))) {
@@ -159,7 +159,7 @@ int filter_thread_create(filter_thread_t* self, const char* bc, size_t len)
     ctx->recv = self->recv;
     ctx->robj = self->robj;
 
-    ldebug("create %p qin %p", self, self->qin);
+    ldebug("create qin %p", self->qin);
 
     if (pthread_create(self->id, 0, _thread, (void*)ctx)) {
         free(ctx->bc);
@@ -168,7 +168,7 @@ int filter_thread_create(filter_thread_t* self, const char* bc, size_t len)
     }
     self->have_id = 1;
 
-    ldebug("create %p id %lu", self, *self->id);
+    ldebug("create id %lu", *self->id);
 
     return 0;
 }
@@ -179,7 +179,7 @@ int filter_thread_join(filter_thread_t* self)
         return 1;
     }
 
-    ldebug("join %p %lu", self, *self->id);
+    ldebug("join %lu", *self->id);
 
     if (pthread_join(*self->id, 0)) {
         return 1;
@@ -198,7 +198,7 @@ int filter_thread_stop(filter_thread_t* self)
         return 1;
     }
 
-    ldebug("stop %p", self);
+    ldebug("stop");
 
     err = SLLQ_EAGAIN;
     while (err == SLLQ_EAGAIN || err == SLLQ_ETIMEDOUT || err == SLLQ_FULL) {
@@ -214,7 +214,7 @@ int filter_thread_stop(filter_thread_t* self)
         err = sllq_push(self->qin, (void*)&_stop, &ts);
     }
 
-    ldebug("stopped %p", self);
+    ldebug("stopped");
 
     return 0;
 }
@@ -231,7 +231,7 @@ static int _receive(void* robj, query_t* q)
         return 1;
     }
 
-    ldebug("push %p q %p copy %p", self, q, copy);
+    ldebug("push q %p copy %p", q, copy);
 
     err = SLLQ_EAGAIN;
     while (err == SLLQ_EAGAIN || err == SLLQ_ETIMEDOUT || err == SLLQ_FULL) {
@@ -249,7 +249,7 @@ static int _receive(void* robj, query_t* q)
         err = sllq_push(self->qin, (void*)copy, &ts);
     }
 
-    ldebug("pushed %p q %p", self, q);
+    ldebug("pushed q %p", q);
 
     query_free(q);
     return 0;
@@ -270,7 +270,7 @@ query_t* filter_thread_recv(filter_thread_t* self)
         return 0;
     }
 
-    ldebug("recv %p", self);
+    ldebug("recv");
 
     err = SLLQ_EAGAIN;
     while (err == SLLQ_EAGAIN || err == SLLQ_ETIMEDOUT || err == SLLQ_EMPTY) {
@@ -287,11 +287,11 @@ query_t* filter_thread_recv(filter_thread_t* self)
     }
 
     if (q == &_stop) {
-        ldebug("recv %p stop", self);
+        ldebug("recv stop");
         return 0;
     }
 
-    ldebug("recv %p q %p", self, q);
+    ldebug("recv q %p", q);
     return q;
 }
 
@@ -307,7 +307,7 @@ int filter_thread_send(filter_thread_t* self, query_t* q)
         return 1;
     }
 
-    ldebug("send %p q %p copy %p", self, q, copy);
+    ldebug("send q %p copy %p", q, copy);
     self->recv(self->robj, copy);
 
     return 0;

@@ -37,7 +37,7 @@
 static void client_shutdown(struct ev_loop* loop, ev_io* w, int revents)
 {
     client_t* client;
-    char      buf[512];
+    char      buf[4 * 1024];
 
     /* TODO: Check revents for EV_ERROR */
 
@@ -58,7 +58,7 @@ static void client_read(struct ev_loop* loop, ev_io* w, int revents)
 {
     client_t* client;
     ssize_t   nrecv;
-    char      buf[64 * 1024];
+    char      buf[4 * 1024];
 
     /* TODO: Check revents for EV_ERROR */
 

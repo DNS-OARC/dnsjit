@@ -14,6 +14,8 @@ local output = require("dnsjit.output.cpool").new(host, port)
 input:only_queries(true)
 input:open_offline(pcap)
 
+output:skip_reply(true)
+
 input:receiver(output)
 
 output:start()

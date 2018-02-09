@@ -33,17 +33,17 @@ log_t* output_cpool_log()
     return &_log;
 }
 
-int output_cpool_init(output_cpool_t* self, const char* host, const char* port)
+int output_cpool_init(output_cpool_t* self, const char* host, const char* port, size_t queue_size)
 {
     if (!self || !host || !port) {
         return 1;
     }
 
-    ldebug("init %p %s %s", self, host, port);
-
     *self = _defaults;
 
-    if (!(self->p = client_pool_new(host, port))) {
+    ldebug("init %s %s %lu", host, port, queue_size);
+
+    if (!(self->p = client_pool_new(host, port, queue_size))) {
         lfatal("oom");
     }
     self->p->_log = &self->_log;
@@ -57,7 +57,7 @@ int output_cpool_destroy(output_cpool_t* self)
         return 1;
     }
 
-    ldebug("destroy %p", self);
+    ldebug("destroy");
 
     client_pool_free(self->p);
 
@@ -79,7 +79,7 @@ int output_cpool_set_max_clients(output_cpool_t* self, size_t max_clients)
         return 1;
     }
 
-    ldebug("max_clients %p %lu", self, max_clients);
+    ldebug("max_clients %lu", max_clients);
 
     self->p->max_clients = max_clients;
 
@@ -101,7 +101,7 @@ int output_cpool_set_client_ttl(output_cpool_t* self, double client_ttl)
         return 1;
     }
 
-    ldebug("client_ttl %p %f", self, client_ttl);
+    ldebug("client_ttl %f", client_ttl);
 
     self->p->client_ttl = client_ttl;
 
@@ -123,7 +123,7 @@ int output_cpool_set_max_reuse_clients(output_cpool_t* self, size_t max_reuse_cl
         return 1;
     }
 
-    ldebug("max_reuse_clients %p %lu", self, max_reuse_clients);
+    ldebug("max_reuse_clients %lu", max_reuse_clients);
 
     self->p->max_reuse_clients = max_reuse_clients;
 
@@ -145,7 +145,7 @@ int output_cpool_set_skip_reply(output_cpool_t* self, int skip_reply)
         return 1;
     }
 
-    ldebug("skip_reply %p %lu", self, skip_reply);
+    ldebug("skip_reply %lu", skip_reply);
 
     self->p->client_skip_reply = skip_reply ? 1 : 0;
 
@@ -178,7 +178,7 @@ int output_cpool_set_sendas_original(output_cpool_t* self)
         return 1;
     }
 
-    ldebug("sendas original %p", self);
+    ldebug("sendas original");
 
     self->p->sendas = CLIENT_POOL_SENDAS_ORIGINAL;
 
@@ -191,7 +191,7 @@ int output_cpool_set_sendas_udp(output_cpool_t* self)
         return 1;
     }
 
-    ldebug("sendas udp %p", self);
+    ldebug("sendas udp");
 
     self->p->sendas = CLIENT_POOL_SENDAS_ORIGINAL;
 
@@ -204,7 +204,7 @@ int output_cpool_set_sendas_tcp(output_cpool_t* self)
         return 1;
     }
 
-    ldebug("sendas tcp %p", self);
+    ldebug("sendas tcp");
 
     self->p->sendas = CLIENT_POOL_SENDAS_ORIGINAL;
 
@@ -226,7 +226,7 @@ int output_cpool_set_dry_run(output_cpool_t* self, int dry_run)
         return 1;
     }
 
-    ldebug("dry_run %p %lu", self, dry_run);
+    ldebug("dry_run %lu", dry_run);
 
     self->p->dry_run = dry_run ? 1 : 0;
 

@@ -235,7 +235,7 @@ int input_pcap_destroy(input_pcap_t* self)
         return 1;
     }
 
-    ldebug("destroy %p", self);
+    ldebug("destroy");
 
     pcap_thread_free(self->pt);
 
@@ -248,7 +248,7 @@ int input_pcap_open(input_pcap_t* self, const char* device)
         return 1;
     }
 
-    ldebug("open %p %s", self, device);
+    ldebug("open %s", device);
 
     if ((self->err = pcap_thread_open(self->pt, device, (void*)self)) != PCAP_THREAD_OK) {
         return 1;
@@ -263,7 +263,7 @@ int input_pcap_open_offline(input_pcap_t* self, const char* file)
         return 1;
     }
 
-    ldebug("open_offline %p %s", self, file);
+    ldebug("open_offline %s", file);
 
     if ((self->err = pcap_thread_open_offline(self->pt, file, (void*)self)) != PCAP_THREAD_OK) {
         return 1;
@@ -279,7 +279,7 @@ int input_pcap_run(input_pcap_t* self)
         return 1;
     }
 
-    ldebug("run %p", self);
+    ldebug("run");
 
     clock_gettime(CLOCK_MONOTONIC, &ts);
     if ((self->err = pcap_thread_run(self->pt)) != PCAP_THREAD_OK) {
@@ -301,7 +301,7 @@ int input_pcap_next(input_pcap_t* self)
         return 1;
     }
 
-    ldebug("next %p", self);
+    ldebug("next");
 
     if ((self->err = pcap_thread_next(self->pt)) != PCAP_THREAD_OK) {
         return 1;

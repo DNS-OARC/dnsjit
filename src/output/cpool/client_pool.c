@@ -135,9 +135,16 @@ static inline client_t* client_reuse_get(client_pool_t* self)
 
 static sllq_t client_pool_sllq_init = SLLQ_T_INIT;
 
-client_pool_t* client_pool_new(const char* host, const char* port)
+client_pool_t* client_pool_new(const char* host, const char* port, size_t queue_size)
 {
     client_pool_t* self;
+
+    if (!host || !port) {
+        return 0;
+    }
+    if (!queue_size) {
+        queue_size = 0x200;
+    }
 
     if ((self = calloc(1, sizeof(client_pool_t)))) {
         struct addrinfo hints;
@@ -147,10 +154,6 @@ client_pool_t* client_pool_new(const char* host, const char* port)
         self->client_ttl        = 0.05;
         self->max_reuse_clients = 20;
         self->sendas            = CLIENT_POOL_SENDAS_ORIGINAL;
-
-        // TODO
-        self->client_skip_reply = 1;
-        self->sendas            = CLIENT_POOL_SENDAS_UDP;
 
         memset(&hints, 0, sizeof(struct addrinfo));
         hints.ai_family = AF_UNSPEC;
@@ -172,7 +175,7 @@ client_pool_t* client_pool_new(const char* host, const char* port)
             self->addrinfo->ai_addrlen);
 
         memcpy(&(self->queries), &client_pool_sllq_init, sizeof(sllq_t));
-        sllq_set_size(&(self->queries), 0x200); /* TODO: conf */
+        sllq_set_size(&(self->queries), queue_size);
         if (sllq_init(&(self->queries)) != SLLQ_OK) {
             freeaddrinfo(self->addrinfo);
             free(self);

@@ -19,6 +19,7 @@ set and may be changed or removed.
 
 The following Lua module categories exists:
 - `dnsjit.core`: Core modules for handling things like logging, DNS messages and receiver/receive functionality.
+- `dnsjit.lib`: Various Lua libraries or C library bindings.
 - `dnsjit.input`: Input modules used to read DNS messages in various ways.
 - `dnsjit.filter`: Filter modules to process or manipulate DNS messages.
 - `dnsjit.output`: Output modules used to display DNS message, export to various formats or replay them against other targets.
@@ -60,6 +61,7 @@ access them, after building you can do:
 ```shell
 man src/dnsjit.1
 man src/dnsjit.core.3
+man src/dnsjit.lib.3
 man src/dnsjit.input.3
 man src/dnsjit.filter.3
 man src/dnsjit.output.3
