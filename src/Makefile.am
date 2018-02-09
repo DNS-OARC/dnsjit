@@ -33,7 +33,7 @@ bin_PROGRAMS = dnsjit
 dnsjit_SOURCES = dnsjit.c \
     core/log.c core/mutex.c core/query.c core/receiver.c core/tracking.c \
     input/pcap.c \
-	filter/lua.c filter/roundrobin.c filter/thread.c filter/timing.c \
+	filter/lua.c filter/multicopy.c filter/roundrobin.c filter/thread.c filter/timing.c \
     output/cpool.c output/null.c \
     omg-dns/omg_dns.c \
     pcap-thread/pcap_thread.c \
@@ -42,7 +42,7 @@ dnsjit_SOURCES = dnsjit.c \
 dist_dnsjit_SOURCES = \
     core/log.h core/mutex.h core/query.h core/receiver.h core/timespec.h core/tracking.h \
     input/pcap.h \
-	filter/lua.h filter/roundrobin.h filter/thread.h filter/timing.h \
+	filter/lua.h filter/multicopy.h filter/roundrobin.h filter/thread.h filter/timing.h \
     output/cpool.h output/null.h \
     omg-dns/omg_dns.h \
     pcap-thread/pcap_thread.h \
@@ -54,25 +54,25 @@ dnsjit_LDADD = $(PTHREAD_LIBS) $(luajit_LIBS)
 dist_dnsjit_SOURCES += \
 	core/log.hh core/mutex.hh core/query.hh core/receiver.hh core/timespec.hh core/tracking.hh \
     input/pcap.hh \
-	filter/lua.hh filter/roundrobin.hh filter/thread.hh filter/timing.hh \
+	filter/lua.hh filter/multicopy.hh filter/roundrobin.hh filter/thread.hh filter/timing.hh \
     output/cpool.hh output/null.hh
 lua_hobjects = \
 	core/log.luaho core/mutex.luaho core/query.luaho core/receiver.luaho core/timespec.luaho core/tracking.luaho \
     input/pcap.luaho \
-	filter/lua.luaho filter/roundrobin.luaho filter/thread.luaho filter/timing.luaho \
+	filter/lua.luaho filter/multicopy.luaho filter/roundrobin.luaho filter/thread.luaho filter/timing.luaho \
     output/cpool.luaho output/null.luaho
 # Lua sources
 dist_dnsjit_SOURCES += \
 	core/chelpers.lua core/log.lua core/mutex.lua core/query.lua core/tracking.lua \
 	lib/getopt.lua lib/parseconf.lua \
     input/lua.lua input/pcap.lua \
-	filter/lua.lua filter/roundrobin.lua filter/thread.lua filter/timing.lua \
+	filter/lua.lua filter/multicopy.lua filter/roundrobin.lua filter/thread.lua filter/timing.lua \
     output/cpool.lua output/null.lua
 lua_objects = \
 	core/chelpers.luao core/log.luao core/mutex.luao core/query.luao core/tracking.luao \
 	lib/getopt.luao lib/parseconf.luao \
     input/lua.luao input/pcap.luao \
-	filter/lua.luao filter/roundrobin.luao filter/thread.luao filter/timing.luao \
+	filter/lua.luao filter/multicopy.luao filter/roundrobin.luao filter/thread.luao filter/timing.luao \
     output/cpool.luao output/null.luao
 # Documentation only sources
 dist_dnsjit_SOURCES += \
@@ -91,7 +91,7 @@ CLEANFILES += $(man1_MANS)
 man3_MANS = dnsjit.core.3 dnsjit.core.chelpers.3 dnsjit.core.log.3 dnsjit.core.mutex.3 dnsjit.core.query.3 dnsjit.core.receiver.3 dnsjit.core.timespec.3 dnsjit.core.tracking.3 \
     dnsjit.lib.3 dnsjit.lib.getopt.3 dnsjit.lib.parseconf.3 \
     dnsjit.input.3 dnsjit.input.lua.3 dnsjit.input.pcap.3 \
-	dnsjit.filter.3 dnsjit.filter.lua.3 dnsjit.filter.roundrobin.3 dnsjit.filter.thread.3 dnsjit.filter.timing.3 \
+	dnsjit.filter.3 dnsjit.filter.lua.3 dnsjit.filter.multicopy.3 dnsjit.filter.roundrobin.3 dnsjit.filter.thread.3 dnsjit.filter.timing.3 \
 	dnsjit.output.3 dnsjit.output.cpool.3 dnsjit.output.null.3
 CLEANFILES += *.3in $(man3_MANS)
 
@@ -172,6 +172,9 @@ dnsjit.filter.3in: filter.lua gen-manpage.lua
 
 dnsjit.filter.lua.3in: filter/lua.lua gen-manpage.lua
 	$(LUAJIT) "$(srcdir)/gen-manpage.lua" "$(srcdir)/filter/lua.lua" > "$@"
+
+dnsjit.filter.multicopy.3in: filter/multicopy.lua gen-manpage.lua
+	$(LUAJIT) "$(srcdir)/gen-manpage.lua" "$(srcdir)/filter/multicopy.lua" > "$@"
 
 dnsjit.filter.roundrobin.3in: filter/roundrobin.lua gen-manpage.lua
 	$(LUAJIT) "$(srcdir)/gen-manpage.lua" "$(srcdir)/filter/roundrobin.lua" > "$@"
