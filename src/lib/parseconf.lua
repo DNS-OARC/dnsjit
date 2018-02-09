@@ -19,10 +19,13 @@
 -- dnsjit.lib.parseconf
 -- Parse simple config files
 --   local conf = require("dnsjit.lib.parseconf").new()
+-- .
 --   conf:func("config_name", function(k,...)
 --       print(k,...)
 --   end)
+-- .
 --   conf:parse(file)
+-- .
 --   print(conf:val("another_config_name"))
 --
 -- This module parses simple config files that are based on the config

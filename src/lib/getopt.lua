@@ -23,7 +23,9 @@
 --       { nil, "host", "localhost", "Set host", "?" },
 --       { "p", nil, 53, "Set port", "?" },
 --   })
+-- .
 --   local left = getopt:parse()
+-- .
 --   print("host", getopt:val("host"))
 --   print("port", getopt:val("p"))
 --

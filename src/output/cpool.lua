@@ -47,13 +47,13 @@ local mt = {
         end
     end,
     __index = {
-        new = function(host, port)
+        new = function(host, port, queue_size)
             local self = struct()
             if not self then
                 error("oom")
             end
             if ffi.istype(type, self) then
-                C.output_cpool_init(self, host, port)
+                C.output_cpool_init(self, host, port, queue_size)
                 return self
             end
         end
@@ -63,9 +63,16 @@ struct = ffi.metatype(type, mt)
 
 local Cpool = {}
 
--- Create a new Cpool output.
-function Cpool.new(host, port)
-    local o = struct.new(host, port)
+-- Create a new Cpool output for the target
+-- .I host
+-- and
+-- .I port
+-- with an optional queue size.
+function Cpool.new(host, port, queue_size)
+    if queue_size == nil then
+        queue_size = 0
+    end
+    local o = struct.new(host, port, queue_size)
     return setmetatable({
         _ = o,
     }, {__index = Cpool})

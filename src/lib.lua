@@ -17,10 +17,11 @@
 -- along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
 
 -- dnsjit.lib
--- Various helpful libraries
+-- Various Lua libraries or C library bindings
 module(...,package.seeall)
 
 error("This should not be included, only here for documentation generation")
 
--- dnsjit.lib.getopt (3)
+-- dnsjit.lib.getopt (3),
+-- dnsjit.lib.parseconf (3)
 return

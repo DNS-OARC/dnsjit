@@ -87,7 +87,7 @@ struct client_pool {
     log_t* _log;
 };
 
-client_pool_t* client_pool_new(const char* host, const char* port);
+client_pool_t* client_pool_new(const char* host, const char* port, size_t queue_size);
 void client_pool_free(client_pool_t* client_pool);
 int client_pool_start(client_pool_t* client_pool);
 int client_pool_stop(client_pool_t* client_pool);

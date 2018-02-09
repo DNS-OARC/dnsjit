@@ -38,9 +38,9 @@ int filter_roundrobin_init(filter_roundrobin_t* self)
         return 1;
     }
 
-    ldebug("init %p", self);
-
     *self = _defaults;
+
+    ldebug("init");
 
     return 0;
 }
@@ -52,7 +52,7 @@ int filter_roundrobin_destroy(filter_roundrobin_t* self)
         return 1;
     }
 
-    ldebug("destroy %p", self);
+    ldebug("destroy");
 
     while ((r = self->recv_list)) {
         self->recv_list = r->next;
@@ -69,7 +69,7 @@ int filter_roundrobin_add(filter_roundrobin_t* self, receiver_t recv, void* robj
         return 1;
     }
 
-    ldebug("add %p %p %p", self, recv, robj);
+    ldebug("add recv %p obj %p", recv, robj);
 
     if (!(r = malloc(sizeof(filter_roundrobin_recv_t)))) {
         return 1;

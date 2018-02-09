@@ -43,7 +43,8 @@ int filter_lua_init(filter_lua_t* self)
     }
 
     *self = _defaults;
-    ldebug("init", self);
+
+    ldebug("init");
 
     if (!(self->L = luaL_newstate())) {
         return 1;
@@ -65,7 +66,7 @@ int filter_lua_destroy(filter_lua_t* self)
         return 1;
     }
 
-    ldebug("destroy %p", self);
+    ldebug("destroy");
 
     lua_close(self->L);
 
@@ -78,7 +79,7 @@ int filter_lua_func(filter_lua_t* self, const char* bc, size_t len)
         return 1;
     }
 
-    ldebug("func %p %p %lu", self, bc, len);
+    ldebug("func %p %lu", bc, len);
 
     if (self->recv) {
         ldebug("func recv %p %p", self->recv, self->robj);

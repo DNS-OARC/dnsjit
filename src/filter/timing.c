@@ -43,9 +43,9 @@ int filter_timing_init(filter_timing_t* self)
         return 1;
     }
 
-    ldebug("init %p", self);
-
     *self = _defaults;
+
+    ldebug("init");
 
     return 0;
 }
@@ -56,7 +56,7 @@ int filter_timing_destroy(filter_timing_t* self)
         return 1;
     }
 
-    ldebug("destroy %p", self);
+    ldebug("destroy");
 
     return 0;
 }
