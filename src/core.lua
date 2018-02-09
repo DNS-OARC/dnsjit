@@ -40,5 +40,6 @@ error("This should not be included, only here for documentation generation")
 -- dnsjit.core.mutex (3),
 -- dnsjit.core.query (3),
 -- dnsjit.core.receiver (3),
--- dnsjit.core.timespec (3)
+-- dnsjit.core.timespec (3),
+-- dnsjit.core.tracking (3)
 return

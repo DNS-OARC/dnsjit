@@ -23,6 +23,8 @@
 typedef struct query {
     log_t _log;
 
+    uint64_t sid, qid;
+
     unsigned short is_udp : 1;
     unsigned short is_tcp : 1;
     unsigned short is_ipv6 : 1;

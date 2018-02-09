@@ -18,11 +18,7 @@
  * along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "core/log.h"
+//Lua:require("dnsjit.core.log")
+log_t* core_tracking_log();
 
-#ifndef __dnsjit_core_mutex_h
-#define __dnsjit_core_mutex_h
-
-#include "core/mutex.hh"
-
-#endif
+uint64_t core_tracking_new_sid();
