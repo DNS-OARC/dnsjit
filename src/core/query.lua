@@ -20,13 +20,129 @@
 -- Container of a DNS message and related capturing information
 --   local query = require("dnsjit.core.query")
 --   local q = query.new()
---   print(q:src(), q:dst(), q:id())
+--   print(q:src(), q:dst(), q.id, q.rcode)
 --
 -- The core object that is passed between receiver and receivee and describes
 -- a DNS message, how it was captured or generated.
--- .LP
--- .B NOTE
--- it is not common to create this object, it is received from other modules.
+-- .SS Attributes
+-- .TP
+-- sid
+-- Source ID, used to track the unique source of the query.
+-- See also
+-- .BR dnsjit.core.tracking (3).
+-- .TP
+-- qid
+-- Query ID, used to track the unique query from a source.
+-- See also
+-- .BR dnsjit.core.tracking (3).
+-- .TP
+-- sport
+-- Source port.
+-- .TP
+-- dport
+-- Destination port.
+-- .TP
+-- have_id
+-- Set if there is a DNS ID.
+-- .TP
+-- have_qr
+-- Set if there is a QR flag.
+-- .TP
+-- have_opcode
+-- Set if there is an OPCODE.
+-- .TP
+-- have_aa
+-- Set if there is a AA flag.
+-- .TP
+-- have_tc
+-- Set if there is a TC flag.
+-- .TP
+-- have_rd
+-- Set if there is a RD flag.
+-- .TP
+-- have_ra
+-- Set if there is a RA flag.
+-- .TP
+-- have_z
+-- Set if there is a Z flag.
+-- .TP
+-- have_ad
+-- Set if there is a AD flag.
+-- .TP
+-- have_cd
+-- Set if there is a CD flag.
+-- .TP
+-- have_rcode
+-- Set if there is a RCODE.
+-- .TP
+-- have_qdcount
+-- Set if there is an QDCOUNT.
+-- .TP
+-- have_ancount
+-- Set if there is an ANCOUNT.
+-- .TP
+-- have_nscount
+-- Set if there is a NSCOUNT.
+-- .TP
+-- have_arcount
+-- Set if there is an ARCOUNT.
+-- .TP
+-- id
+-- The DNS ID.
+-- .TP
+-- qr
+-- The QR flag.
+-- .TP
+-- opcode
+-- The OPCODE.
+-- .TP
+-- aa
+-- The AA flag.
+-- .TP
+-- tc
+-- The TC flag.
+-- .TP
+-- rd
+-- The RD flag.
+-- .TP
+-- ra
+-- The RA flag.
+-- .TP
+-- z
+-- The Z flag.
+-- .TP
+-- ad
+-- The AD flag.
+-- .TP
+-- cd
+-- The CD flag.
+-- .TP
+-- rcode
+-- The RCODE.
+-- .TP
+-- qdcount
+-- The QDCOUNT.
+-- .TP
+-- ancount
+-- The ANCOUNT.
+-- .TP
+-- nscount
+-- The NSCOUNT.
+-- .TP
+-- arcount
+-- The ARCOUNT.
+-- .TP
+-- questions
+-- The actual number of questions found.
+-- .TP
+-- answers
+-- The actual number of answers found.
+-- .TP
+-- authorities
+-- The actual number of authorities found.
+-- .TP
+-- additionals
+-- The actual number of additionals found.
 module(...,package.seeall)
 
 local ch = require("dnsjit.core.chelpers")
@@ -34,20 +150,18 @@ require("dnsjit.core.query_h")
 local ffi = require("ffi")
 local C = ffi.C
 
+local t_name = "core_query_t"
+local core_query_t
 local Query = {}
 
 -- Create a new query or bind an existing
 -- .IR core_query_t .
-function Query.new(o)
-    if o == nil then
-        o = C.core_query_new()
-    elseif not ffi.istype("core_query_t", o) then
-        error("is not core_query_t")
+function Query.new(self)
+    if not ffi.istype(t_name, self) then
+        self = C.core_query_new()
     end
-    ffi.gc(o, C.core_query_free)
-    return setmetatable({
-        _ = o,
-    }, {__index = Query})
+    ffi.gc(self, C.core_query_free)
+    return self
 end
 
 -- Return the Log object to control logging of this instance or module.
@@ -55,254 +169,44 @@ function Query:log()
     if self == nil then
         return C.core_query_log()
     end
-    return self._._log
-end
-
--- Return the
--- .I core_query_t
--- C structure bound to this object.
-function Query:struct()
-    self._._log:debug("struct()")
-    return self._
+    return self._log
 end
 
 -- Parse the DNS headers or the query.
 function Query:parse_header()
-    return ch.z2n(C.core_query_parse_header(self._))
+    return ch.z2n(C.core_query_parse_header(self))
 end
 
 -- Parse the full DNS message or just the body if the header was already parsed.
 function Query:parse()
-    return ch.z2n(C.core_query_parse(self._))
+    return ch.z2n(C.core_query_parse(self))
 end
 
 -- Return the IP source as a string.
 function Query:src()
-    return ffi.string(C.core_query_src(self._))
+    return ffi.string(C.core_query_src(self))
 end
 
 -- Return the IP destination as a string.
 function Query:dst()
-    return ffi.string(C.core_query_dst(self._))
-end
-
--- Return or set the source ID, used to track the unique source of the
--- query.
--- See also
--- .BR dnsjit.core.tracking (3).
-function Query:sid(sid)
-    if sid == nil then
-        return self._.sid
-    end
-    self._.sid = sid
-end
-
--- Return or set the query ID, used to track the unique query from a
--- source.
--- See also
--- .BR dnsjit.core.tracking (3).
-function Query:qid(qid)
-    if qid == nil then
-        return self._.qid
-    end
-    self._.qid = qid
-end
-
--- Return the source port.
-function Query:sport()
-    return self._.sport
-end
-
--- Return the destination port.
-function Query:dport()
-    return self._.dport
-end
-
--- Return true if there is a DNS ID.
-function Query:have_id()
-    return ch.i2b(self._.have_id)
-end
-
--- Return true if there is a QR flag.
-function Query:have_qr()
-    return ch.i2b(self._.have_qr)
-end
-
--- Return true if there is an OPCODE.
-function Query:have_opcode()
-    return ch.i2b(self._.have_opcode)
-end
-
--- Return true if there is a AA flag.
-function Query:have_aa()
-    return ch.i2b(self._.have_aa)
-end
-
--- Return true if there is a TC flag.
-function Query:have_tc()
-    return ch.i2b(self._.have_tc)
-end
-
--- Return true if there is a RD flag.
-function Query:have_rd()
-    return ch.i2b(self._.have_rd)
-end
-
--- Return true if there is a RA flag.
-function Query:have_ra()
-    return ch.i2b(self._.have_ra)
-end
-
--- Return true if there is a Z flag.
-function Query:have_z()
-    return ch.i2b(self._.have_z)
-end
-
--- Return true if there is a AD flag.
-function Query:have_ad()
-    return ch.i2b(self._.have_ad)
-end
-
--- Return true if there is a CD flag.
-function Query:have_cd()
-    return ch.i2b(self._.have_cd)
-end
-
--- Return true if there is a RCODE.
-function Query:have_rcode()
-    return ch.i2b(self._.have_rcode)
-end
-
--- Return true if there is an QDCOUNT.
-function Query:have_qdcount()
-    return ch.i2b(self._.have_qdcount)
-end
-
--- Return true if there is an ANCOUNT.
-function Query:have_ancount()
-    return ch.i2b(self._.have_ancount)
-end
-
--- Return true if there is a NSCOUNT.
-function Query:have_nscount()
-    return ch.i2b(self._.have_nscount)
-end
-
--- Return true if there is an ARCOUNT.
-function Query:have_arcount()
-    return ch.i2b(self._.have_arcount)
-end
-
--- Return the DNS ID.
-function Query:id()
-    return self._.id
-end
-
--- Return the QR flag.
-function Query:qr()
-    return self._.qr
-end
-
--- Return the OPCODE.
-function Query:opcode()
-    return self._.opcode
-end
-
--- Return the AA flag.
-function Query:aa()
-    return self._.aa
-end
-
--- Return the TC flag.
-function Query:tc()
-    return self._.tc
-end
-
--- Return the RD flag.
-function Query:rd()
-    return self._.rd
-end
-
--- Return the RA flag.
-function Query:ra()
-    return self._.ra
-end
-
--- Return the Z flag.
-function Query:z()
-    return self._.z
-end
-
--- Return the AD flag.
-function Query:ad()
-    return self._.ad
-end
-
--- Return the CD flag.
-function Query:cd()
-    return self._.cd
-end
-
--- Return the RCODE.
-function Query:rcode()
-    return self._.rcode
-end
-
--- Return the QDCOUNT.
-function Query:qdcount()
-    return self._.qdcount
-end
-
--- Return the ANCOUNT.
-function Query:ancount()
-    return self._.ancount
-end
-
--- Return the NSCOUNT.
-function Query:nscount()
-    return self._.nscount
-end
-
--- Return the ARCOUNT.
-function Query:arcount()
-    return self._.arcount
-end
-
--- Return the actual number of questions found.
-function Query:questions()
-    return self._.questions
-end
-
--- Return the actual number of answers found.
-function Query:answers()
-    return self._.answers
-end
-
--- Return the actual number of authorities found.
-function Query:authorities()
-    return self._.authorities
-end
-
--- Return the actual number of additionals found.
-function Query:additionals()
-    return self._.additionals
+    return ffi.string(C.core_query_dst(self))
 end
 
 -- Start walking the resource record(s) (RR) found or continue with the next,
 -- returns integer > 0 on error or end of RRs.
 function Query:rr_next()
-    return C.core_query_rr_next(self._)
+    return C.core_query_rr_next(self)
 end
 
 -- Check if the RR at the current position was parsed successfully or not,
 -- return 1 if successful.
 function Query:rr_ok()
-    return C.core_query_rr_ok(self._)
+    return C.core_query_rr_ok(self)
 end
 
 -- Return the FQDN of the current RR or an empty string on error.
 function Query:rr_label()
-    local ptr = C.core_query_rr_label(self._)
+    local ptr = C.core_query_rr_label(self)
     if ptr == nil then
         return ""
     end
@@ -311,18 +215,20 @@ end
 
 -- Return an integer with the RR type.
 function Query:rr_type()
-    return C.core_query_rr_type(self._)
+    return C.core_query_rr_type(self)
 end
 
 -- Return an integer with the RR class.
 function Query:rr_class()
-    return C.core_query_rr_class(self._)
+    return C.core_query_rr_class(self)
 end
 
 -- Return an integer with the RR TTL.
 function Query:rr_ttl()
-    return C.core_query_rr_ttl(self._)
+    return C.core_query_rr_ttl(self)
 end
+
+core_query_t = ffi.metatype(t_name, { __index = Query })
 
 -- dnsjit.core.tracking (3)
 return Query

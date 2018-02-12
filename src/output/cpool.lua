@@ -38,29 +38,8 @@ require("dnsjit.output.cpool_h")
 local ffi = require("ffi")
 local C = ffi.C
 
-local type = "output_cpool_t"
-local struct
-local mt = {
-    __gc = function(self)
-        if ffi.istype(type, self) then
-            C.output_cpool_destroy(self)
-        end
-    end,
-    __index = {
-        new = function(host, port, queue_size)
-            local self = struct()
-            if not self then
-                error("oom")
-            end
-            if ffi.istype(type, self) then
-                C.output_cpool_init(self, host, port, queue_size)
-                return self
-            end
-        end
-    }
-}
-struct = ffi.metatype(type, mt)
-
+local t_name = "output_cpool_t"
+local output_cpool_t = ffi.typeof(t_name)
 local Cpool = {}
 
 -- Create a new Cpool output for the target
@@ -72,10 +51,12 @@ function Cpool.new(host, port, queue_size)
     if queue_size == nil then
         queue_size = 0
     end
-    local o = struct.new(host, port, queue_size)
-    return setmetatable({
-        _ = o,
-    }, {__index = Cpool})
+    local self = {
+        obj = output_cpool_t(),
+    }
+    C.output_cpool_init(self.obj, host, port, queue_size)
+    ffi.gc(self.obj, C.output_cpool_destroy)
+    return setmetatable(self, { __index = Cpool })
 end
 
 -- Return the Log object to control logging of this instance or module.
@@ -83,7 +64,7 @@ function Cpool:log()
     if self == nil then
         return C.output_cpool_log()
     end
-    return self._._log
+    return self.obj._log
 end
 
 -- Set the maximum clients to emulate, if
@@ -91,9 +72,9 @@ end
 -- is not specified then return the current maximum clients.
 function Cpool:max_clients(max)
     if max == nil then
-        return C.output_cpool_max_clients(self._)
+        return C.output_cpool_max_clients(self.obj)
     end
-    return ch.z2n(C.output_cpool_set_max_clients(self._, max))
+    return ch.z2n(C.output_cpool_set_max_clients(self.obj, max))
 end
 
 -- Set the client ttl (a float/double), if
@@ -103,9 +84,9 @@ end
 -- seconds meaning 0.1 is 100 ms.
 function Cpool:client_ttl(ttl)
     if ttl == nil then
-        return C.output_cpool_client_ttl(self._)
+        return C.output_cpool_client_ttl(self.obj)
     end
-    return ch.z2n(C.output_cpool_set_client_ttl(self._, ttl))
+    return ch.z2n(C.output_cpool_set_client_ttl(self.obj, ttl))
 end
 
 -- Set the maximum clients to keep around to reuse later on, if
@@ -113,9 +94,9 @@ end
 -- is not specified then return the current maximum clients to reuse.
 function Cpool:max_reuse_clients(reuse)
     if reuse == nil then
-        return C.output_cpool_max_reuse_clients(self._)
+        return C.output_cpool_max_reuse_clients(self.obj)
     end
-    return ch.z2n(C.output_cpool_set_max_reuse_clients(self._, reuse))
+    return ch.z2n(C.output_cpool_set_max_reuse_clients(self.obj, reuse))
 end
 
 -- Enable (true) or disable (false) not waiting for a reply, if
@@ -123,13 +104,13 @@ end
 -- is not specified then return if skipping reply is on (true) or off (false).
 function Cpool:skip_reply(bool)
     if bool == nil then
-        return ch.i2b(C.output_cpool_skip_reply(self._))
+        return ch.i2b(C.output_cpool_skip_reply(self.obj))
     end
     local b = ch.b2i(bool)
     if b == nil then
         return 1
     end
-    return ch.z2n(C.output_cpool_set_skip_reply(self._, b))
+    return ch.z2n(C.output_cpool_set_skip_reply(self.obj, b))
 end
 
 -- Set the protocol to send queries as, if
@@ -141,13 +122,13 @@ end
 -- .IR tcp .
 function Cpool:sendas(type)
     if type == nil then
-        return C.output_cpool_sendas(self._)
+        return C.output_cpool_sendas(self.obj)
     elseif type == "original" then
-        return ch.z2n(C.output_cpool_set_sendas_original(self._))
+        return ch.z2n(C.output_cpool_set_sendas_original(self.obj))
     elseif type == "udp" then
-        return ch.z2n(C.output_cpool_set_sendas_udp(self._))
+        return ch.z2n(C.output_cpool_set_sendas_udp(self.obj))
     elseif type == "tcp" then
-        return ch.z2n(C.output_cpool_set_sendas_tcp(self._))
+        return ch.z2n(C.output_cpool_set_sendas_tcp(self.obj))
     end
     return 1
 end
@@ -157,31 +138,31 @@ end
 -- is not specified then return if dry run is on (true) or off (false).
 function Cpool:dry_run(bool)
     if bool == nil then
-        return ch.i2b(C.output_cpool_dry_run(self._))
+        return ch.i2b(C.output_cpool_dry_run(self.obj))
     end
     local b = ch.b2i(bool)
     if b == nil then
         return 1
     end
-    return ch.z2n(C.output_cpool_set_dry_run(self._, b))
+    return ch.z2n(C.output_cpool_set_dry_run(self.obj, b))
 end
 
 -- Start the processing of queries sent to the queue.
 function Cpool:start()
-    return ch.z2n(C.output_cpool_start(self._))
+    return ch.z2n(C.output_cpool_start(self.obj))
 end
 
 -- Stop the processing of queries.
 function Cpool:stop()
-    return ch.z2n(C.output_cpool_stop(self._))
+    return ch.z2n(C.output_cpool_stop(self.obj))
 end
 
 function Cpool:receive()
     if self.ishandler then
         error("is handler")
     end
-    self._._log:debug("receive()")
-    return C.output_cpool_receiver(), self._
+    self.obj._log:debug("receive()")
+    return C.output_cpool_receiver(), self.obj
 end
 
 return Cpool

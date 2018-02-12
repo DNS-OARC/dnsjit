@@ -44,40 +44,22 @@ require("dnsjit.filter.thread_h")
 local ffi = require("ffi")
 local C = ffi.C
 
-local type = "filter_thread_t"
-local struct
-local mt = {
-    __gc = function(self)
-        if ffi.istype(type, self) then
-            C.filter_thread_destroy(self)
-        end
-    end,
-    __index = {
-        new = function()
-            local self = struct()
-            if not self then
-                error("oom")
-            end
-            if ffi.istype(type, self) then
-                C.filter_thread_init(self)
-                return self
-            end
-        end
-    }
-}
-struct = ffi.metatype(type, mt)
-
+local t_name = "filter_thread_t"
+local filter_thread_t = ffi.typeof(t_name)
 local Thread = {}
 
 -- Create a new Thread filter.
 function Thread.new()
-    local o = struct.new()
-    return setmetatable({
+    local self = {
         inthread = false,
         given_receiver = false,
         created = false,
-        _ = o,
-    }, {__index = Thread})
+        _receiver = nil,
+        obj = filter_thread_t(),
+    }
+    C.filter_thread_init(self.obj)
+    ffi.gc(self.obj, C.filter_thread_destroy)
+    return setmetatable(self, { __index = Thread })
 end
 
 -- Return the Log object to control logging of this instance or module.
@@ -85,7 +67,7 @@ function Thread:log()
     if self == nil then
         return C.filter_thread_log()
     end
-    return self._._log
+    return self.obj._log
 end
 
 function Thread:run()
@@ -95,10 +77,10 @@ function Thread:run()
     if not THREAD_SLLQ_IN or THREAD_SLLQ_IN == nil then
         error("invalid call to run()")
     end
-    self._.qin = THREAD_SLLQ_IN
+    self.obj.qin = THREAD_SLLQ_IN
     if THREAD_RECV and THREAD_RECV ~= nil then
-        self._.recv = THREAD_RECV
-        self._.robj = THREAD_ROBJ
+        self.obj.recv = THREAD_RECV
+        self.obj.robj = THREAD_ROBJ
     end
     self.inthread = true
     assert(loadstring(THREAD_BYTECODE))(self)
@@ -113,9 +95,9 @@ function Thread:create(func)
     if self.inthread then
         error("not usable within a thread context")
     end
-    self._._log:debug("create()")
+    self.obj._log:debug("create()")
     local bc = string.dump(func)
-    if C.filter_thread_create(self._, bc, string.len(bc)) > 0 then
+    if C.filter_thread_create(self.obj, bc, string.len(bc)) > 0 then
         error("could not create thread")
     end
     self.created = true
@@ -129,8 +111,8 @@ function Thread:stop()
     if self.inthread then
         error("not usable within a thread context")
     end
-    self._._log:debug("stop()")
-    return ch.z2n(C.filter_thread_stop(self._))
+    self.obj._log:debug("stop()")
+    return ch.z2n(C.filter_thread_stop(self.obj))
 end
 
 -- Wait for the thread to join after stopping it.
@@ -141,8 +123,8 @@ function Thread:join()
     if self.inthread then
         error("not usable within a thread context")
     end
-    self._._log:debug("join()")
-    return ch.z2n(C.filter_thread_join(self._))
+    self.obj._log:debug("join()")
+    return ch.z2n(C.filter_thread_join(self.obj))
 end
 
 function Thread:receive()
@@ -152,9 +134,9 @@ function Thread:receive()
     if self.given_receiver then
         error("can not receive from multiple sources")
     end
-    self._._log:debug("receive()")
+    self.obj._log:debug("receive()")
     self.given_receiver = true
-    return C.filter_thread_receiver(), self._
+    return C.filter_thread_receiver(), self.obj
 end
 
 -- Set the receiver to pass queries to.
@@ -165,8 +147,8 @@ function Thread:receiver(o)
     if self.inthread then
         error("not usable within a thread context")
     end
-    self._._log:debug("receiver()")
-    self._.recv, self._.robj = o:receive()
+    self.obj._log:debug("receiver()")
+    self.obj.recv, self.obj.robj = o:receive()
     self._receiver = o
 end
 
@@ -176,10 +158,10 @@ function Thread:recv()
     if not self.inthread then
         error("only usable within a thread context")
     end
-    self._._log:debug("recv()")
-    local q = C.filter_thread_recv(self._)
+    self.obj._log:debug("recv()")
+    local q = C.filter_thread_recv(self.obj)
     if q ~= nil then
-        self._._log:debug("recv() query.new()")
+        self.obj._log:debug("recv() query.new()")
         return query.new(q)
     end
 end
@@ -189,9 +171,9 @@ function Thread:send(q)
     if not self.inthread then
         error("only usable within a thread context")
     end
-    self._._log:debug("send()")
+    self.obj._log:debug("send()")
     -- TODO: test replace with ffi.gc(q:struct(), nil)
-    return ch.z2n(C.filter_thread_send(self._, q:struct()))
+    return ch.z2n(C.filter_thread_send(self.obj, q:struct()))
 end
 
 -- dnsjit.filter.lua (3)

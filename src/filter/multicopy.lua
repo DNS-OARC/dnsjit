@@ -33,38 +33,19 @@ require("dnsjit.filter.multicopy_h")
 local ffi = require("ffi")
 local C = ffi.C
 
-local type = "filter_multicopy_t"
-local struct
-local mt = {
-    __gc = function(self)
-        if ffi.istype(type, self) then
-            C.filter_multicopy_destroy(self)
-        end
-    end,
-    __index = {
-        new = function()
-            local self = struct()
-            if not self then
-                error("oom")
-            end
-            if ffi.istype(type, self) then
-                C.filter_multicopy_init(self)
-                return self
-            end
-        end
-    }
-}
-struct = ffi.metatype(type, mt)
-
+local t_name = "filter_multicopy_t"
+local filter_multicopy_t = ffi.typeof(t_name)
 local Multicopy = {}
 
 -- Create a new Multicopy filter.
 function Multicopy.new()
-    local o = struct.new()
-    return setmetatable({
-        _ = o,
+    local self = {
         receivers = {},
-    }, {__index = Multicopy})
+        obj = filter_multicopy_t(),
+    }
+    C.filter_multicopy_init(self.obj)
+    ffi.gc(self.obj, C.filter_multicopy_destroy)
+    return setmetatable(self, { __index = Multicopy })
 end
 
 -- Return the Log object to control logging of this instance or module.
@@ -72,21 +53,20 @@ function Multicopy:log()
     if self == nil then
         return C.filter_multicopy_log()
     end
-    return self._._log
+    return self.obj._log
 end
 
 function Multicopy:receive()
-    self._._log:debug("receive()")
-    return C.filter_multicopy_receiver(), self._
+    self.obj._log:debug("receive()")
+    return C.filter_multicopy_receiver(), self.obj
 end
 
 -- Set the receiver to pass queries to, this can be called multiple times to
 -- set addtional receivers.
 function Multicopy:receiver(o)
-    self._._log:debug("receiver()")
-    local recv, robj
-    recv, robj = o:receive()
-    local ret = C.filter_multicopy_add(self._, recv, robj)
+    self.obj._log:debug("receiver()")
+    local recv, robj = o:receive()
+    local ret = C.filter_multicopy_add(self.obj, recv, robj)
     if ret == 0 then
         table.insert(self.receivers, o)
         return

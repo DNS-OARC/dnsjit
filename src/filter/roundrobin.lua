@@ -31,38 +31,19 @@ require("dnsjit.filter.roundrobin_h")
 local ffi = require("ffi")
 local C = ffi.C
 
-local type = "filter_roundrobin_t"
-local struct
-local mt = {
-    __gc = function(self)
-        if ffi.istype(type, self) then
-            C.filter_roundrobin_destroy(self)
-        end
-    end,
-    __index = {
-        new = function()
-            local self = struct()
-            if not self then
-                error("oom")
-            end
-            if ffi.istype(type, self) then
-                C.filter_roundrobin_init(self)
-                return self
-            end
-        end
-    }
-}
-struct = ffi.metatype(type, mt)
-
+local t_name = "filter_roundrobin_t"
+local filter_roundrobin_t = ffi.typeof(t_name)
 local Roundrobin = {}
 
 -- Create a new Roundrobin filter.
 function Roundrobin.new()
-    local o = struct.new()
-    return setmetatable({
-        _ = o,
+    local self = {
         receivers = {},
-    }, {__index = Roundrobin})
+        obj = filter_roundrobin_t(),
+    }
+    C.filter_roundrobin_init(self.obj)
+    ffi.gc(self.obj, C.filter_roundrobin_destroy)
+    return setmetatable(self, { __index = Roundrobin })
 end
 
 -- Return the Log object to control logging of this instance or module.
@@ -70,21 +51,20 @@ function Roundrobin:log()
     if self == nil then
         return C.filter_roundrobin_log()
     end
-    return self._._log
+    return self.obj._log
 end
 
 function Roundrobin:receive()
-    self._._log:debug("receive()")
-    return C.filter_roundrobin_receiver(), self._
+    self.obj._log:debug("receive()")
+    return C.filter_roundrobin_receiver(), self.obj
 end
 
 -- Set the receiver to pass queries to, this can be called multiple times to
 -- set addtional receivers.
 function Roundrobin:receiver(o)
-    self._._log:debug("receiver()")
-    local recv, robj
-    recv, robj = o:receive()
-    local ret = C.filter_roundrobin_add(self._, recv, robj)
+    self.obj._log:debug("receiver()")
+    local recv, robj = o:receive()
+    local ret = C.filter_roundrobin_add(self.obj, recv, robj)
     if ret == 0 then
         table.insert(self.receivers, o)
         return

@@ -64,8 +64,8 @@ module(...,package.seeall)
 
 local log = require("dnsjit.core.log")
 
-Getopt = {}
 local module_log = log.new("lib.getopt")
+Getopt = {}
 
 -- Create a new Getopt object.
 -- .I args

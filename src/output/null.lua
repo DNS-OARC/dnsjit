@@ -27,38 +27,25 @@ require("dnsjit.output.null_h")
 local ffi = require("ffi")
 local C = ffi.C
 
-local type = "output_null_t"
-local struct
-local mt = {
-    __index = {
-        new = function()
-            local self = struct()
-            if not self then
-                error("oom")
-            end
-            return self
-        end
-    }
-}
-struct = ffi.metatype(type, mt)
-
+local t_name = "output_null_t"
+local output_null_t = ffi.typeof(t_name)
 local Null = {}
 
 -- Create a new Null output.
 function Null.new()
-    local o = struct.new()
-    return setmetatable({
-        _ = o,
-    }, {__index = Null})
+    local self = {
+        obj = output_null_t(),
+    }
+    return setmetatable(self, { __index = Null })
 end
 
 function Null:receive()
-    return C.output_null_receiver(), self._
+    return C.output_null_receiver(), self.obj
 end
 
 -- Return the number of queries we sent into the void.
 function Null:packets()
-    return tonumber(self._.pkts)
+    return tonumber(self.obj.pkts)
 end
 
 return Null

@@ -250,6 +250,37 @@ int core_query_parse(core_query_t* self)
         if (omg_dns_parse(&_self->dns, (const u_char*)(self->raw ? self->raw : self->small), self->len)) {
             return 2;
         }
+
+        self->have_id      = _self->dns.have_id;
+        self->have_qr      = _self->dns.have_qr;
+        self->have_opcode  = _self->dns.have_opcode;
+        self->have_aa      = _self->dns.have_aa;
+        self->have_tc      = _self->dns.have_tc;
+        self->have_rd      = _self->dns.have_rd;
+        self->have_ra      = _self->dns.have_ra;
+        self->have_z       = _self->dns.have_z;
+        self->have_ad      = _self->dns.have_ad;
+        self->have_cd      = _self->dns.have_cd;
+        self->have_rcode   = _self->dns.have_rcode;
+        self->have_qdcount = _self->dns.have_qdcount;
+        self->have_ancount = _self->dns.have_ancount;
+        self->have_nscount = _self->dns.have_nscount;
+        self->have_arcount = _self->dns.have_arcount;
+        self->id           = _self->dns.id;
+        self->qr           = _self->dns.qr;
+        self->opcode       = _self->dns.opcode;
+        self->aa           = _self->dns.aa;
+        self->tc           = _self->dns.tc;
+        self->rd           = _self->dns.rd;
+        self->ra           = _self->dns.ra;
+        self->z            = _self->dns.z;
+        self->ad           = _self->dns.ad;
+        self->cd           = _self->dns.cd;
+        self->rcode        = _self->dns.rcode;
+        self->qdcount      = _self->dns.qdcount;
+        self->ancount      = _self->dns.ancount;
+        self->nscount      = _self->dns.nscount;
+        self->arcount      = _self->dns.arcount;
     } else if (self->len > _self->dns.bytes_parsed) {
         if (omg_dns_parse_body(&_self->dns, (const u_char*)(self->raw ? self->raw : self->small) + _self->dns.bytes_parsed, self->len - _self->dns.bytes_parsed)) {
             return 2;

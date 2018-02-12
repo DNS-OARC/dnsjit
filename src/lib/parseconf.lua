@@ -55,8 +55,8 @@ module(...,package.seeall)
 
 local log = require("dnsjit.core.log")
 
-Parseconf = {}
 local module_log = log.new("lib.parseconf")
+Parseconf = {}
 
 -- Create a new Parseconf object.
 function Parseconf.new()

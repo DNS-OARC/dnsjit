@@ -30,37 +30,19 @@ require("dnsjit.filter.timing_h")
 local ffi = require("ffi")
 local C = ffi.C
 
-local type = "filter_timing_t"
-local struct
-local mt = {
-    __gc = function(self)
-        if ffi.istype(type, self) then
-            C.filter_timing_destroy(self)
-        end
-    end,
-    __index = {
-        new = function()
-            local self = struct()
-            if not self then
-                error("oom")
-            end
-            if ffi.istype(type, self) then
-                C.filter_timing_init(self)
-                return self
-            end
-        end
-    }
-}
-struct = ffi.metatype(type, mt)
-
+local t_name = "filter_timing_t"
+local filter_timing_t = ffi.typeof(t_name)
 local Timing = {}
 
 -- Create a new Timing filter.
 function Timing.new()
-    local o = struct.new()
-    return setmetatable({
-        _ = o,
-    }, {__index = Timing})
+    local self = {
+        _receiver = nil,
+        obj = filter_timing_t(),
+    }
+    C.filter_timing_init(self.obj)
+    ffi.gc(self.obj, C.filter_timing_destroy)
+    return setmetatable(self, { __index = Timing })
 end
 
 -- Return the Log object to control logging of this instance or module.
@@ -68,50 +50,50 @@ function Timing:log()
     if self == nil then
         return C.filter_timing_log()
     end
-    return self._._log
+    return self.obj._log
 end
 
 -- Set the timing mode to keep the timing between packets.
 function Timing:keep()
-    self._.mode = "TIMING_MODE_KEEP"
+    self.obj.mode = "TIMING_MODE_KEEP"
 end
 
 -- Set the timing mode to increase the timing between packets by the given
 -- number of nanoseconds.
 function Timing:increase(ns)
-    self._.mode = "TIMING_MODE_INCREASE"
-    self._.inc = ns
+    self.obj.mode = "TIMING_MODE_INCREASE"
+    self.obj.inc = ns
 end
 
 -- Set the timing mode to reduce the timing between packets by the given
 -- number of nanoseconds.
 function Timing:reduce(ns)
-    self._.mode = "TIMING_MODE_REDUCE"
-    self._.red = ns
+    self.obj.mode = "TIMING_MODE_REDUCE"
+    self.obj.red = ns
 end
 
 -- Set the timing mode to multiply the timing between packets by the given
 -- factor (float/double).
 function Timing:multiply(factor)
-    self._.mode = "TIMING_MODE_MULTIPLY"
-    self._.mul = factor
+    self.obj.mode = "TIMING_MODE_MULTIPLY"
+    self.obj.mul = factor
 end
 
 -- Set the timing mode to keep the timing between packets but ignore any
 -- issues in doing so.
 function Timing:best_effort()
-    self._.mode = "TIMING_MODE_BEST_EFFORT"
+    self.obj.mode = "TIMING_MODE_BEST_EFFORT"
 end
 
 function Timing:receive()
-    self._._log:debug("receive()")
-    return C.filter_timing_receiver(), self._
+    self.obj._log:debug("receive()")
+    return C.filter_timing_receiver(), self.obj
 end
 
 -- Set the receiver to pass queries to.
 function Timing:receiver(o)
-    self._._log:debug("receiver()")
-    self._.recv, self._.robj = o:receive()
+    self.obj._log:debug("receiver()")
+    self.obj.recv, self.obj.robj = o:receive()
     self._receiver = o
 end
 
