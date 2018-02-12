@@ -120,14 +120,14 @@ end
 
 -- Parse the given file.
 function Parseconf:file(fn)
-    local ln, l, c, e, m
+    local ln, l
     ln = 1
     for l in io.lines(fn) do
-        c = l:find("#")
+        local c = l:find("#")
         if c then
             l = l:sub(1, c - 1)
         end
-        e, m = pcall(self.line, self, l)
+        local e, m = pcall(self.line, self, l)
         if e == false then
             error("parse error in "..fn.."["..ln.."]: "..m)
         end
@@ -137,13 +137,13 @@ end
 
 -- Parse the given line.
 function Parseconf:line(l)
-    local n, p, v, va, c, ws, n, eol
+    local n
     n = 1
     while n <= l:len() do
-        c = nil
-        va = {}
+        local c = nil
+        local va = {}
         while true do
-            p, v = self:part(l, n)
+            local p, v = self:part(l, n)
             if not p then
                 error("invalid config at character "..n..": "..l:sub(n))
             end
@@ -153,7 +153,7 @@ function Parseconf:line(l)
                 table.insert(va, v)
             end
             n = n + p:len()
-            ws, eol = self:next(l, n)
+            local ws, eol = self:next(l, n)
             if ws == true then
                 if eol then
                     n = n + eol:len()

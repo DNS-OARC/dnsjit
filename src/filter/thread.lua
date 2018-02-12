@@ -167,13 +167,13 @@ function Thread:recv()
 end
 
 -- Called in the thread function to send the query to the next receiver.
-function Thread:send(q)
+function Thread:send(query)
     if not self.inthread then
         error("only usable within a thread context")
     end
     self.obj._log:debug("send()")
-    -- TODO: test replace with ffi.gc(q:struct(), nil)
-    return ch.z2n(C.filter_thread_send(self.obj, q:struct()))
+    -- TODO: test replace with ffi.gc(query, nil)
+    return ch.z2n(C.filter_thread_send(self.obj, C.core_query_copy(query)))
 end
 
 -- dnsjit.filter.lua (3)

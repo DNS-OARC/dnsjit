@@ -70,8 +70,7 @@ end
 -- Send a query to the receiver.
 function Lua:send(query)
     self._log:debug("send()")
-    local q = C.core_query_copy(query)
-    return ch.z2n(C.receiver_call(self._recv, self._robj, q))
+    return ch.z2n(C.receiver_call(self._recv, self._robj, C.core_query_copy(query)))
 end
 
 -- dnsjit.core.query (3)
