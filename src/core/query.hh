@@ -23,7 +23,7 @@
 typedef struct core_query {
     core_log_t _log;
 
-    uint64_t sid, qid;
+    uint64_t src_id, qr_id, dst_id;
 
     unsigned short is_udp : 1;
     unsigned short is_tcp : 1;

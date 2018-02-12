@@ -68,12 +68,12 @@ static void _udp(u_char* user, const pcap_thread_packet_t* packet, const u_char*
         self->drop++;
         return;
     }
-    q->sid = self->sid;
-    if (!self->qid) {
+    q->src_id = self->src_id;
+    if (!self->qr_id) {
         /* 0 is error */
-        self->qid++;
+        self->qr_id++;
     }
-    q->qid = self->qid++;
+    q->qr_id = self->qr_id++;
     if (packet->have_iphdr) {
         if (core_query_set_src(q, AF_INET, &packet->iphdr.ip_src, sizeof(packet->iphdr.ip_src))
             || core_query_set_dst(q, AF_INET, &packet->iphdr.ip_dst, sizeof(packet->iphdr.ip_dst))) {
@@ -160,12 +160,12 @@ static void _tcp(u_char* user, const pcap_thread_packet_t* packet, const u_char*
         self->drop++;
         return;
     }
-    q->sid = self->sid;
-    if (!self->qid) {
+    q->src_id = self->src_id;
+    if (!self->qr_id) {
         /* 0 is error */
-        self->qid++;
+        self->qr_id++;
     }
-    q->qid = self->qid++;
+    q->qr_id = self->qr_id++;
     if (packet->have_iphdr) {
         if (core_query_set_src(q, AF_INET, &packet->iphdr.ip_src, sizeof(packet->iphdr.ip_src))
             || core_query_set_dst(q, AF_INET, &packet->iphdr.ip_dst, sizeof(packet->iphdr.ip_dst))) {
@@ -221,8 +221,8 @@ int input_pcap_init(input_pcap_t* self)
         return 1;
     }
 
-    *self     = _defaults;
-    self->sid = core_tracking_new_sid();
+    *self        = _defaults;
+    self->src_id = core_tracking_src_id();
 
     ldebug("init");
 
