@@ -19,6 +19,6 @@
  */
 
 //Lua:require("dnsjit.core.log")
-log_t* core_tracking_log();
+core_log_t* core_tracking_log();
 
 uint64_t core_tracking_new_sid();

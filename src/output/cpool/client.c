@@ -151,7 +151,7 @@ static void client_write(struct ev_loop* loop, ev_io* w, int revents)
     }
 
     if (client->is_stream && !client->sent_length) {
-        uint16_t length = htons(query_length(client->query));
+        uint16_t length = htons(client->query->len);
 
         if (client->have_to_addr)
             nsent = sendto(client->fd, &length, 2, 0, (struct sockaddr*)&(client->to_addr), client->to_addrlen);
@@ -186,9 +186,9 @@ static void client_write(struct ev_loop* loop, ev_io* w, int revents)
     }
 
     if (client->have_to_addr)
-        nsent = sendto(client->fd, query_raw(client->query) + client->sent, query_length(client->query) - client->sent, 0, (struct sockaddr*)&(client->to_addr), client->to_addrlen);
+        nsent = sendto(client->fd, core_query_raw(client->query) + client->sent, client->query->len - client->sent, 0, (struct sockaddr*)&(client->to_addr), client->to_addrlen);
     else
-        nsent = sendto(client->fd, query_raw(client->query) + client->sent, query_length(client->query) - client->sent, 0, 0, 0);
+        nsent = sendto(client->fd, core_query_raw(client->query) + client->sent, client->query->len - client->sent, 0, 0, 0);
     if (nsent < 0) {
         switch (errno) {
         case EAGAIN:
@@ -209,7 +209,7 @@ static void client_write(struct ev_loop* loop, ev_io* w, int revents)
     }
 
     client->sent += nsent;
-    if (client->sent < query_length(client->query))
+    if (client->sent < client->query->len)
         return;
 
     ev_io_stop(loop, w);
@@ -226,7 +226,7 @@ static void client_write(struct ev_loop* loop, ev_io* w, int revents)
  * New/free functions
  */
 
-client_t* client_new(query_t* query, client_callback_t callback)
+client_t* client_new(core_query_t* query, client_callback_t callback)
 {
     client_t* client;
 
@@ -239,7 +239,7 @@ client_t* client_new(query_t* query, client_callback_t callback)
         return 0;
     }
 
-    if (!query_have_raw(query)) {
+    if (!query->have_raw) {
         return 0;
     }
 
@@ -267,7 +267,7 @@ void client_free(client_t* client)
             close(client->fd);
         }
         if (client->query) {
-            query_free(client->query);
+            core_query_free(client->query);
         }
         free(client);
     }
@@ -295,7 +295,7 @@ inline int client_fd(const client_t* client)
     return client->fd;
 }
 
-inline const query_t* client_query(const client_t* client)
+inline const core_query_t* client_query(const client_t* client)
 {
     assert(client);
     return client->query;
@@ -385,9 +385,9 @@ int client_set_skip_reply(client_t* client)
     return 0;
 }
 
-query_t* client_release_query(client_t* client)
+core_query_t* client_release_query(client_t* client)
 {
-    query_t* query;
+    core_query_t* query;
 
     assert(client);
     if (!client) {
@@ -509,7 +509,7 @@ int client_send(client_t* client, struct ev_loop* loop)
     }
 
     if (client->is_stream && !client->sent_length) {
-        uint16_t length = htons(query_length(client->query));
+        uint16_t length = htons(client->query->len);
 
         if (client->have_to_addr)
             nsent = sendto(client->fd, &length, 2, 0, (struct sockaddr*)&(client->to_addr), client->to_addrlen);
@@ -542,9 +542,9 @@ int client_send(client_t* client, struct ev_loop* loop)
     }
 
     if (client->have_to_addr)
-        nsent = sendto(client->fd, query_raw(client->query), query_length(client->query), 0, (struct sockaddr*)&(client->to_addr), client->to_addrlen);
+        nsent = sendto(client->fd, core_query_raw(client->query), client->query->len, 0, (struct sockaddr*)&(client->to_addr), client->to_addrlen);
     else
-        nsent = sendto(client->fd, query_raw(client->query), query_length(client->query), 0, 0, 0);
+        nsent = sendto(client->fd, core_query_raw(client->query), client->query->len, 0, 0, 0);
     if (nsent < 0) {
         switch (errno) {
         case EAGAIN:
@@ -564,7 +564,7 @@ int client_send(client_t* client, struct ev_loop* loop)
         return 1;
     }
 
-    if (nsent < query_length(client->query)) {
+    if (nsent < client->query->len) {
         client->sent = nsent;
         ev_io_start(loop, &(client->write_watcher));
         client->state = CLIENT_SENDING;
@@ -581,7 +581,7 @@ int client_send(client_t* client, struct ev_loop* loop)
     return 0;
 }
 
-int client_reuse(client_t* client, query_t* query)
+int client_reuse(client_t* client, core_query_t* query)
 {
     assert(client);
     if (!client) {
@@ -596,7 +596,7 @@ int client_reuse(client_t* client, query_t* query)
     }
 
     if (client->query)
-        query_free(client->query);
+        core_query_free(client->query);
     client->query       = query;
     client->sent        = 0;
     client->recv        = 0;

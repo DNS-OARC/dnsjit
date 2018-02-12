@@ -146,7 +146,7 @@ function Lua:run()
     if not self.ishandler then
         error("not handler")
     end
-    local q = query.new(ffi.cast("query_t*", FILTER_LUA_QUERY))
+    local q = query.new(ffi.cast("core_query_t*", FILTER_LUA_QUERY))
     if self._func == nil then
         return
     end

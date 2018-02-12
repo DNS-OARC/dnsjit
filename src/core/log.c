@@ -26,9 +26,9 @@
 #include <stdarg.h>
 #include <stdio.h>
 
-static log_t _log = LOG_T_INIT("core");
+static core_log_t _log = LOG_T_INIT("core");
 
-void log_debug(const log_t* l, const char* file, size_t line, const char* msg, ...)
+void core_log_debug(const core_log_t* l, const char* file, size_t line, const char* msg, ...)
 {
     char    buf[512];
     va_list ap;
@@ -94,7 +94,7 @@ void log_debug(const log_t* l, const char* file, size_t line, const char* msg, .
     printf("%s debug: %s\n", _log.name, buf);
 }
 
-void log_info(const log_t* l, const char* file, size_t line, const char* msg, ...)
+void core_log_info(const core_log_t* l, const char* file, size_t line, const char* msg, ...)
 {
     char    buf[512];
     va_list ap;
@@ -160,7 +160,7 @@ void log_info(const log_t* l, const char* file, size_t line, const char* msg, ..
     printf("%s info: %s\n", _log.name, buf);
 }
 
-void log_notice(const log_t* l, const char* file, size_t line, const char* msg, ...)
+void core_log_notice(const core_log_t* l, const char* file, size_t line, const char* msg, ...)
 {
     char    buf[512];
     va_list ap;
@@ -226,7 +226,7 @@ void log_notice(const log_t* l, const char* file, size_t line, const char* msg, 
     printf("%s notice: %s\n", _log.name, buf);
 }
 
-void log_warning(const log_t* l, const char* file, size_t line, const char* msg, ...)
+void core_log_warning(const core_log_t* l, const char* file, size_t line, const char* msg, ...)
 {
     char    buf[512];
     va_list ap;
@@ -292,7 +292,7 @@ void log_warning(const log_t* l, const char* file, size_t line, const char* msg,
     printf("%s warning: %s\n", _log.name, buf);
 }
 
-void log_critical(const log_t* l, const char* file, size_t line, const char* msg, ...)
+void core_log_critical(const core_log_t* l, const char* file, size_t line, const char* msg, ...)
 {
     char    buf[512];
     va_list ap;
@@ -341,7 +341,7 @@ void log_critical(const log_t* l, const char* file, size_t line, const char* msg
     printf("%s critical: %s\n", _log.name, buf);
 }
 
-void log_fatal(const log_t* l, const char* file, size_t line, const char* msg, ...)
+void core_log_fatal(const core_log_t* l, const char* file, size_t line, const char* msg, ...)
 {
     char    buf[512];
     va_list ap;
@@ -391,7 +391,7 @@ void log_fatal(const log_t* l, const char* file, size_t line, const char* msg, .
     exit(1);
 }
 
-log_t* core_log()
+core_log_t* core_log_log()
 {
     return &_log;
 }

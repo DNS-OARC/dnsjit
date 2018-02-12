@@ -19,7 +19,7 @@
  */
 
 //Lua:require("dnsjit.core.log")
-log_t* core_mutex_log();
+core_log_t* core_mutex_log();
 
 int core_mutex_lock();
 int core_mutex_unlock();

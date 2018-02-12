@@ -26,7 +26,7 @@
 
 #include "omg-dns/omg_dns.h"
 
-static log_t        _log      = LOG_T_INIT("input.pcap");
+static core_log_t   _log      = LOG_T_INIT("input.pcap");
 static input_pcap_t _defaults = {
     LOG_T_INIT_OBJ("input.pcap"),
     0, 0,
@@ -37,7 +37,7 @@ static input_pcap_t _defaults = {
     0, 1
 };
 
-log_t* input_pcap_log()
+core_log_t* input_pcap_log()
 {
     return &_log;
 }
@@ -45,7 +45,7 @@ log_t* input_pcap_log()
 static void _udp(u_char* user, const pcap_thread_packet_t* packet, const u_char* payload, size_t length)
 {
     input_pcap_t*               self = (input_pcap_t*)user;
-    query_t*                    q;
+    core_query_t*               q;
     const pcap_thread_packet_t* p;
     omg_dns_t                   dns = OMG_DNS_T_INIT;
 
@@ -64,7 +64,7 @@ static void _udp(u_char* user, const pcap_thread_packet_t* packet, const u_char*
         self->queries++;
     }
 
-    if (!(q = query_new())) {
+    if (!(q = core_query_new())) {
         self->drop++;
         return;
     }
@@ -75,22 +75,22 @@ static void _udp(u_char* user, const pcap_thread_packet_t* packet, const u_char*
     }
     q->qid = self->qid++;
     if (packet->have_iphdr) {
-        if (query_set_src(q, AF_INET, &packet->iphdr.ip_src, sizeof(packet->iphdr.ip_src))
-            || query_set_dst(q, AF_INET, &packet->iphdr.ip_dst, sizeof(packet->iphdr.ip_dst))) {
-            query_free(q);
+        if (core_query_set_src(q, AF_INET, &packet->iphdr.ip_src, sizeof(packet->iphdr.ip_src))
+            || core_query_set_dst(q, AF_INET, &packet->iphdr.ip_dst, sizeof(packet->iphdr.ip_dst))) {
+            core_query_free(q);
             self->drop++;
             return;
         }
     } else if (packet->have_ip6hdr) {
-        if (query_set_src(q, AF_INET6, &packet->ip6hdr.ip6_src, sizeof(packet->ip6hdr.ip6_src))
-            || query_set_dst(q, AF_INET6, &packet->ip6hdr.ip6_dst, sizeof(packet->ip6hdr.ip6_dst))) {
-            query_free(q);
+        if (core_query_set_src(q, AF_INET6, &packet->ip6hdr.ip6_src, sizeof(packet->ip6hdr.ip6_src))
+            || core_query_set_dst(q, AF_INET6, &packet->ip6hdr.ip6_dst, sizeof(packet->ip6hdr.ip6_dst))) {
+            core_query_free(q);
             self->drop++;
             return;
         }
     }
     if (!packet->have_udphdr) {
-        query_free(q);
+        core_query_free(q);
         self->drop++;
         return;
     }
@@ -105,17 +105,17 @@ static void _udp(u_char* user, const pcap_thread_packet_t* packet, const u_char*
         }
     }
     if (!p) {
-        query_free(q);
+        core_query_free(q);
         self->drop++;
         return;
     }
-    if (query_set_raw(q, (const char*)payload, length)) {
-        query_free(q);
+    if (core_query_set_raw(q, (const char*)payload, length)) {
+        core_query_free(q);
         self->drop++;
         return;
     }
-    if (self->only_queries && query_set_parsed_header(q, dns)) {
-        query_free(q);
+    if (self->only_queries && core_query_set_parsed_header(q, dns)) {
+        core_query_free(q);
         self->drop++;
         return;
     }
@@ -126,7 +126,7 @@ static void _udp(u_char* user, const pcap_thread_packet_t* packet, const u_char*
 static void _tcp(u_char* user, const pcap_thread_packet_t* packet, const u_char* payload, size_t length)
 {
     input_pcap_t*               self = (input_pcap_t*)user;
-    query_t*                    q;
+    core_query_t*               q;
     const pcap_thread_packet_t* p;
     omg_dns_t                   dns = OMG_DNS_T_INIT;
 
@@ -156,7 +156,7 @@ static void _tcp(u_char* user, const pcap_thread_packet_t* packet, const u_char*
         self->queries++;
     }
 
-    if (!(q = query_new())) {
+    if (!(q = core_query_new())) {
         self->drop++;
         return;
     }
@@ -167,22 +167,22 @@ static void _tcp(u_char* user, const pcap_thread_packet_t* packet, const u_char*
     }
     q->qid = self->qid++;
     if (packet->have_iphdr) {
-        if (query_set_src(q, AF_INET, &packet->iphdr.ip_src, sizeof(packet->iphdr.ip_src))
-            || query_set_dst(q, AF_INET, &packet->iphdr.ip_dst, sizeof(packet->iphdr.ip_dst))) {
-            query_free(q);
+        if (core_query_set_src(q, AF_INET, &packet->iphdr.ip_src, sizeof(packet->iphdr.ip_src))
+            || core_query_set_dst(q, AF_INET, &packet->iphdr.ip_dst, sizeof(packet->iphdr.ip_dst))) {
+            core_query_free(q);
             self->drop++;
             return;
         }
     } else if (packet->have_ip6hdr) {
-        if (query_set_src(q, AF_INET6, &packet->ip6hdr.ip6_src, sizeof(packet->ip6hdr.ip6_src))
-            || query_set_dst(q, AF_INET6, &packet->ip6hdr.ip6_dst, sizeof(packet->ip6hdr.ip6_dst))) {
-            query_free(q);
+        if (core_query_set_src(q, AF_INET6, &packet->ip6hdr.ip6_src, sizeof(packet->ip6hdr.ip6_src))
+            || core_query_set_dst(q, AF_INET6, &packet->ip6hdr.ip6_dst, sizeof(packet->ip6hdr.ip6_dst))) {
+            core_query_free(q);
             self->drop++;
             return;
         }
     }
     if (!packet->have_tcphdr) {
-        query_free(q);
+        core_query_free(q);
         self->drop++;
         return;
     }
@@ -197,17 +197,17 @@ static void _tcp(u_char* user, const pcap_thread_packet_t* packet, const u_char*
         }
     }
     if (!p) {
-        query_free(q);
+        core_query_free(q);
         self->drop++;
         return;
     }
-    if (query_set_raw(q, (const char*)payload, length)) {
-        query_free(q);
+    if (core_query_set_raw(q, (const char*)payload, length)) {
+        core_query_free(q);
         self->drop++;
         return;
     }
-    if (self->only_queries && query_set_parsed_header(q, dns)) {
-        query_free(q);
+    if (self->only_queries && core_query_set_parsed_header(q, dns)) {
+        core_query_free(q);
         self->drop++;
         return;
     }

@@ -29,14 +29,14 @@
 #include <string.h>
 #include <stdlib.h>
 
-static log_t           _log      = LOG_T_INIT("filter.thread");
+static core_log_t      _log      = LOG_T_INIT("filter.thread");
 static filter_thread_t _defaults = {
     LOG_T_INIT_OBJ("filter.thread"),
     0, 0, 0, 0, 0, 0
 };
-static query_t _stop;
+static core_query_t _stop;
 
-log_t* filter_thread_log()
+core_log_t* filter_thread_log()
 {
     return &_log;
 }
@@ -56,7 +56,7 @@ int filter_thread_init(filter_thread_t* self)
 
 static void _flush(void* v)
 {
-    query_free((query_t*)v);
+    core_query_free((core_query_t*)v);
 }
 
 int filter_thread_destroy(filter_thread_t* self)
@@ -82,11 +82,11 @@ int filter_thread_destroy(filter_thread_t* self)
 }
 
 struct _ctx {
-    char*      bc;
-    size_t     len;
-    sllq_t*    qin;
-    receiver_t recv;
-    void*      robj;
+    char*           bc;
+    size_t          len;
+    sllq_t*         qin;
+    core_receiver_t recv;
+    void*           robj;
 };
 
 static void* _thread(void* v)
@@ -219,15 +219,15 @@ int filter_thread_stop(filter_thread_t* self)
     return 0;
 }
 
-static int _receive(void* robj, query_t* q)
+static int _receive(void* robj, core_query_t* q)
 {
     filter_thread_t* self = (filter_thread_t*)robj;
-    query_t*         copy;
+    core_query_t*    copy;
     int              err;
     struct timespec  ts;
 
-    if (!self || !q || !(copy = query_copy(q))) {
-        query_free(q);
+    if (!self || !q || !(copy = core_query_copy(q))) {
+        core_query_free(q);
         return 1;
     }
 
@@ -236,8 +236,8 @@ static int _receive(void* robj, query_t* q)
     err = SLLQ_EAGAIN;
     while (err == SLLQ_EAGAIN || err == SLLQ_ETIMEDOUT || err == SLLQ_FULL) {
         if (clock_gettime(CLOCK_REALTIME, &ts)) {
-            query_free(copy);
-            query_free(q);
+            core_query_free(copy);
+            core_query_free(q);
             return 1;
         }
         ts.tv_nsec += 200000000;
@@ -251,18 +251,18 @@ static int _receive(void* robj, query_t* q)
 
     ldebug("pushed q %p", q);
 
-    query_free(q);
+    core_query_free(q);
     return 0;
 }
 
-receiver_t filter_thread_receiver()
+core_receiver_t filter_thread_receiver()
 {
     return _receive;
 }
 
-query_t* filter_thread_recv(filter_thread_t* self)
+core_query_t* filter_thread_recv(filter_thread_t* self)
 {
-    query_t*        q = 0;
+    core_query_t*   q = 0;
     int             err;
     struct timespec ts;
 
@@ -295,15 +295,15 @@ query_t* filter_thread_recv(filter_thread_t* self)
     return q;
 }
 
-int filter_thread_send(filter_thread_t* self, query_t* q)
+int filter_thread_send(filter_thread_t* self, core_query_t* q)
 {
-    query_t* copy;
+    core_query_t* copy;
 
     if (!self || !q || !self->recv) {
         return 1;
     }
 
-    if (!(copy = query_copy(q))) {
+    if (!(copy = core_query_copy(q))) {
         return 1;
     }
 

@@ -198,7 +198,7 @@ client_pool_t* client_pool_new(const char* host, const char* port, size_t queue_
 static void client_pool_free_query(void* vp)
 {
     if (vp) {
-        query_free((query_t*)vp);
+        core_query_free((core_query_t*)vp);
     }
 }
 
@@ -359,7 +359,7 @@ static void client_pool_engine_retry(struct ev_loop* loop, ev_timer* w, int reve
 static void client_pool_engine_query(struct ev_loop* loop, ev_async* w, int revents)
 {
     client_pool_t* self = (client_pool_t*)ev_userdata(loop);
-    query_t*       query;
+    core_query_t*  query;
     int            err;
 
     /* TODO: Check revents for EV_ERROR */
@@ -433,13 +433,13 @@ static void client_pool_engine_query(struct ev_loop* loop, ev_async* w, int reve
             break;
 
         default:
-            if (query_is_udp(query)) {
+            if (query->is_udp) {
                 proto = IPPROTO_UDP;
-            } else if (query_is_tcp(query)) {
+            } else if (query->is_tcp) {
                 proto = IPPROTO_TCP;
             } else {
                 lpdebug("unable to understand query protocol, surly a bug so please report this");
-                query_free(query);
+                core_query_free(query);
                 ev_async_send(loop, &(self->notify_query));
                 return;
             }
@@ -612,7 +612,7 @@ int client_pool_stop(client_pool_t* self)
  * Query/process
  */
 
-int client_pool_query(client_pool_t* self, query_t* query)
+int client_pool_query(client_pool_t* self, core_query_t* query)
 {
     int err;
 

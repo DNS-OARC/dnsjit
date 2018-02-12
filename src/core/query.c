@@ -36,7 +36,7 @@
 #define NUM_RRS 128
 
 typedef struct _query {
-    query_t pub;
+    core_query_t pub;
 
     int                     af;
     struct sockaddr_storage src;
@@ -58,8 +58,8 @@ typedef struct _query {
     char label_buf[512];
 } _query_t;
 
-static log_t   _log      = LOG_T_INIT("core.query");
-static query_t _defaults = {
+static core_log_t   _log      = LOG_T_INIT("core.query");
+static core_query_t _defaults = {
     LOG_T_INIT_OBJ("core.query"),
     0, 0,
     0, 0, 0, 0,
@@ -71,7 +71,7 @@ static query_t _defaults = {
 };
 static omg_dns_t _omg_dns_defaults = OMG_DNS_T_INIT;
 
-log_t* query_log()
+core_log_t* core_query_log()
 {
     return &_log;
 }
@@ -106,10 +106,10 @@ static int _rr_callback(int ret, const omg_dns_rr_t* rr, void* context)
     return OMG_DNS_OK;
 }
 
-query_t* query_new()
+core_query_t* core_query_new()
 {
-    query_t*  self  = malloc(sizeof(_query_t));
-    _query_t* _self = (_query_t*)self;
+    core_query_t* self  = malloc(sizeof(_query_t));
+    _query_t*     _self = (_query_t*)self;
 
     if (self) {
         *self         = _defaults;
@@ -126,7 +126,7 @@ query_t* query_new()
     return self;
 }
 
-void query_free(query_t* self)
+void core_query_free(core_query_t* self)
 {
     ldebug("free");
 
@@ -136,7 +136,7 @@ void query_free(query_t* self)
     }
 }
 
-int query_set_raw(query_t* self, const char* raw, size_t len)
+int core_query_set_raw(core_query_t* self, const char* raw, size_t len)
 {
     if (!self || !raw || !len) {
         return 1;
@@ -164,9 +164,9 @@ int query_set_raw(query_t* self, const char* raw, size_t len)
     return 0;
 }
 
-query_t* query_copy(query_t* self)
+core_query_t* core_query_copy(core_query_t* self)
 {
-    query_t* q = query_new();
+    core_query_t* q = core_query_new();
 
     ldebug("copy %p", q);
 
@@ -183,14 +183,14 @@ query_t* query_copy(query_t* self)
         }
 
         if (self->have_raw) {
-            query_set_raw(q, self->raw ? self->raw : self->small, self->len);
+            core_query_set_raw(q, self->raw ? self->raw : self->small, self->len);
         }
     }
 
     return q;
 }
 
-int query_parse_header(query_t* self)
+int core_query_parse_header(core_query_t* self)
 {
     _query_t* _self = (_query_t*)self;
 
@@ -236,7 +236,7 @@ int query_parse_header(query_t* self)
     return 0;
 }
 
-int query_parse(query_t* self)
+int core_query_parse(core_query_t* self)
 {
     _query_t* _self = (_query_t*)self;
 
@@ -267,7 +267,7 @@ int query_parse(query_t* self)
     return 0;
 }
 
-int query_rr_next(query_t* self)
+int core_query_rr_next(core_query_t* self)
 {
     _query_t* _self = (_query_t*)self;
 
@@ -284,7 +284,7 @@ int query_rr_next(query_t* self)
     return _self->at_rr < _self->rr_idx ? 0 : 1;
 }
 
-int query_rr_ok(query_t* self)
+int core_query_rr_ok(core_query_t* self)
 {
     _query_t* _self = (_query_t*)self;
 
@@ -295,7 +295,7 @@ int query_rr_ok(query_t* self)
     return _self->rr_ret[_self->at_rr] == OMG_DNS_OK ? 1 : 0;
 }
 
-const char* query_rr_label(query_t* self)
+const char* core_query_rr_label(core_query_t* self)
 {
     _query_t* _self = (_query_t*)self;
     char*     label;
@@ -370,7 +370,7 @@ const char* query_rr_label(query_t* self)
     return _self->label_buf;
 }
 
-uint16_t query_rr_type(query_t* self)
+uint16_t core_query_rr_type(core_query_t* self)
 {
     _query_t* _self = (_query_t*)self;
 
@@ -381,7 +381,7 @@ uint16_t query_rr_type(query_t* self)
     return _self->rr[_self->at_rr].type;
 }
 
-uint16_t query_rr_class(query_t* self)
+uint16_t core_query_rr_class(core_query_t* self)
 {
     _query_t* _self = (_query_t*)self;
 
@@ -392,7 +392,7 @@ uint16_t query_rr_class(query_t* self)
     return _self->rr[_self->at_rr].class;
 }
 
-uint32_t query_rr_ttl(query_t* self)
+uint32_t core_query_rr_ttl(core_query_t* self)
 {
     _query_t* _self = (_query_t*)self;
 
@@ -403,7 +403,7 @@ uint32_t query_rr_ttl(query_t* self)
     return _self->rr[_self->at_rr].ttl;
 }
 
-const char* query_src(query_t* self)
+const char* core_query_src(core_query_t* self)
 {
     _query_t* _self = (_query_t*)self;
 
@@ -418,7 +418,7 @@ const char* query_src(query_t* self)
     return _self->ntop_buf;
 }
 
-const char* query_dst(query_t* self)
+const char* core_query_dst(core_query_t* self)
 {
     _query_t* _self = (_query_t*)self;
 
@@ -433,7 +433,7 @@ const char* query_dst(query_t* self)
     return _self->ntop_buf;
 }
 
-int query_set_src(query_t* self, int af, const void* addr, size_t len)
+int core_query_set_src(core_query_t* self, int af, const void* addr, size_t len)
 {
     _query_t* _self = (_query_t*)self;
 
@@ -451,7 +451,7 @@ int query_set_src(query_t* self, int af, const void* addr, size_t len)
     return 0;
 }
 
-int query_set_dst(query_t* self, int af, const void* addr, size_t len)
+int core_query_set_dst(core_query_t* self, int af, const void* addr, size_t len)
 {
     _query_t* _self = (_query_t*)self;
 
@@ -469,7 +469,7 @@ int query_set_dst(query_t* self, int af, const void* addr, size_t len)
     return 0;
 }
 
-int query_set_parsed_header(query_t* self, omg_dns_t dns)
+int core_query_set_parsed_header(core_query_t* self, omg_dns_t dns)
 {
     _query_t* _self = (_query_t*)self;
 
@@ -510,36 +510,4 @@ int query_set_parsed_header(query_t* self, omg_dns_t dns)
     self->arcount      = dns.arcount;
 
     return 0;
-}
-
-#define assert(a...)
-
-inline int query_is_udp(const query_t* query)
-{
-    assert(query);
-    return query->is_udp;
-}
-
-inline int query_is_tcp(const query_t* query)
-{
-    assert(query);
-    return query->is_tcp;
-}
-
-inline int query_have_raw(const query_t* query)
-{
-    assert(query);
-    return query->have_raw;
-}
-
-inline size_t query_length(const query_t* query)
-{
-    assert(query);
-    return query->len;
-}
-
-inline const u_char* query_raw(const query_t* query)
-{
-    assert(query);
-    return query->raw ? (u_char*)query->raw : (u_char*)query->small;
 }

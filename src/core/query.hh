@@ -20,8 +20,8 @@
 
 //lua:require("dnsjit.core.log")
 //lua:require("dnsjit.core.timespec_h")
-typedef struct query {
-    log_t _log;
+typedef struct core_query {
+    core_log_t _log;
 
     uint64_t sid, qid;
 
@@ -30,8 +30,8 @@ typedef struct query {
     unsigned short is_ipv6 : 1;
     unsigned short have_raw : 1;
 
-    uint16_t   sport, dport;
-    timespec_t ts;
+    uint16_t        sport, dport;
+    core_timespec_t ts;
 
     char   small[64];
     char*  raw;
@@ -73,22 +73,22 @@ typedef struct query {
     size_t answers;
     size_t authorities;
     size_t additionals;
-} query_t;
+} core_query_t;
 
-log_t*   query_log();
-query_t* query_new();
-void query_free(query_t* self);
-int query_init(query_t* self);
-int query_destroy(query_t* self);
-int query_set_raw(query_t* self, const char* raw, size_t len);
-query_t* query_copy(query_t* self);
-const char* query_src(query_t* self);
-const char* query_dst(query_t* self);
-int query_parse_header(query_t* self);
-int query_parse(query_t* self);
-int query_rr_next(query_t* self);
-int query_rr_ok(query_t* self);
-const char* query_rr_label(query_t* self);
-uint16_t query_rr_type(query_t* self);
-uint16_t query_rr_class(query_t* self);
-uint32_t query_rr_ttl(query_t* self);
+core_log_t*   core_query_log();
+core_query_t* core_query_new();
+void core_query_free(core_query_t* self);
+int core_query_init(core_query_t* self);
+int core_query_destroy(core_query_t* self);
+int core_query_set_raw(core_query_t* self, const char* raw, size_t len);
+core_query_t* core_query_copy(core_query_t* self);
+const char* core_query_src(core_query_t* self);
+const char* core_query_dst(core_query_t* self);
+int core_query_parse_header(core_query_t* self);
+int core_query_parse(core_query_t* self);
+int core_query_rr_next(core_query_t* self);
+int core_query_rr_ok(core_query_t* self);
+const char* core_query_rr_label(core_query_t* self);
+uint16_t core_query_rr_type(core_query_t* self);
+uint16_t core_query_rr_class(core_query_t* self);
+uint32_t core_query_rr_ttl(core_query_t* self);

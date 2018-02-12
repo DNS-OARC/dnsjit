@@ -24,11 +24,11 @@ typedef struct {} client_pool_t;
 //lua:require("dnsjit.core.log")
 //lua:require("dnsjit.core.receiver_h")
 typedef struct output_cpool {
-    log_t          _log;
+    core_log_t     _log;
     client_pool_t* p;
 } output_cpool_t;
 
-log_t* output_cpool_log();
+core_log_t* output_cpool_log();
 int output_cpool_init(output_cpool_t* self, const char* host, const char* port, size_t queue_size);
 int output_cpool_destroy(output_cpool_t* self);
 size_t output_cpool_max_clients(output_cpool_t* self);
@@ -48,4 +48,4 @@ int output_cpool_set_dry_run(output_cpool_t* self, int dry_run);
 int output_cpool_start(output_cpool_t* self);
 int output_cpool_stop(output_cpool_t* self);
 
-receiver_t output_cpool_receiver();
+core_receiver_t output_cpool_receiver();

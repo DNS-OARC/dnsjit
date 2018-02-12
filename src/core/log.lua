@@ -47,12 +47,12 @@
 -- .LP
 -- Add the logging struct to the module struct:
 --   typedef struct example {
---       log_t _log;
+--       core_log_t _log;
 --       ...
 --   } example_t;
 -- .LP
 -- Add a module logging configuration and a struct default:
---   static log_t _log = LOG_T_INIT("example");
+--   static core_log_t _log = LOG_T_INIT("example");
 --   static example_t _defaults = {
 --       LOG_T_INIT_OBJ("example"),
 --       ...
@@ -91,7 +91,7 @@
 -- returns either the object instance Log or the modules Log.
 -- .LP
 -- Add C function to get module only Log:
---   log_t* example_log() {
+--   core_log_t* example_log() {
 --       return &_log;
 --   }
 -- .LP
@@ -198,10 +198,10 @@ module(...,package.seeall)
 require("dnsjit.core.log_h")
 local ffi = require("ffi")
 local C = ffi.C
-local L = C.core_log()
+local L = C.core_log_log()
 
-local t_name = "log_t"
-local log_t
+local t_name = "core_log_t"
+local core_log_t
 local Log = {}
 
 -- Create a new Log object with the given module
@@ -211,9 +211,9 @@ local Log = {}
 -- Log object.
 function Log.new(name, module)
     if ffi.istype(t_name, module) then
-        return log_t({ name = name, is_obj = 1, module = module.settings })
+        return core_log_t({ name = name, is_obj = 1, module = module.settings })
     end
-    return log_t({ name = name })
+    return core_log_t({ name = name })
 end
 
 -- Enable specified log level.
@@ -332,18 +332,18 @@ function Log.debug(self, ...)
         end
         local info = debug.getinfo(2, "S")
         if format then
-            C.log_debug(self, info.source, info.linedefined, format, ...)
+            C.core_log_debug(self, info.source, info.linedefined, format, ...)
             return
         end
-        C.log_debug(self, info.source, info.linedefined, ...)
+        C.core_log_debug(self, info.source, info.linedefined, ...)
         return
     end
 
     if format then
-        C.log_debug(self, nil, 0, format, ...)
+        C.core_log_debug(self, nil, 0, format, ...)
         return
     end
-    C.log_debug(self, nil, 0, ...)
+    C.core_log_debug(self, nil, 0, ...)
 end
 
 -- Generate an info message.
@@ -390,18 +390,18 @@ function Log:info(format, ...)
         end
         local info = debug.getinfo(2, "S")
         if format then
-            C.log_info(self, info.source, info.linedefined, format, ...)
+            C.core_log_info(self, info.source, info.linedefined, format, ...)
             return
         end
-        C.log_info(self, info.source, info.linedefined, ...)
+        C.core_log_info(self, info.source, info.linedefined, ...)
         return
     end
 
     if format then
-        C.log_info(self, nil, 0, format, ...)
+        C.core_log_info(self, nil, 0, format, ...)
         return
     end
-    C.log_info(self, nil, 0, ...)
+    C.core_log_info(self, nil, 0, ...)
 end
 
 -- Generate a notice message.
@@ -448,18 +448,18 @@ function Log:notice(format, ...)
         end
         local info = debug.getinfo(2, "S")
         if format then
-            C.log_notice(self, info.source, info.linedefined, format, ...)
+            C.core_log_notice(self, info.source, info.linedefined, format, ...)
             return
         end
-        C.log_notice(self, info.source, info.linedefined, ...)
+        C.core_log_notice(self, info.source, info.linedefined, ...)
         return
     end
 
     if format then
-        C.log_notice(self, nil, 0, format, ...)
+        C.core_log_notice(self, nil, 0, format, ...)
         return
     end
-    C.log_notice(self, nil, 0, ...)
+    C.core_log_notice(self, nil, 0, ...)
 end
 
 -- Generate a warning message.
@@ -506,18 +506,18 @@ function Log:warning(format, ...)
         end
         local info = debug.getinfo(2, "S")
         if format then
-            C.log_warning(self, info.source, info.linedefined, format, ...)
+            C.core_log_warning(self, info.source, info.linedefined, format, ...)
             return
         end
-        C.log_warning(self, info.source, info.linedefined, ...)
+        C.core_log_warning(self, info.source, info.linedefined, ...)
         return
     end
 
     if format then
-        C.log_warning(self, nil, 0, format, ...)
+        C.core_log_warning(self, nil, 0, format, ...)
         return
     end
-    C.log_warning(self, nil, 0, ...)
+    C.core_log_warning(self, nil, 0, ...)
 end
 
 -- Generate a critical message.
@@ -547,18 +547,18 @@ function Log:critical(format, ...)
         end
         local info = debug.getinfo(2, "S")
         if format then
-            C.log_critical(self, info.source, info.linedefined, format, ...)
+            C.core_log_critical(self, info.source, info.linedefined, format, ...)
             return
         end
-        C.log_critical(self, info.source, info.linedefined, ...)
+        C.core_log_critical(self, info.source, info.linedefined, ...)
         return
     end
 
     if format then
-        C.log_critical(self, nil, 0, format, ...)
+        C.core_log_critical(self, nil, 0, format, ...)
         return
     end
-    C.log_critical(self, nil, 0, ...)
+    C.core_log_critical(self, nil, 0, ...)
 end
 
 -- Generate a fatal message.
@@ -588,20 +588,20 @@ function Log:fatal(format, ...)
         end
         local info = debug.getinfo(2, "S")
         if format then
-            C.log_fatal(self, info.source, info.linedefined, format, ...)
+            C.core_log_fatal(self, info.source, info.linedefined, format, ...)
             return
         end
-        C.log_fatal(self, info.source, info.linedefined, ...)
+        C.core_log_fatal(self, info.source, info.linedefined, ...)
         return
     end
 
     if format then
-        C.log_fatal(self, nil, 0, format, ...)
+        C.core_log_fatal(self, nil, 0, format, ...)
         return
     end
-    C.log_fatal(self, nil, 0, ...)
+    C.core_log_fatal(self, nil, 0, ...)
 end
 
-log_t = ffi.metatype(t_name, { __index = Log })
+core_log_t = ffi.metatype(t_name, { __index = Log })
 
 return Log

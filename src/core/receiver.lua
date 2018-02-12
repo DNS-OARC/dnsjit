@@ -20,7 +20,7 @@
 -- Receiver data structure definition
 --   require("dnsjit.core.receiver_h")
 --   local C = require("ffi").C
---   C.receiver_call(recv_c_function_ptr, recv_c_function_data, query:struct()
+--   C.core_receiver_call(recv_c_function_ptr, recv_c_function_data, query:struct()
 --
 -- Receiver and receive interfaces and data structure definitions used by
 -- input, filter and output modules to pass query objects for processing.

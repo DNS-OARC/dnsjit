@@ -25,13 +25,13 @@
 #include <lualib.h>
 #include <lauxlib.h>
 
-static log_t        _log      = LOG_T_INIT("filter.lua");
+static core_log_t   _log      = LOG_T_INIT("filter.lua");
 static filter_lua_t _defaults = {
     LOG_T_INIT_OBJ("filter.lua"),
     0, 0, 0, 0
 };
 
-log_t* filter_lua_log()
+core_log_t* filter_lua_log()
 {
     return &_log;
 }
@@ -141,12 +141,12 @@ int filter_lua_push_double(filter_lua_t* self, double d)
     return 0;
 }
 
-static int _receive(void* robj, query_t* q)
+static int _receive(void* robj, core_query_t* q)
 {
     filter_lua_t* self = (filter_lua_t*)robj;
 
     if (!self || !q) {
-        query_free(q);
+        core_query_free(q);
         return 1;
     }
 
@@ -163,7 +163,7 @@ static int _receive(void* robj, query_t* q)
     return 0;
 }
 
-receiver_t filter_lua_receiver()
+core_receiver_t filter_lua_receiver()
 {
     return _receive;
 }
