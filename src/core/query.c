@@ -337,7 +337,7 @@ const char* core_query_rr_label(core_query_t* self)
     }
 
     label = _self->label_buf;
-    left  = sizeof(_self->label) - 1;
+    left  = sizeof(_self->label_buf) - 1;
 
     if (omg_dns_rr_labels(&_self->rr[_self->at_rr])) {
         size_t l    = _self->rr_label_idx[_self->at_rr];
@@ -539,6 +539,25 @@ int core_query_set_parsed_header(core_query_t* self, omg_dns_t dns)
     self->ancount      = dns.ancount;
     self->nscount      = dns.nscount;
     self->arcount      = dns.arcount;
+
+    return 0;
+}
+
+int core_query_copy_addr(core_query_t* self, core_query_t* from)
+{
+    _query_t* _self = (_query_t*)self;
+    _query_t* _from = (_query_t*)from;
+
+    if (!_self || !_from) {
+        return 1;
+    }
+
+    _self->af     = _from->af;
+    _self->src    = _from->src;
+    _self->dst    = _from->dst;
+    self->is_ipv6 = from->is_ipv6;
+    self->sport   = from->sport;
+    self->dport   = from->dport;
 
     return 0;
 }

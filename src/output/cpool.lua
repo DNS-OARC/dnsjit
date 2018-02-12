@@ -52,6 +52,7 @@ function Cpool.new(host, port, queue_size)
         queue_size = 0
     end
     local self = {
+        _receiver = nil,
         obj = output_cpool_t(),
     }
     C.output_cpool_init(self.obj, host, port, queue_size)
@@ -155,6 +156,13 @@ end
 -- Stop the processing of queries.
 function Cpool:stop()
     return ch.z2n(C.output_cpool_stop(self.obj))
+end
+
+-- Set the receiver to pass queries and responses to.
+function Cpool:receiver(o)
+    self.obj._log:debug("receiver()")
+    self.obj.recv, self.obj.robj = o:receive()
+    self._receiver = o
 end
 
 function Cpool:receive()

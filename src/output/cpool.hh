@@ -24,8 +24,10 @@ typedef struct {} client_pool_t;
 //lua:require("dnsjit.core.log")
 //lua:require("dnsjit.core.receiver_h")
 typedef struct output_cpool {
-    core_log_t     _log;
-    client_pool_t* p;
+    core_log_t      _log;
+    client_pool_t*  p;
+    core_receiver_t recv;
+    void*           robj;
 } output_cpool_t;
 
 core_log_t* output_cpool_log();

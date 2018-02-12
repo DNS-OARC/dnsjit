@@ -50,6 +50,8 @@ enum client_pool_state {
     CLIENT_POOL_ERROR
 };
 
+typedef void (*client_pool_client_read_t)(void*, const client_t*);
+
 typedef struct client_pool client_pool_t;
 struct client_pool {
     client_pool_t* next;
@@ -58,6 +60,7 @@ struct client_pool {
     unsigned short is_stopping : 1;
     unsigned short client_skip_reply : 1;
     unsigned short dry_run : 1;
+    unsigned short client_always_read : 1;
 
     client_pool_state_t state;
     pthread_t           thread_id;
@@ -85,6 +88,10 @@ struct client_pool {
     client_pool_sendas_t sendas;
 
     core_log_t* _log;
+
+    size_t                    client_recvbuf_size;
+    client_pool_client_read_t client_read;
+    void*                     client_read_ctx;
 };
 
 client_pool_t* client_pool_new(const char* host, const char* port, size_t queue_size);
