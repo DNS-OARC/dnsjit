@@ -25,11 +25,11 @@
 
 #include <pthread.h>
 
-static log_t           _log   = LOG_T_INIT("core.tracking");
+static core_log_t      _log   = LOG_T_INIT("core.tracking");
 static pthread_mutex_t _mutex = PTHREAD_MUTEX_INITIALIZER;
 static uint64_t        _sid   = 1;
 
-log_t* core_tracking_log()
+core_log_t* core_tracking_log()
 {
     return &_log;
 }

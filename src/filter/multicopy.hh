@@ -23,17 +23,17 @@
 typedef struct filter_multicopy_recv filter_multicopy_recv_t;
 struct filter_multicopy_recv {
     filter_multicopy_recv_t* next;
-    receiver_t               recv;
+    core_receiver_t          recv;
     void*                    robj;
 };
 typedef struct filter_multicopy {
-    log_t                    _log;
+    core_log_t               _log;
     filter_multicopy_recv_t* recv_list;
 } filter_multicopy_t;
 
-log_t* filter_multicopy_log();
+core_log_t* filter_multicopy_log();
 int filter_multicopy_init(filter_multicopy_t* self);
 int filter_multicopy_destroy(filter_multicopy_t* self);
-int filter_multicopy_add(filter_multicopy_t* self, receiver_t recv, void* robj);
+int filter_multicopy_add(filter_multicopy_t* self, core_receiver_t recv, void* robj);
 
-receiver_t filter_multicopy_receiver();
+core_receiver_t filter_multicopy_receiver();

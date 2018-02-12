@@ -37,14 +37,14 @@ local C = ffi.C
 local Query = {}
 
 -- Create a new query or bind an existing
--- .IR query_t .
+-- .IR core_query_t .
 function Query.new(o)
     if o == nil then
-        o = C.query_new()
-    elseif not ffi.istype("query_t", o) then
-        error("is not query_t")
+        o = C.core_query_new()
+    elseif not ffi.istype("core_query_t", o) then
+        error("is not core_query_t")
     end
-    ffi.gc(o, C.query_free)
+    ffi.gc(o, C.core_query_free)
     return setmetatable({
         _ = o,
     }, {__index = Query})
@@ -53,13 +53,13 @@ end
 -- Return the Log object to control logging of this instance or module.
 function Query:log()
     if self == nil then
-        return C.query_log()
+        return C.core_query_log()
     end
     return self._._log
 end
 
 -- Return the
--- .I query_t
+-- .I core_query_t
 -- C structure bound to this object.
 function Query:struct()
     self._._log:debug("struct()")
@@ -68,22 +68,22 @@ end
 
 -- Parse the DNS headers or the query.
 function Query:parse_header()
-    return ch.z2n(C.query_parse_header(self._))
+    return ch.z2n(C.core_query_parse_header(self._))
 end
 
 -- Parse the full DNS message or just the body if the header was already parsed.
 function Query:parse()
-    return ch.z2n(C.query_parse(self._))
+    return ch.z2n(C.core_query_parse(self._))
 end
 
 -- Return the IP source as a string.
 function Query:src()
-    return ffi.string(C.query_src(self._))
+    return ffi.string(C.core_query_src(self._))
 end
 
 -- Return the IP destination as a string.
 function Query:dst()
-    return ffi.string(C.query_dst(self._))
+    return ffi.string(C.core_query_dst(self._))
 end
 
 -- Return or set the source ID, used to track the unique source of the
@@ -291,18 +291,18 @@ end
 -- Start walking the resource record(s) (RR) found or continue with the next,
 -- returns integer > 0 on error or end of RRs.
 function Query:rr_next()
-    return C.query_rr_next(self._)
+    return C.core_query_rr_next(self._)
 end
 
 -- Check if the RR at the current position was parsed successfully or not,
 -- return 1 if successful.
 function Query:rr_ok()
-    return C.query_rr_ok(self._)
+    return C.core_query_rr_ok(self._)
 end
 
 -- Return the FQDN of the current RR or an empty string on error.
 function Query:rr_label()
-    local ptr = C.query_rr_label(self._)
+    local ptr = C.core_query_rr_label(self._)
     if ptr == nil then
         return ""
     end
@@ -311,17 +311,17 @@ end
 
 -- Return an integer with the RR type.
 function Query:rr_type()
-    return C.query_rr_type(self._)
+    return C.core_query_rr_type(self._)
 end
 
 -- Return an integer with the RR class.
 function Query:rr_class()
-    return C.query_rr_class(self._)
+    return C.core_query_rr_class(self._)
 end
 
 -- Return an integer with the RR TTL.
 function Query:rr_ttl()
-    return C.query_rr_ttl(self._)
+    return C.core_query_rr_ttl(self._)
 end
 
 -- dnsjit.core.tracking (3)

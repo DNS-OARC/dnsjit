@@ -18,6 +18,13 @@
 
 -- dnsjit.core.receiver
 -- Non-system depended time specification structure definition
+--   typedef struct core_timespec {
+--       uint64_t sec;
+--       uint64_t nsec;
+--   } core_timespec_t;
+-- .SS C
+--   #include "core/timespec.h"
+-- .SS Lua
 --   require("dnsjit.core.timespec_h")
 --
 -- Mainly used in C modules for a system independent time specification

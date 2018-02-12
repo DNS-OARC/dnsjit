@@ -23,4 +23,4 @@ typedef struct output_null {
     size_t pkts;
 } output_null_t;
 
-receiver_t output_null_receiver();
+core_receiver_t output_null_receiver();

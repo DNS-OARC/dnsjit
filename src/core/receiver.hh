@@ -19,5 +19,5 @@
  */
 
 //lua:require("dnsjit.core.query_h")
-typedef int (*receiver_t)(void* robj, query_t* q);
-int receiver_call(receiver_t recv, void* robj, query_t* q);
+typedef int (*core_receiver_t)(void* robj, core_query_t* q);
+int core_receiver_call(core_receiver_t recv, void* robj, core_query_t* q);

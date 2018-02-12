@@ -18,6 +18,7 @@
  * along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-typedef struct dnsjit_timespec {
-    uint64_t sec, nsec;
-} timespec_t;
+typedef struct core_timespec {
+    uint64_t sec;
+    uint64_t nsec;
+} core_timespec_t;

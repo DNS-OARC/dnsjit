@@ -22,12 +22,12 @@
 
 #include "filter/roundrobin.h"
 
-static log_t               _log      = LOG_T_INIT("filter.roundrobin");
+static core_log_t          _log      = LOG_T_INIT("filter.roundrobin");
 static filter_roundrobin_t _defaults = {
     LOG_T_INIT_OBJ("filter.roundrobin"), 0, 0
 };
 
-log_t* filter_roundrobin_log()
+core_log_t* filter_roundrobin_log()
 {
     return &_log;
 }
@@ -62,7 +62,7 @@ int filter_roundrobin_destroy(filter_roundrobin_t* self)
     return 0;
 }
 
-int filter_roundrobin_add(filter_roundrobin_t* self, receiver_t recv, void* robj)
+int filter_roundrobin_add(filter_roundrobin_t* self, core_receiver_t recv, void* robj)
 {
     filter_roundrobin_recv_t* r;
     if (!self) {
@@ -87,12 +87,12 @@ int filter_roundrobin_add(filter_roundrobin_t* self, receiver_t recv, void* robj
     return 0;
 }
 
-static int _receive(void* robj, query_t* q)
+static int _receive(void* robj, core_query_t* q)
 {
     filter_roundrobin_t* self = (filter_roundrobin_t*)robj;
 
     if (!self || !q || !self->recv) {
-        query_free(q);
+        core_query_free(q);
         return 1;
     }
 
@@ -105,7 +105,7 @@ static int _receive(void* robj, query_t* q)
     return 0;
 }
 
-receiver_t filter_roundrobin_receiver()
+core_receiver_t filter_roundrobin_receiver()
 {
     return _receive;
 }

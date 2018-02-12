@@ -64,7 +64,7 @@ struct client_pool {
 
     struct ev_loop* ev_loop;
     sllq_t          queries;
-    query_t*        query;
+    core_query_t*   query;
     ev_async        notify_query;
     ev_async        notify_stop;
     ev_timer        timeout;
@@ -84,13 +84,13 @@ struct client_pool {
 
     client_pool_sendas_t sendas;
 
-    log_t* _log;
+    core_log_t* _log;
 };
 
 client_pool_t* client_pool_new(const char* host, const char* port, size_t queue_size);
 void client_pool_free(client_pool_t* client_pool);
 int client_pool_start(client_pool_t* client_pool);
 int client_pool_stop(client_pool_t* client_pool);
-int client_pool_query(client_pool_t* client_pool, query_t* query);
+int client_pool_query(client_pool_t* client_pool, core_query_t* query);
 
 #endif

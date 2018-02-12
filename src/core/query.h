@@ -30,14 +30,10 @@
 
 #include "core/query.hh"
 
-int query_set_src(query_t* self, int af, const void* addr, size_t len);
-int query_set_dst(query_t* self, int af, const void* addr, size_t len);
-int query_set_parsed_header(query_t* self, omg_dns_t dns);
+#define core_query_raw(query) (query->raw ? (u_char*)query->raw : (u_char*)query->small)
 
-int query_is_udp(const query_t* query);
-int query_is_tcp(const query_t* query);
-int query_have_raw(const query_t* query);
-size_t query_length(const query_t* query);
-const u_char* query_raw(const query_t* query);
+int core_query_set_src(core_query_t* self, int af, const void* addr, size_t len);
+int core_query_set_dst(core_query_t* self, int af, const void* addr, size_t len);
+int core_query_set_parsed_header(core_query_t* self, omg_dns_t dns);
 
 #endif

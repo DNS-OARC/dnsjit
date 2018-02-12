@@ -22,9 +22,9 @@
 //lua:require("dnsjit.core.receiver_h")
 //lua:require("dnsjit.core.timespec_h")
 typedef struct filter_timing {
-    log_t      _log;
-    receiver_t recv;
-    void*      robj;
+    core_log_t      _log;
+    core_receiver_t recv;
+    void*           robj;
 
     enum {
         TIMING_MODE_KEEP        = 0,
@@ -36,15 +36,15 @@ typedef struct filter_timing {
     size_t inc, red;
     float  mul;
 
-    timespec_t last_packet;
-    timespec_t last_time;
-    timespec_t last_realtime;
-    timespec_t last_time_queue;
+    core_timespec_t last_packet;
+    core_timespec_t last_time;
+    core_timespec_t last_realtime;
+    core_timespec_t last_time_queue;
 
 } filter_timing_t;
 
-log_t* filter_timing_log();
+core_log_t* filter_timing_log();
 int filter_timing_init(filter_timing_t* self);
 int filter_timing_destroy(filter_timing_t* self);
 
-receiver_t filter_timing_receiver();
+core_receiver_t filter_timing_receiver();

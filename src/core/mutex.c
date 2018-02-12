@@ -25,10 +25,10 @@
 
 #include <pthread.h>
 
-static log_t           _log   = LOG_T_INIT("core.mutex");
+static core_log_t      _log   = LOG_T_INIT("core.mutex");
 static pthread_mutex_t _mutex = PTHREAD_MUTEX_INITIALIZER;
 
-log_t* core_mutex_log()
+core_log_t* core_mutex_log()
 {
     return &_log;
 }

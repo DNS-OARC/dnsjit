@@ -22,12 +22,12 @@
 
 #include "filter/multicopy.h"
 
-static log_t              _log      = LOG_T_INIT("filter.multicopy");
+static core_log_t         _log      = LOG_T_INIT("filter.multicopy");
 static filter_multicopy_t _defaults = {
     LOG_T_INIT_OBJ("filter.multicopy"), 0
 };
 
-log_t* filter_multicopy_log()
+core_log_t* filter_multicopy_log()
 {
     return &_log;
 }
@@ -62,7 +62,7 @@ int filter_multicopy_destroy(filter_multicopy_t* self)
     return 0;
 }
 
-int filter_multicopy_add(filter_multicopy_t* self, receiver_t recv, void* robj)
+int filter_multicopy_add(filter_multicopy_t* self, core_receiver_t recv, void* robj)
 {
     filter_multicopy_recv_t* r;
     if (!self) {
@@ -83,28 +83,28 @@ int filter_multicopy_add(filter_multicopy_t* self, receiver_t recv, void* robj)
     return 0;
 }
 
-static int _receive(void* robj, query_t* q)
+static int _receive(void* robj, core_query_t* q)
 {
     filter_multicopy_t*      self = (filter_multicopy_t*)robj;
     filter_multicopy_recv_t* r;
-    query_t*                 copy;
+    core_query_t*            copy;
 
     if (!self || !q || !self->recv_list) {
-        query_free(q);
+        core_query_free(q);
         return 1;
     }
 
     for (r = self->recv_list; r; r = r->next) {
-        if ((copy = query_copy(q))) {
+        if ((copy = core_query_copy(q))) {
             r->recv(r->robj, copy);
         }
     }
-    query_free(q);
+    core_query_free(q);
 
     return 0;
 }
 
-receiver_t filter_multicopy_receiver()
+core_receiver_t filter_multicopy_receiver()
 {
     return _receive;
 }

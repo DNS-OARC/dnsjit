@@ -67,7 +67,7 @@ struct client {
     client_t* prev;
 
     int               fd;
-    query_t*          query;
+    core_query_t*     query;
     ev_io             write_watcher;
     ev_io             read_watcher;
     ev_io             shutdown_watcher;
@@ -83,13 +83,13 @@ struct client {
     socklen_t               from_addrlen;
 };
 
-client_t* client_new(query_t* query, client_callback_t callback);
+client_t* client_new(core_query_t* query, client_callback_t callback);
 void client_free(client_t* client);
 
 client_t* client_next(client_t* client);
 client_t* client_prev(client_t* client);
 int client_fd(const client_t* client);
-const query_t* client_query(const client_t* client);
+const core_query_t* client_query(const client_t* client);
 client_state_t client_state(const client_t* client);
 int client_is_connected(const client_t* client);
 int client_errno(const client_t* client);
@@ -100,11 +100,11 @@ int client_set_next(client_t* client, client_t* next);
 int client_set_prev(client_t* client, client_t* prev);
 int client_set_start(client_t* client, ev_tstamp start);
 int client_set_skip_reply(client_t* client);
-query_t* client_release_query(client_t* client);
+core_query_t* client_release_query(client_t* client);
 
 int client_connect(client_t* client, int ipproto, const struct sockaddr* addr, socklen_t addlen, struct ev_loop* loop);
 int client_send(client_t* client, struct ev_loop* loop);
-int client_reuse(client_t* client, query_t* query);
+int client_reuse(client_t* client, core_query_t* query);
 int client_close(client_t* client, struct ev_loop* loop);
 
 #endif

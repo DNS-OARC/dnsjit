@@ -22,7 +22,7 @@
 
 #include "output/null.h"
 
-static int _receive(void* robj, query_t* q)
+static int _receive(void* robj, core_query_t* q)
 {
     output_null_t* self = (output_null_t*)robj;
 
@@ -30,11 +30,11 @@ static int _receive(void* robj, query_t* q)
         self->pkts++;
     }
 
-    query_free(q);
+    core_query_free(q);
     return 0;
 }
 
-receiver_t output_null_receiver()
+core_receiver_t output_null_receiver()
 {
     return _receive;
 }

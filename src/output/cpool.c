@@ -22,13 +22,13 @@
 
 #include "output/cpool.h"
 
-static log_t          _log      = LOG_T_INIT("output.cpool");
+static core_log_t     _log      = LOG_T_INIT("output.cpool");
 static output_cpool_t _defaults = {
     LOG_T_INIT_OBJ("output.cpool"),
     0
 };
 
-log_t* output_cpool_log()
+core_log_t* output_cpool_log()
 {
     return &_log;
 }
@@ -259,33 +259,33 @@ int output_cpool_stop(output_cpool_t* self)
     return 0;
 }
 
-static int _receive(void* robj, query_t* q)
+static int _receive(void* robj, core_query_t* q)
 {
     output_cpool_t* self = (output_cpool_t*)robj;
-    query_t*        copy;
+    core_query_t*   copy;
 
     if (!self || !q || !self->p) {
-        query_free(q);
+        core_query_free(q);
         return 1;
     }
 
-    if (!(copy = query_copy(q))) {
-        query_free(q);
+    if (!(copy = core_query_copy(q))) {
+        core_query_free(q);
         return 1;
     }
 
     if (client_pool_query(self->p, copy)) {
         ldebug("client_pool_query failed");
-        query_free(copy);
-        query_free(q);
+        core_query_free(copy);
+        core_query_free(q);
         return 1;
     }
 
-    query_free(q);
+    core_query_free(q);
     return 0;
 }
 
-receiver_t output_cpool_receiver()
+core_receiver_t output_cpool_receiver()
 {
     return _receive;
 }

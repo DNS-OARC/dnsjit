@@ -25,14 +25,14 @@
 #include <time.h>
 #include <sys/time.h>
 
-static log_t           _log      = LOG_T_INIT("filter.timing");
+static core_log_t      _log      = LOG_T_INIT("filter.timing");
 static filter_timing_t _defaults = {
     LOG_T_INIT_OBJ("filter.timing"), 0, 0,
     TIMING_MODE_KEEP, 0, 0, 0.0,
     { 0, 0 }, { 0, 0 }, { 0, 0 }, { 0, 0 }
 };
 
-log_t* filter_timing_log()
+core_log_t* filter_timing_log()
 {
     return &_log;
 }
@@ -61,7 +61,7 @@ int filter_timing_destroy(filter_timing_t* self)
     return 0;
 }
 
-static int _receive(void* robj, query_t* q)
+static int _receive(void* robj, core_query_t* q)
 {
     filter_timing_t* self = (filter_timing_t*)robj;
     struct timespec  now  = { 0, 0 };
@@ -71,7 +71,7 @@ static int _receive(void* robj, query_t* q)
     struct timespec  last_time_queue;
 
     if (!self || !q || !self->recv) {
-        query_free(q);
+        core_query_free(q);
         return 1;
     }
 
@@ -272,7 +272,7 @@ static int _receive(void* robj, query_t* q)
     return 0;
 }
 
-receiver_t filter_timing_receiver()
+core_receiver_t filter_timing_receiver()
 {
     return _receive;
 }
