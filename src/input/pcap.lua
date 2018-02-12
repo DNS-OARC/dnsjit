@@ -16,7 +16,7 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
 
--- dnsjit.input.lua
+-- dnsjit.input.pcap
 -- Read input from an interface or PCAP file
 --   local input = require("dnsjit.input.pcap").new()
 --   input:open_offline("file.pcap")

@@ -18,4 +18,5 @@
 
 dist_doc_DATA = dumpdns.lua \
     filter_rcode.lua \
-    replay.lua
+    replay.lua \
+    test_throughput.lua
