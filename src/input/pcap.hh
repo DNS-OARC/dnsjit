@@ -55,8 +55,8 @@ typedef struct input_pcap {
     core_timespec_t ts, te;
     size_t          pkts, drop, ignore, queries;
     int             err;
-    uint64_t        sid;
-    uint64_t        qid;
+    uint64_t        src_id;
+    uint64_t        qr_id;
 } input_pcap_t;
 
 core_log_t* input_pcap_log();

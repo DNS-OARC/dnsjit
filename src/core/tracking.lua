@@ -19,7 +19,7 @@
 -- dnsjit.core.tracking
 -- Core functions for tracking input sources
 --   local tracking = require("dnsjit.core.tracking")
---   local source_id = tracking.new_sid()
+--   local source_id = tracking.src_id()
 --
 -- Provide a thread safe way of getting an unique ID for an input source,
 -- used together with Query ID
@@ -41,12 +41,42 @@ end
 -- This function is thread safe and uses mutex to keep the ID unique.
 -- See also
 -- .BR dnsjit.core.query (3)
--- functions
--- .B sid()
+-- attributes
+-- .BR src_id ,
+-- .B qr_id
 -- and
--- .BR qid() .
-function Tracking.new_sid()
-    return C.core_tracking_new_sid()
+-- .BR dst_id .
+function Tracking.src_id()
+    return C.core_tracking_src_id()
+end
+
+-- Return a new query ID, used for tracking queries.
+-- This function is thread safe and uses mutex to keep the ID unique.
+-- .B NOTE
+-- usually the input modules keeps an own unique query ID and does not use
+-- this function.
+-- See also
+-- .BR dnsjit.core.query (3)
+-- attributes
+-- .BR src_id ,
+-- .B qr_id
+-- and
+-- .BR dst_id .
+function Tracking.qr_id()
+    return C.core_tracking_qr_id()
+end
+
+-- Return a new destination ID, used for tracking queries.
+-- This function is thread safe and uses mutex to keep the ID unique.
+-- See also
+-- .BR dnsjit.core.query (3)
+-- attributes
+-- .BR src_id ,
+-- .B qr_id
+-- and
+-- .BR dst_id .
+function Tracking.dst_id()
+    return C.core_tracking_dst_id()
 end
 
 -- dnsjit.core.query (3)

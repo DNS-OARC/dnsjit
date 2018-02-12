@@ -61,7 +61,7 @@ typedef struct _query {
 static core_log_t   _log      = LOG_T_INIT("core.query");
 static core_query_t _defaults = {
     LOG_T_INIT_OBJ("core.query"),
-    0, 0,
+    0, 0, 0,
     0, 0, 0, 0,
     0, 0, { 0, 0 },
     "", 0, 0,

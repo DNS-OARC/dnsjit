@@ -26,13 +26,21 @@
 -- a DNS message, how it was captured or generated.
 -- .SS Attributes
 -- .TP
--- sid
--- Source ID, used to track the unique source of the query.
+-- src_id
+-- Source ID, used to track the query through the input, filter and output
+-- modules.
 -- See also
 -- .BR dnsjit.core.tracking (3).
 -- .TP
--- qid
--- Query ID, used to track the unique query from a source.
+-- qr_id
+-- Query/Response ID, used to track the query through the input, filter
+-- and output modules.
+-- See also
+-- .BR dnsjit.core.tracking (3).
+-- .TP
+-- dst_id
+-- Destination ID, used to track the query through the input, filter
+-- and output modules.
 -- See also
 -- .BR dnsjit.core.tracking (3).
 -- .TP
