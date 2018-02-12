@@ -14,8 +14,8 @@ output:push(tonumber(rcode))
 output:func(function(filter, query, args)
     local rcode = unpack(args, 0)
     query:parse()
-    if query:rcode() == rcode then
-        print(query:id(), query:src().." -> "..query:dst())
+    if query.have_rcode == 1 and query.rcode == rcode then
+        print(query.id, query:src().." -> "..query:dst())
     end
 end)
 

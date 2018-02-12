@@ -37,38 +37,20 @@ require("dnsjit.filter.lua_h")
 local ffi = require("ffi")
 local C = ffi.C
 
-local _type = "filter_lua_t"
-local struct
-local mt = {
-    __gc = function(self)
-        if ffi.istype(_type, self) then
-            C.filter_lua_destroy(self)
-        end
-    end,
-    __index = {
-        new = function()
-            local self = struct()
-            if not self then
-                error("oom")
-            end
-            if ffi.istype(_type, self) then
-                C.filter_lua_init(self)
-                return self
-            end
-        end
-    }
-}
-struct = ffi.metatype(_type, mt)
-
+local t_name = "filter_lua_t"
+local filter_lua_t = ffi.typeof(t_name)
 local Lua = {}
 
 -- Create a new Lua filter.
 function Lua.new()
-    local o = struct.new()
-    return setmetatable({
-        _ = o,
+    local self = {
         ishandler = false,
-    }, {__index = Lua})
+        _receiver = nil,
+        obj = filter_lua_t(),
+    }
+    C.filter_lua_init(self.obj)
+    ffi.gc(self.obj, C.filter_lua_destroy)
+    return setmetatable(self, { __index = Lua })
 end
 
 -- Return the Log object to control logging of this instance or module.
@@ -76,7 +58,7 @@ function Lua:log()
     if self == nil then
         return C.filter_lua_log()
     end
-    return self._._log
+    return self.obj._log
 end
 
 -- Set the function to call on each receive, this function runs in it's own
@@ -86,7 +68,7 @@ function Lua:func(func)
         error("is handler")
     end
     local bc = string.dump(func)
-    return ch.z2n(C.filter_lua_func(self._, bc, string.len(bc)))
+    return ch.z2n(C.filter_lua_func(self.obj, bc, string.len(bc)))
 end
 
 -- Push additional arguments to send to the function, this is the way to
@@ -94,13 +76,13 @@ end
 function Lua:push(var)
     local t = type(var)
     if t == "string" then
-        return ch.z2n(C.filter_lua_push_string(self._, var, string.len(var)))
+        return ch.z2n(C.filter_lua_push_string(self.obj, var, string.len(var)))
     elseif t == "number" then
         local n = math.floor(var)
         if n == var then
-            return ch.z2n(C.filter_lua_push_integer(self._, n))
+            return ch.z2n(C.filter_lua_push_integer(self.obj, n))
         else
-            return ch.z2n(C.filter_lua_push_double(self._, var))
+            return ch.z2n(C.filter_lua_push_double(self.obj, var))
         end
     end
     return 1
@@ -110,8 +92,8 @@ function Lua:receive()
     if self.ishandler then
         error("is handler")
     end
-    self._._log:debug("receive()")
-    return C.filter_lua_receiver(), self._
+    self.obj._log:debug("receive()")
+    return C.filter_lua_receiver(), self.obj
 end
 
 -- Set the receiver to pass queries to.
@@ -119,8 +101,8 @@ function Lua:receiver(o)
     if self.ishandler then
         error("is handler")
     end
-    self._._log:debug("receiver()")
-    self._.recv, self._.robj = o:receive()
+    self.obj._log:debug("receiver()")
+    self.obj.recv, self.obj.robj = o:receive()
     self._receiver = o
 end
 
@@ -154,12 +136,12 @@ function Lua:run()
 end
 
 -- Used from the Lua function to send queries to the next receiver.
-function Lua:send(q)
+function Lua:send(query)
     if not self.ishandler then
         error("not handler")
     end
     -- TODO: test replace with ffi.gc(q:struct(), nil)
-    local q = C.query_copy(q:struct())
+    local q = C.core_query_copy(query)
     return ch.z2n(C.receiver_call(self._recv, self._robj, q))
 end
 

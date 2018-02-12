@@ -31,11 +31,12 @@ module(...,package.seeall)
 local ch = require("dnsjit.core.chelpers")
 local log = require("dnsjit.core.log")
 require("dnsjit.core.receiver_h")
+require("dnsjit.core.query_h")
 local ffi = require("ffi")
 local C = ffi.C
 
-local Lua = {}
 local module_log = log.new("input.lua")
+local Lua = {}
 
 -- Create a new Lua input.
 function Lua.new()
@@ -67,9 +68,10 @@ function Lua:receiver(o)
 end
 
 -- Send a query to the receiver.
-function Lua:send(q)
+function Lua:send(query)
     self._log:debug("send()")
-    return ch.z2n(C.receiver_call(self._recv, self._robj, q:struct()))
+    local q = C.core_query_copy(query)
+    return ch.z2n(C.receiver_call(self._recv, self._robj, q))
 end
 
 -- dnsjit.core.query (3)
