@@ -172,9 +172,9 @@ end
 
 -- Print the usage.
 function Getopt:usage()
-    local arg
     print("Usage:")
     for k, v in pairs(self.opt) do
+        local arg
         if v.type == "string" then
             arg = " \""..v.default.."\""
         elseif v.type == "number" and not v.counter then

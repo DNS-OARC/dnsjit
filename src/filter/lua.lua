@@ -140,9 +140,8 @@ function Lua:send(query)
     if not self.ishandler then
         error("not handler")
     end
-    -- TODO: test replace with ffi.gc(q:struct(), nil)
-    local q = C.core_query_copy(query)
-    return ch.z2n(C.receiver_call(self._recv, self._robj, q))
+    -- TODO: test replace with ffi.gc(query, nil)
+    return ch.z2n(C.receiver_call(self._recv, self._robj, C.core_query_copy(query)))
 end
 
 -- dnsjit.filter.thread (3)
