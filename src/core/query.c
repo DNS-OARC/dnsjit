@@ -182,8 +182,9 @@ core_query_t* core_query_copy(core_query_t* self)
             omg_dns_set_label_callback(&_q->dns, _label_callback, (void*)_q);
         }
 
-        if (self->have_raw) {
-            core_query_set_raw(q, self->raw ? self->raw : self->small, self->len);
+        if (self->have_raw && core_query_set_raw(q, core_query_raw(self), self->len)) {
+            core_query_free(q);
+            return 0;
         }
     }
 

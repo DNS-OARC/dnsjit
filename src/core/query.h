@@ -30,7 +30,7 @@
 
 #include "core/query.hh"
 
-#define core_query_raw(query) (query->raw ? (u_char*)query->raw : (u_char*)query->small)
+#define core_query_raw(query) (query->raw ? query->raw : query->small)
 
 int core_query_set_src(core_query_t* self, int af, const void* addr, size_t len);
 int core_query_set_dst(core_query_t* self, int af, const void* addr, size_t len);
