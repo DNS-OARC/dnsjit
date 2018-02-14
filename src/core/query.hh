@@ -92,3 +92,5 @@ const char* core_query_rr_label(core_query_t* self);
 uint16_t core_query_rr_type(core_query_t* self);
 uint16_t core_query_rr_class(core_query_t* self);
 uint32_t core_query_rr_ttl(core_query_t* self);
+
+int core_query_copy_addr(core_query_t* self, core_query_t* from);

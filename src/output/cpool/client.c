@@ -21,6 +21,7 @@
 #include "config.h"
 
 #include "output/cpool/client.h"
+#include "core/tracking.h"
 
 #include <stdlib.h>
 #include <unistd.h>
@@ -30,6 +31,8 @@
 #include <assert.h>
 #include <netinet/in.h>
 
+static char _recvbuf[4 * 1024]; /* dummy buffer used for reading when we don't care about content */
+
 /*
  * EV callbacks
  */
@@ -37,7 +40,6 @@
 static void client_shutdown(struct ev_loop* loop, ev_io* w, int revents)
 {
     client_t* client;
-    char      buf[4 * 1024];
 
     /* TODO: Check revents for EV_ERROR */
 
@@ -46,7 +48,7 @@ static void client_shutdown(struct ev_loop* loop, ev_io* w, int revents)
     client = (client_t*)(w->data);
     assert(client);
 
-    if (recv(client->fd, buf, sizeof(buf), 0) > 0)
+    if (recv(client->fd, _recvbuf, sizeof(_recvbuf), 0) > 0)
         return;
 
     ev_io_stop(loop, w);
@@ -58,7 +60,6 @@ static void client_read(struct ev_loop* loop, ev_io* w, int revents)
 {
     client_t* client;
     ssize_t   nrecv;
-    char      buf[4 * 1024];
 
     /* TODO: Check revents for EV_ERROR */
 
@@ -75,7 +76,11 @@ static void client_read(struct ev_loop* loop, ev_io* w, int revents)
     client->from_addrlen = sizeof(struct sockaddr_storage);
     nrecv = recvfrom(client->fd, buf, sizeof(buf), 0, &(client->from_addr), &(client->from_addrlen));
     */
-    nrecv = recvfrom(client->fd, buf, sizeof(buf), 0, 0, 0);
+    if (client->recvbuf) {
+        nrecv = recvfrom(client->fd, client->recvbuf, client->recvbuf_size, 0, 0, 0);
+    } else {
+        nrecv = recvfrom(client->fd, _recvbuf, sizeof(_recvbuf), 0, 0, 0);
+    }
     if (nrecv < 0) {
         switch (errno) {
         case EAGAIN:
@@ -98,14 +103,16 @@ static void client_read(struct ev_loop* loop, ev_io* w, int revents)
         client->callback(client, loop);
         return;
     }
-    /* TODO:
-    else if (nrecv > 0) {
+    if (client->recvbuf) {
+        client->nrecv = nrecv;
     }
-*/
 
-    ev_io_stop(loop, w);
+    if (!client->always_read) {
+        ev_io_stop(loop, w);
+    }
     client->state = CLIENT_SUCCESS;
     client->callback(client, loop);
+    client->nrecv = 0;
 }
 
 static void client_write(struct ev_loop* loop, ev_io* w, int revents)
@@ -144,6 +151,10 @@ static void client_write(struct ev_loop* loop, ev_io* w, int revents)
         } else {
             client->state        = CLIENT_CONNECTED;
             client->is_connected = 1;
+
+            if (client->always_read) {
+                ev_io_start(loop, &client->read_watcher);
+            }
         }
 
         client->callback(client, loop);
@@ -218,7 +229,9 @@ static void client_write(struct ev_loop* loop, ev_io* w, int revents)
         client->callback(client, loop);
         return;
     }
-    ev_io_start(loop, &(client->read_watcher));
+    if (!client->always_read) {
+        ev_io_start(loop, &(client->read_watcher));
+    }
     client->state = CLIENT_RECIVING;
 }
 
@@ -252,6 +265,9 @@ client_t* client_new(core_query_t* query, client_callback_t callback)
         ev_init(&(client->read_watcher), &client_read);
         client->shutdown_watcher.data = (void*)client;
         ev_init(&(client->shutdown_watcher), &client_shutdown);
+
+        client->dst_id        = core_tracking_dst_id();
+        client->query->dst_id = client->dst_id;
     }
 
     return client;
@@ -268,6 +284,9 @@ void client_free(client_t* client)
         }
         if (client->query) {
             core_query_free(client->query);
+        }
+        if (client->recvbuf) {
+            free(client->recvbuf);
         }
         free(client);
     }
@@ -400,6 +419,28 @@ core_query_t* client_release_query(client_t* client)
     return query;
 }
 
+int client_set_recvbuf_size(client_t* client, size_t recvbuf_size)
+{
+    if (!client) {
+        return 1;
+    }
+
+    if (client->recvbuf) {
+        free(client->recvbuf);
+    }
+    client->recvbuf_size = recvbuf_size;
+
+    if (recvbuf_size) {
+        if (!(client->recvbuf = malloc(recvbuf_size))) {
+            return 1;
+        }
+    } else {
+        client->recvbuf = 0;
+    }
+
+    return 0;
+}
+
 /*
  * Control functions
  */
@@ -489,6 +530,11 @@ int client_connect(client_t* client, int ipproto, const struct sockaddr* addr, s
 
     client->state        = CLIENT_CONNECTED;
     client->is_connected = 1;
+
+    if (client->always_read) {
+        ev_io_start(loop, &client->read_watcher);
+    }
+
     return 0;
 }
 
@@ -576,7 +622,9 @@ int client_send(client_t* client, struct ev_loop* loop)
         return 0;
     }
 
-    ev_io_start(loop, &(client->read_watcher));
+    if (!client->always_read) {
+        ev_io_start(loop, &(client->read_watcher));
+    }
     client->state = CLIENT_RECIVING;
     return 0;
 }
@@ -603,6 +651,8 @@ int client_reuse(client_t* client, core_query_t* query)
     client->state       = CLIENT_CONNECTED;
     client->sent_length = 0;
 
+    client->query->dst_id = client->dst_id;
+
     return 0;
 }
 
@@ -622,13 +672,18 @@ int client_close(client_t* client, struct ev_loop* loop)
     case CLIENT_SENDING:
     case CLIENT_RECIVING:
         ev_io_stop(loop, &(client->write_watcher));
-        ev_io_stop(loop, &(client->read_watcher));
+        if (!client->always_read) {
+            ev_io_stop(loop, &(client->read_watcher));
+        }
         break;
 
     case CLIENT_CLOSING:
         return 0;
 
     default:
+        if (client->always_read) {
+            ev_io_stop(loop, &(client->read_watcher));
+        }
         break;
     }
 

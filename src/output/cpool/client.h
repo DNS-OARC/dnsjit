@@ -61,6 +61,7 @@ struct client {
     unsigned short is_dgram : 1;
     unsigned short is_stream : 1;
     unsigned short sent_length : 1;
+    unsigned short always_read : 1;
 
     ev_tstamp start;
     client_t* next;
@@ -81,6 +82,11 @@ struct client {
     socklen_t               to_addrlen;
     struct sockaddr_storage from_addr;
     socklen_t               from_addrlen;
+
+    size_t   recvbuf_size;
+    char*    recvbuf;
+    ssize_t  nrecv;
+    uint64_t dst_id;
 };
 
 client_t* client_new(core_query_t* query, client_callback_t callback);
@@ -101,6 +107,8 @@ int client_set_prev(client_t* client, client_t* prev);
 int client_set_start(client_t* client, ev_tstamp start);
 int client_set_skip_reply(client_t* client);
 core_query_t* client_release_query(client_t* client);
+
+int client_set_recvbuf_size(client_t* client, size_t recvbuf_size);
 
 int client_connect(client_t* client, int ipproto, const struct sockaddr* addr, socklen_t addlen, struct ev_loop* loop);
 int client_send(client_t* client, struct ev_loop* loop);

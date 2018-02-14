@@ -267,7 +267,9 @@ static void client_pool_client_callback(client_t* client, struct ev_loop* loop)
     switch (client_state(client)) {
     case CLIENT_SUCCESS:
         lpdebug("client success");
-
+        if (self->client_read) {
+            self->client_read(self->client_read_ctx, client);
+        }
         if (client_is_dgram(client)
             && self->reuse_clients < self->max_reuse_clients) {
             client_reuse_add(self, client);
@@ -386,6 +388,12 @@ static void client_pool_engine_query(struct ev_loop* loop, ev_async* w, int reve
         err = sllq_shift(&(self->queries), (void**)&query, 0);
 
         if (err == SLLQ_EMPTY) {
+            if (self->is_stopping && self->reuse_clients) {
+                client_t* client;
+                while ((client = client_reuse_get(self))) {
+                    client_close_free(self, client, loop);
+                }
+            }
             if (self->is_stopping && !self->clients) {
                 ev_async_stop(loop, &(self->notify_query));
                 ev_timer_stop(loop, &(self->timeout));
@@ -470,10 +478,13 @@ static void client_pool_engine_query(struct ev_loop* loop, ev_async* w, int reve
             /* client have taken ownership of query */
             query = 0;
 
+            client->always_read = self->client_always_read;
+
             /* TODO: Multiple addrinfo entries? */
 
             if (client_set_start(client, ev_now(loop))
                 || (self->client_skip_reply && client_set_skip_reply(client))
+                || (self->client_recvbuf_size && client_set_recvbuf_size(client, self->client_recvbuf_size))
                 || client_connect(client, proto, self->addrinfo->ai_addr, self->addrinfo->ai_addrlen, loop)) {
                 if (client_state(client) == CLIENT_ERRNO) {
                     lpdebug("client start/connect failed");
@@ -487,13 +498,18 @@ static void client_pool_engine_query(struct ev_loop* loop, ev_async* w, int reve
         }
 
         if (client) {
+            if (self->client_read) {
+                self->client_read(self->client_read_ctx, client);
+            }
             if (client_state(client) == CLIENT_CONNECTED && client_send(client, loop)) {
                 lpdebug("client send failed");
                 client_close_free(self, client, loop);
             } else {
                 if (client_state(client) == CLIENT_SUCCESS) {
                     lpdebug("client success");
-
+                    if (self->client_read) {
+                        self->client_read(self->client_read_ctx, client);
+                    }
                     if (client_is_dgram(client)
                         && self->reuse_clients < self->max_reuse_clients) {
                         client_reuse_add(self, client);
@@ -525,6 +541,7 @@ static void client_pool_engine_query(struct ev_loop* loop, ev_async* w, int reve
 static void client_pool_engine_stop(struct ev_loop* loop, ev_async* w, int revents)
 {
     client_pool_t* self = (client_pool_t*)ev_userdata(loop);
+    client_t*      client;
 
     /* TODO: Check revents for EV_ERROR */
 
@@ -535,6 +552,10 @@ static void client_pool_engine_stop(struct ev_loop* loop, ev_async* w, int reven
     }
 
     self->is_stopping = 1;
+
+    while ((client = client_reuse_get(self))) {
+        client_close_free(self, client, loop);
+    }
     ev_async_stop(loop, &(self->notify_stop));
     ev_async_send(loop, &(self->notify_query));
 }

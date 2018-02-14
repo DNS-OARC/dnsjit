@@ -193,7 +193,7 @@ int output_cpool_set_sendas_udp(output_cpool_t* self)
 
     ldebug("sendas udp");
 
-    self->p->sendas = CLIENT_POOL_SENDAS_ORIGINAL;
+    self->p->sendas = CLIENT_POOL_SENDAS_UDP;
 
     return 0;
 }
@@ -206,7 +206,7 @@ int output_cpool_set_sendas_tcp(output_cpool_t* self)
 
     ldebug("sendas tcp");
 
-    self->p->sendas = CLIENT_POOL_SENDAS_ORIGINAL;
+    self->p->sendas = CLIENT_POOL_SENDAS_TCP;
 
     return 0;
 }
@@ -233,10 +233,59 @@ int output_cpool_set_dry_run(output_cpool_t* self, int dry_run)
     return 0;
 }
 
+void _client_read(void* vp, const client_t* client)
+{
+    output_cpool_t* self = (output_cpool_t*)vp;
+    core_query_t*   q;
+
+    if (!self || !self->recv || !client) {
+        return;
+    }
+    if (client->nrecv > 2) {
+        if (!(q = core_query_new())) {
+            return;
+        }
+        if (core_query_copy_addr(q, client->query)) {
+            core_query_free(q);
+            return;
+        }
+        if (client->is_stream) {
+            q->is_tcp = 1;
+            if (core_query_set_raw(q, client->recvbuf + 2, client->nrecv - 2)) {
+                core_query_free(q);
+                return;
+            }
+        } else {
+            q->is_udp = 1;
+            if (core_query_set_raw(q, client->recvbuf, client->nrecv)) {
+                core_query_free(q);
+                return;
+            }
+        }
+        q->src_id = client->query->src_id;
+        q->qr_id  = client->query->qr_id;
+        q->dst_id = client->query->dst_id;
+
+        self->recv(self->robj, q);
+    } else if (!client->nrecv && client->query) {
+        if (!(q = core_query_copy(client->query))) {
+            return;
+        }
+        self->recv(self->robj, q);
+    }
+}
+
 int output_cpool_start(output_cpool_t* self)
 {
     if (!self || !self->p) {
         return 1;
+    }
+
+    if (self->recv) {
+        self->p->client_always_read  = 1;
+        self->p->client_recvbuf_size = 4 * 1024;
+        self->p->client_read         = _client_read;
+        self->p->client_read_ctx     = self;
     }
 
     if (client_pool_start(self->p)) {

@@ -90,11 +90,11 @@ local input = require("dnsjit.input.pcap").new()
 local output = require("dnsjit.filter.lua").new()
 
 output:func(function(filter, query)
-    print(query:id())
+    query:parse()
+    print(query.id)
 end)
 
 input:open_offline("file.pcap")
-input:only_queries(true)
 input:receiver(output)
 input:run()
 ```

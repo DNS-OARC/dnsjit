@@ -67,8 +67,8 @@ static int _receive(void* robj, core_query_t* q)
     struct timespec  now  = { 0, 0 };
     struct timeval   last_packet, ts;
     struct timespec  last_time;
-    struct timespec  last_realtime;
-    struct timespec  last_time_queue;
+    //struct timespec  last_realtime;
+    struct timespec last_time_queue;
 
     if (!self || !q || !self->recv) {
         core_query_free(q);
@@ -218,7 +218,7 @@ static int _receive(void* robj, core_query_t* q)
             clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &sleep_to, 0);
         }
 #elif HAVE_NANOSLEEP
-#define SAVE_REALTIME 1
+        //#define SAVE_REALTIME 1
         /* sleep_to will be relative, need to check against now - last_time */
         if (self->mode != TIMING_MODE_BEST_EFFORT
             && (sleep_to.tv_sec < (now.tv_sec - self->last_time.sec)
@@ -245,17 +245,17 @@ static int _receive(void* robj, core_query_t* q)
     }
     self->last_time.sec  = last_time.tv_sec;
     self->last_time.nsec = last_time.tv_nsec;
-#ifdef SAVE_REALTIME
-    if (clock_gettime(CLOCK_REALTIME, &last_realtime)) {
-        lfatal("clock_gettime()");
-        // self->last_realtime.tv_sec  = 0;
-        // self->last_realtime.tv_nsec = 0;
-        // self->last_time.tv_sec      = 0;
-        // self->last_time.tv_nsec     = 0;
-    }
-#endif
-    self->last_realtime.sec  = last_realtime.tv_sec;
-    self->last_realtime.nsec = last_realtime.tv_nsec;
+    // #ifdef SAVE_REALTIME
+    //     if (clock_gettime(CLOCK_REALTIME, &last_realtime)) {
+    //         lfatal("clock_gettime()");
+    //         // self->last_realtime.tv_sec  = 0;
+    //         // self->last_realtime.tv_nsec = 0;
+    //         // self->last_time.tv_sec      = 0;
+    //         // self->last_time.tv_nsec     = 0;
+    //     }
+    // #endif
+    //     self->last_realtime.sec  = last_realtime.tv_sec;
+    //     self->last_realtime.nsec = last_realtime.tv_nsec;
 
     self->last_packet = q->ts;
 
