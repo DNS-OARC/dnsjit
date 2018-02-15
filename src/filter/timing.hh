@@ -27,24 +27,17 @@ typedef struct filter_timing {
     void*           robj;
 
     enum {
-        TIMING_MODE_KEEP        = 0,
-        TIMING_MODE_INCREASE    = 1,
-        TIMING_MODE_REDUCE      = 2,
-        TIMING_MODE_MULTIPLY    = 3,
-        TIMING_MODE_BEST_EFFORT = 4
+        TIMING_MODE_KEEP     = 0,
+        TIMING_MODE_INCREASE = 1,
+        TIMING_MODE_REDUCE   = 2,
+        TIMING_MODE_MULTIPLY = 3
     } mode;
     size_t inc, red;
     float  mul;
-
-    core_timespec_t last_packet;
-    core_timespec_t last_time;
-    core_timespec_t last_realtime;
-    core_timespec_t last_time_queue;
-
 } filter_timing_t;
 
-core_log_t* filter_timing_log();
-int filter_timing_init(filter_timing_t* self);
-int filter_timing_destroy(filter_timing_t* self);
+core_log_t*      filter_timing_log();
+filter_timing_t* filter_timing_new();
+void filter_timing_free(filter_timing_t* self);
 
 core_receiver_t filter_timing_receiver();

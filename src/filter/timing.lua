@@ -30,18 +30,15 @@ require("dnsjit.filter.timing_h")
 local ffi = require("ffi")
 local C = ffi.C
 
-local t_name = "filter_timing_t"
-local filter_timing_t = ffi.typeof(t_name)
 local Timing = {}
 
 -- Create a new Timing filter.
 function Timing.new()
     local self = {
         _receiver = nil,
-        obj = filter_timing_t(),
+        obj = C.filter_timing_new(),
     }
-    C.filter_timing_init(self.obj)
-    ffi.gc(self.obj, C.filter_timing_destroy)
+    ffi.gc(self.obj, C.filter_timing_free)
     return setmetatable(self, { __index = Timing })
 end
 
@@ -77,12 +74,6 @@ end
 function Timing:multiply(factor)
     self.obj.mode = "TIMING_MODE_MULTIPLY"
     self.obj.mul = factor
-end
-
--- Set the timing mode to keep the timing between packets but ignore any
--- issues in doing so.
-function Timing:best_effort()
-    self.obj.mode = "TIMING_MODE_BEST_EFFORT"
 end
 
 function Timing:receive()
