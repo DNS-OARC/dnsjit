@@ -17,7 +17,7 @@
 # along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
 
 AC_PREREQ(2.61)
-AC_INIT([dnsjit], [0.9.0-alpha.1], [admin@dns-oarc.net], [dnsjit], [https://github.com/DNS-OARC/dnsjit/issues])
+AC_INIT([dnsjit], [0.9.0], [admin@dns-oarc.net], [dnsjit], [https://github.com/DNS-OARC/dnsjit/issues])
 AM_INIT_AUTOMAKE([-Wall -Werror foreign subdir-objects])
 AC_CONFIG_SRCDIR([src/dnsjit.c])
 AC_CONFIG_HEADER([src/config.h])

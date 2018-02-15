@@ -26,6 +26,14 @@ The following Lua module categories exists:
 
 See each category's man-page for more information.
 
+## Packages
+
+https://dev.dns-oarc.net/packages
+
+Packages for Debian, Ubuntu, EPEL, SLE, openSUSE can be found in the
+PRE-RELEASE channel. Some distributions are limited to certain
+architectures because of LuaJIT.
+
 ## Dependencies
 
 - libluajit 2+
