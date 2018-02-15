@@ -19,6 +19,6 @@
  */
 
 typedef struct core_timespec {
-    uint64_t sec;
-    uint64_t nsec;
+    int64_t sec;
+    int64_t nsec;
 } core_timespec_t;
