@@ -21,8 +21,6 @@
 //lua:require("dnsjit.core.log")
 //lua:require("dnsjit.core.timespec_h")
 typedef struct core_query {
-    core_log_t _log;
-
     uint64_t src_id, qr_id, dst_id;
 
     unsigned short is_udp : 1;
@@ -33,9 +31,9 @@ typedef struct core_query {
     uint16_t        sport, dport;
     core_timespec_t ts;
 
-    char   small[64];
+    char   small[1500];
     char*  raw;
-    size_t len;
+    size_t rlen, len;
 
     unsigned short have_id : 1;
     unsigned short have_qr : 1;

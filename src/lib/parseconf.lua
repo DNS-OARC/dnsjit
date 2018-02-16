@@ -24,7 +24,7 @@
 --       print(k,...)
 --   end)
 -- .
---   conf:parse(file)
+--   conf:file(file)
 -- .
 --   print(conf:val("another_config_name"))
 --
@@ -96,13 +96,13 @@ function Parseconf:part(l, n)
     if p then
         return p, tonumber(p)
     end
-    p = l:match("^([^%s;]+)[%s;]", n)
-    if p then
-        return p, p
-    end
     p = l:match("^(\"[^\"]+\")[%s;]", n)
     if p then
         return p, p:sub(2, -2)
+    end
+    p = l:match("^([^%s;]+)[%s;]", n)
+    if p then
+        return p, p
     end
 end
 
