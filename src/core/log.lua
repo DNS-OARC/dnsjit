@@ -347,7 +347,7 @@ function Log.debug(self, ...)
 end
 
 -- Generate an info message.
-function Log:info(format, ...)
+function Log.info(self, ...)
     local format
     if not ffi.istype(t_name, self) then
         format = self
@@ -405,7 +405,7 @@ function Log:info(format, ...)
 end
 
 -- Generate a notice message.
-function Log:notice(format, ...)
+function Log.notice(self, ...)
     local format
     if not ffi.istype(t_name, self) then
         format = self
@@ -463,7 +463,7 @@ function Log:notice(format, ...)
 end
 
 -- Generate a warning message.
-function Log:warning(format, ...)
+function Log.warning(self, ...)
     local format
     if not ffi.istype(t_name, self) then
         format = self
@@ -521,7 +521,7 @@ function Log:warning(format, ...)
 end
 
 -- Generate a critical message.
-function Log:critical(format, ...)
+function Log.critical(self, ...)
     local format
     if not ffi.istype(t_name, self) then
         format = self
@@ -562,7 +562,7 @@ function Log:critical(format, ...)
 end
 
 -- Generate a fatal message.
-function Log:fatal(format, ...)
+function Log.fatal(self, ...)
     local format
     if not ffi.istype(t_name, self) then
         format = self

@@ -311,26 +311,18 @@ int output_cpool_stop(output_cpool_t* self)
 static int _receive(void* robj, core_query_t* q)
 {
     output_cpool_t* self = (output_cpool_t*)robj;
-    core_query_t*   copy;
 
     if (!self || !q || !self->p) {
         core_query_free(q);
         return 1;
     }
 
-    if (!(copy = core_query_copy(q))) {
-        core_query_free(q);
-        return 1;
-    }
-
-    if (client_pool_query(self->p, copy)) {
+    if (client_pool_query(self->p, q)) {
         ldebug("client_pool_query failed");
-        core_query_free(copy);
         core_query_free(q);
         return 1;
     }
 
-    core_query_free(q);
     return 0;
 }
 
