@@ -172,12 +172,9 @@ function Query.new(self)
     return self
 end
 
--- Return the Log object to control logging of this instance or module.
+-- Return the Log object to control logging of this module.
 function Query:log()
-    if self == nil then
-        return C.core_query_log()
-    end
-    return self._log
+    return C.core_query_log()
 end
 
 -- Parse the DNS headers or the query.
