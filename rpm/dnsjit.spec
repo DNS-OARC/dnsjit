@@ -1,5 +1,5 @@
 Name:           dnsjit
-Version:        0.9.1
+Version:        0.9.2
 Release:        1%{?dist}
 Summary:        Engine for capturing, parsing and replaying DNS
 Group:          Productivity/Networking/DNS/Utilities
