@@ -22,6 +22,9 @@
 
 #include "output/cpool.h"
 
+#include <string.h>
+#include <netinet/in.h>
+
 static core_log_t     _log      = LOG_T_INIT("output.cpool");
 static output_cpool_t _defaults = {
     LOG_T_INIT_OBJ("output.cpool"),
@@ -236,42 +239,44 @@ int output_cpool_set_dry_run(output_cpool_t* self, int dry_run)
 void _client_read(void* vp, const client_t* client)
 {
     output_cpool_t* self = (output_cpool_t*)vp;
-    core_query_t*   q;
 
-    if (!self || !self->recv || !client) {
+    if (!self || !self->recv || !client || !client->query) {
         return;
     }
-    if (client->nrecv > 2) {
-        if (!(q = core_query_new())) {
-            return;
+    if (client->nrecv > 0) {
+        core_object_packet_t pkt = CORE_OBJECT_PACKET_INIT;
+        ev_tstamp            ts  = client->recvts - client->sendts;
+        if (ts < 0.) {
+            ts = 0.;
         }
-        if (core_query_copy_addr(q, client->query)) {
-            core_query_free(q);
-            return;
-        }
-        if (client->is_stream) {
-            q->is_tcp = 1;
-            if (core_query_set_raw(q, client->recvbuf + 2, client->nrecv - 2)) {
-                core_query_free(q);
-                return;
-            }
-        } else {
-            q->is_udp = 1;
-            if (core_query_set_raw(q, client->recvbuf, client->nrecv)) {
-                core_query_free(q);
-                return;
-            }
-        }
-        q->src_id = client->query->src_id;
-        q->qr_id  = client->query->qr_id;
-        q->dst_id = client->query->dst_id;
 
-        self->recv(self->robj, q);
-    } else if (!client->nrecv && client->query) {
-        if (!(q = core_query_copy(client->query))) {
-            return;
+        pkt.obj_prev = (core_object_t*)client->query;
+
+        pkt.src_id = client->query->src_id;
+        pkt.qr_id  = client->query->qr_id;
+        pkt.dst_id = client->query->dst_id;
+
+        if (client->is_stream) {
+            pkt.is_tcp = 1;
+        } else {
+            pkt.is_udp = 1;
         }
-        self->recv(self->robj, q);
+        pkt.is_ipv6 = client->query->is_ipv6;
+
+        pkt.src_addr = client->query->dst_addr;
+        pkt.dst_addr = client->query->src_addr;
+
+        pkt.sport   = client->query->sport;
+        pkt.dport   = client->query->dport;
+        pkt.ts.sec  = ts;
+        pkt.ts.nsec = (long)(ts * 1000) % 1000;
+
+        pkt.payload = (uint8_t*)client->recvbuf;
+        pkt.len     = client->nrecv;
+
+        self->recv(self->ctx, (core_object_t*)&pkt);
+    } else {
+        self->recv(self->ctx, (core_object_t*)client->query);
     }
 }
 
@@ -308,22 +313,52 @@ int output_cpool_stop(output_cpool_t* self)
     return 0;
 }
 
-static int _receive(void* robj, core_query_t* q)
+struct _packet {
+    core_object_packet_t    pkt;
+    struct sockaddr_storage src, dst;
+    uint8_t                 payload[];
+};
+
+static int _receive(void* ctx, const core_object_t* obj)
 {
-    output_cpool_t* self = (output_cpool_t*)robj;
+    output_cpool_t*             self = (output_cpool_t*)ctx;
+    const core_object_packet_t* pkt  = (core_object_packet_t*)obj;
 
-    if (!self || !q || !self->p) {
-        core_query_free(q);
+    if (!self || !obj || !self->p) {
         return 1;
     }
 
-    if (client_pool_query(self->p, q)) {
-        ldebug("client_pool_query failed");
-        core_query_free(q);
-        return 1;
+    while (pkt) {
+        if (pkt->obj_type == CORE_OBJECT_PACKET) {
+            struct _packet* q;
+
+            if (!(q = malloc(sizeof(struct _packet) + pkt->len))) {
+                return 1;
+            }
+            *(core_object_packet_t*)q = *pkt;
+            q->pkt.src_addr           = &q->src;
+            q->pkt.dst_addr           = &q->dst;
+            q->pkt.payload            = q->payload;
+            memcpy(q->payload, pkt->payload, pkt->len);
+            if (pkt->is_ipv6) {
+                memcpy(&q->src, pkt->src_addr, sizeof(struct in6_addr));
+                memcpy(&q->dst, pkt->dst_addr, sizeof(struct in6_addr));
+            } else {
+                memcpy(&q->src, pkt->src_addr, sizeof(struct in_addr));
+                memcpy(&q->dst, pkt->dst_addr, sizeof(struct in_addr));
+            }
+
+            if (client_pool_query(self->p, (core_object_packet_t*)q)) {
+                ldebug("client_pool_query failed");
+                free(q);
+                return 1;
+            }
+            return 0;
+        }
+        pkt = (core_object_packet_t*)pkt->obj_prev;
     }
 
-    return 0;
+    return 1;
 }
 
 core_receiver_t output_cpool_receiver()

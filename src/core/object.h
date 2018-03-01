@@ -18,12 +18,13 @@
  * along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "core/log.h"
-#include "core/receiver.h"
+#ifndef __dnsjit_core_object_h
+#define __dnsjit_core_object_h
 
-#ifndef __dnsjit_filter_multicopy_h
-#define __dnsjit_filter_multicopy_h
+#define CORE_OBJECT_NONE 0
+#define CORE_OBJECT_PACKET 1
+#define CORE_OBJECT_DNS 2
 
-#include "filter/multicopy.hh"
+#include "core/object.hh"
 
 #endif

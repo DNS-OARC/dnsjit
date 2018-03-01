@@ -27,6 +27,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <assert.h>
+#include <netinet/in.h>
 
 /*
  * List helpers
@@ -197,9 +198,7 @@ client_pool_t* client_pool_new(const char* host, const char* port, size_t queue_
 
 static void client_pool_free_query(void* vp)
 {
-    if (vp) {
-        core_query_free((core_query_t*)vp);
-    }
+    free(vp);
 }
 
 void client_pool_free(client_pool_t* self)
@@ -360,9 +359,9 @@ static void client_pool_engine_retry(struct ev_loop* loop, ev_timer* w, int reve
 
 static void client_pool_engine_query(struct ev_loop* loop, ev_async* w, int revents)
 {
-    client_pool_t* self = (client_pool_t*)ev_userdata(loop);
-    core_query_t*  query;
-    int            err;
+    client_pool_t*        self = (client_pool_t*)ev_userdata(loop);
+    core_object_packet_t* query;
+    int                   err;
 
     /* TODO: Check revents for EV_ERROR */
 
@@ -447,7 +446,7 @@ static void client_pool_engine_query(struct ev_loop* loop, ev_async* w, int reve
                 proto = IPPROTO_TCP;
             } else {
                 lpdebug("unable to understand query protocol, surly a bug so please report this");
-                core_query_free(query);
+                free(query);
                 ev_async_send(loop, &(self->notify_query));
                 return;
             }
@@ -633,12 +632,15 @@ int client_pool_stop(client_pool_t* self)
  * Query/process
  */
 
-int client_pool_query(client_pool_t* self, core_query_t* query)
+int client_pool_query(client_pool_t* self, const core_object_packet_t* pkt)
 {
     int err;
 
     assert(self);
     if (!self) {
+        return 1;
+    }
+    if (!pkt || !pkt->payload || !pkt->len) {
         return 1;
     }
     if (self->state != CLIENT_POOL_RUNNING) {
@@ -660,7 +662,7 @@ int client_pool_query(client_pool_t* self, core_query_t* query)
             timeout.tv_nsec %= 1000000000;
         }
 
-        err = sllq_push(&(self->queries), (void*)query, &timeout);
+        err = sllq_push(&(self->queries), (void*)pkt, &timeout);
     }
 
     if (err) {

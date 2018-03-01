@@ -18,7 +18,8 @@
  * along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-//Lua:require("dnsjit.core.log")
+//lua:require("dnsjit.core.log")
+
 core_log_t* core_tracking_log();
 
 uint64_t core_tracking_src_id();

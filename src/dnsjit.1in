@@ -74,11 +74,13 @@ See each category's man-page for more information.
 .SH EXAMPLE
 Following example display the DNS ID found in queries.
 .LP
-  local input = require("dnsjit.input.pcap").new()
+  local input = require("dnsjit.input.pcapthread").new()
   local output = require("dnsjit.filter.lua").new()
 
-  output:func(function(filter, query)
-      print(query:id())
+  output:func(function(filter, packet)
+      local dns = require("dnsjit.core.object.dns").new(packet)
+      dns:parse()
+      print(dns.id)
   end)
 
   input:open_offline("file.pcap")

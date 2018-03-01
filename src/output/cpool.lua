@@ -161,7 +161,7 @@ end
 -- Set the receiver to pass queries and responses to.
 function Cpool:receiver(o)
     self.obj._log:debug("receiver()")
-    self.obj.recv, self.obj.robj = o:receive()
+    self.obj.recv, self.obj.ctx = o:receive()
     self._receiver = o
 end
 

@@ -18,15 +18,24 @@
  * along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "sllq/sllq.h"
-#include "core/receiver.h"
+#include "core/object.h"
+#include "core/timespec.h"
 
-#ifndef __dnsjit_filter_thread_h
-#define __dnsjit_filter_thread_h
+#ifndef __dnsjit_core_object_packet_h
+#define __dnsjit_core_object_packet_h
 
-#include <stdint.h>
-#include <sys/types.h>
+#include <stddef.h>
 
-#include "filter/thread.hh"
+#include "core/object/packet.hh"
+
+#define CORE_OBJECT_PACKET_INIT       \
+    {                                 \
+        CORE_OBJECT_PACKET, 0,        \
+            0, 0, 0,                  \
+            0, 0, 0,                  \
+            0, 0,                     \
+            0, 0, CORE_TIMESPEC_INIT, \
+            0, 0                      \
+    }
 
 #endif

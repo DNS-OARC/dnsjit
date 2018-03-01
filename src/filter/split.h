@@ -19,21 +19,11 @@
  */
 
 #include "core/log.h"
-#include "core/timespec.h"
-#include "omg-dns/omg_dns.h"
+#include "core/receiver.h"
 
-#ifndef __dnsjit_core_query_h
-#define __dnsjit_core_query_h
+#ifndef __dnsjit_filter_split_h
+#define __dnsjit_filter_split_h
 
-#include <netinet/in.h>
-#include <sys/types.h>
-
-#include "core/query.hh"
-
-#define core_query_raw(query) (query->raw ? query->raw : query->small)
-
-int core_query_set_src(core_query_t* self, int af, const void* addr, size_t len);
-int core_query_set_dst(core_query_t* self, int af, const void* addr, size_t len);
-int core_query_set_parsed_header(core_query_t* self, omg_dns_t dns);
+#include "filter/split.hh"
 
 #endif

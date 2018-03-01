@@ -18,6 +18,8 @@
  * along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-//lua:require("dnsjit.core.query_h")
-typedef int (*core_receiver_t)(void* robj, core_query_t* q);
-int core_receiver_call(core_receiver_t recv, void* robj, core_query_t* q);
+//lua:require("dnsjit.core.object_h")
+
+typedef int (*core_receiver_t)(void* ctx, const core_object_t* obj);
+
+int core_receiver_call(core_receiver_t recv, void* ctx, const core_object_t* obj);

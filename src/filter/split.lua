@@ -16,57 +16,65 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
 
--- dnsjit.filter.multicopy
--- Pass a copy of the query to all receivers
---   local filter = require("dnsjit.filter.multicopy").new()
--- .
+-- dnsjit.filter.split
+-- Passthrough to other receivers in various ways
+--   local filter = require("dnsjit.filter.split").new()
 --   filter.receiver(...)
 --   filter.receiver(...)
 --   filter.receiver(...)
--- .
 --   input.receiver(filter)
 --
--- Filter to pass copy of queries to all registered receivers.
+-- Filter to pass objects to others in various ways.
 module(...,package.seeall)
 
-require("dnsjit.filter.multicopy_h")
+require("dnsjit.filter.split_h")
 local ffi = require("ffi")
 local C = ffi.C
 
-local t_name = "filter_multicopy_t"
-local filter_multicopy_t = ffi.typeof(t_name)
-local Multicopy = {}
+local t_name = "filter_split_t"
+local filter_split_t = ffi.typeof(t_name)
+local Split = {}
 
--- Create a new Multicopy filter.
-function Multicopy.new()
+-- Create a new Split filter.
+function Split.new()
     local self = {
         receivers = {},
-        obj = filter_multicopy_t(),
+        obj = filter_split_t(),
     }
-    C.filter_multicopy_init(self.obj)
-    ffi.gc(self.obj, C.filter_multicopy_destroy)
-    return setmetatable(self, { __index = Multicopy })
+    C.filter_split_init(self.obj)
+    ffi.gc(self.obj, C.filter_split_destroy)
+    return setmetatable(self, { __index = Split })
 end
 
 -- Return the Log object to control logging of this instance or module.
-function Multicopy:log()
+function Split:log()
     if self == nil then
-        return C.filter_multicopy_log()
+        return C.filter_split_log()
     end
     return self.obj._log
 end
 
-function Multicopy:receive()
-    self.obj._log:debug("receive()")
-    return C.filter_multicopy_receiver(), self.obj
+-- Set the passthrough mode to round robin (default mode).
+function Split:roundrobin()
+    self.obj.mode = "FILTER_SPLIT_MODE_ROUNDROBIN"
 end
 
--- Set the receiver to pass queries to, this can be called multiple times to
+-- Set the passthrough mode to send to all receivers.
+function Split:sendall()
+    self.obj.mode = "FILTER_SPLIT_MODE_SENDALL"
+end
+
+function Split:receive()
+    self.obj._log:debug("receive()")
+    return C.filter_split_receiver(), self.obj
+end
+
+-- Set the receiver to pass objects to, this can be called multiple times to
 -- set addtional receivers.
-function Multicopy:receiver(o)
+function Split:receiver(o)
     self.obj._log:debug("receiver()")
-    local recv, robj = o:receive()
-    local ret = C.filter_multicopy_add(self.obj, recv, robj)
+    local recv, ctx = o:receive()
+    local ret = C.filter_split_add(self.obj, recv, ctx)
     if ret == 0 then
         table.insert(self.receivers, o)
         return
@@ -74,4 +82,4 @@ function Multicopy:receiver(o)
     return ret
 end
 
-return Multicopy
+return Split

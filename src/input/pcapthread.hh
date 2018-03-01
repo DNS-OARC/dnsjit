@@ -42,29 +42,32 @@ int pcap_thread_set_filter_optimize(pcap_thread_t* pcap_thread, const int filter
 uint32_t pcap_thread_filter_netmask(const pcap_thread_t* pcap_thread);
 int pcap_thread_set_filter_netmask(pcap_thread_t* pcap_thread, const uint32_t filter_netmask);
 #endif
+
 //lua:require("dnsjit.core.log")
 //lua:require("dnsjit.core.receiver_h")
 //lua:require("dnsjit.core.timespec_h")
-typedef struct input_pcap {
+
+typedef struct input_pcapthread {
     core_log_t      _log;
     unsigned short  setup_ok : 1;
     unsigned short  only_queries : 1;
     pcap_thread_t*  pt;
     core_receiver_t recv;
-    void*           robj;
+    void*           ctx;
     core_timespec_t ts, te;
     size_t          pkts, drop, ignore, queries;
     int             err;
     uint64_t        src_id;
     uint64_t        qr_id;
-} input_pcap_t;
+} input_pcapthread_t;
 
-core_log_t* input_pcap_log();
-int input_pcap_init(input_pcap_t* self);
-int input_pcap_destroy(input_pcap_t* self);
-int input_pcap_open(input_pcap_t* self, const char* device);
-int input_pcap_open_offline(input_pcap_t* self, const char* file);
-int input_pcap_run(input_pcap_t* self);
-int input_pcap_next(input_pcap_t* self);
-const char* input_pcap_errbuf(input_pcap_t* self);
-const char* input_pcap_strerr(int err);
+core_log_t* input_pcapthread_log();
+
+int input_pcapthread_init(input_pcapthread_t* self);
+int input_pcapthread_destroy(input_pcapthread_t* self);
+int input_pcapthread_open(input_pcapthread_t* self, const char* device);
+int input_pcapthread_open_offline(input_pcapthread_t* self, const char* file);
+int input_pcapthread_run(input_pcapthread_t* self);
+int input_pcapthread_next(input_pcapthread_t* self);
+const char* input_pcapthread_errbuf(input_pcapthread_t* self);
+const char* input_pcapthread_strerr(int err);

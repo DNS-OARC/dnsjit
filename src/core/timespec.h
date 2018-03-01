@@ -25,4 +25,9 @@
 
 #include "core/timespec.hh"
 
+#define CORE_TIMESPEC_INIT \
+    {                      \
+        0, 0               \
+    }
+
 #endif

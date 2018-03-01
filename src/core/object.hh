@@ -14,17 +14,12 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
+ * You should have objectd a copy of the GNU General Public License
  * along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "core/log.h"
-#include "core/receiver.h"
-#include "core/timespec.h"
-
-#ifndef __dnsjit_input_zero_h
-#define __dnsjit_input_zero_h
-
-#include "input/zero.hh"
-
-#endif
+typedef struct core_object core_object_t;
+struct core_object {
+    unsigned short       obj_type;
+    const core_object_t* obj_prev;
+};

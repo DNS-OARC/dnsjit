@@ -22,11 +22,11 @@
 
 #include "core/receiver.h"
 
-int core_receiver_call(core_receiver_t recv, void* robj, core_query_t* q)
+int core_receiver_call(core_receiver_t recv, void* ctx, const core_object_t* obj)
 {
     if (!recv) {
         return 1;
     }
 
-    return recv(robj, q);
+    return recv(ctx, obj);
 }

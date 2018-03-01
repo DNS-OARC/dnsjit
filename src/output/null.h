@@ -23,6 +23,8 @@
 #ifndef __dnsjit_output_null_h
 #define __dnsjit_output_null_h
 
+#include <stddef.h>
+
 #include "output/null.hh"
 
 #endif

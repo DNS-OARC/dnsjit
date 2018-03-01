@@ -94,15 +94,17 @@ Shebang-style:
 Following example display the DNS ID found in queries.
 
 ```lua
-local input = require("dnsjit.input.pcap").new()
+local input = require("dnsjit.input.pcapthread").new()
 local output = require("dnsjit.filter.lua").new()
 
-output:func(function(filter, query)
-    query:parse()
-    print(query.id)
+output:func(function(filter, packet)
+    local dns = require("dnsjit.core.object.dns").new(packet)
+    dns:parse()
+    print(dns.id)
 end)
 
 input:open_offline("file.pcap")
+input:only_queries(true)
 input:receiver(output)
 input:run()
 ```

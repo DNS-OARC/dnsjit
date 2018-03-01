@@ -18,22 +18,15 @@
  * along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-//lua:require("dnsjit.core.log")
-//lua:require("dnsjit.core.receiver_h")
-typedef struct filter_multicopy_recv filter_multicopy_recv_t;
-struct filter_multicopy_recv {
-    filter_multicopy_recv_t* next;
-    core_receiver_t          recv;
-    void*                    robj;
-};
-typedef struct filter_multicopy {
-    core_log_t               _log;
-    filter_multicopy_recv_t* recv_list;
-} filter_multicopy_t;
+#include "config.h"
+#include "pcap-thread/pcap_thread.h"
+#include "core/log.h"
+#include "core/receiver.h"
+#include "core/timespec.h"
 
-core_log_t* filter_multicopy_log();
-int filter_multicopy_init(filter_multicopy_t* self);
-int filter_multicopy_destroy(filter_multicopy_t* self);
-int filter_multicopy_add(filter_multicopy_t* self, core_receiver_t recv, void* robj);
+#ifndef __dnsjit_input_pcapthread_h
+#define __dnsjit_input_pcapthread_h
 
-core_receiver_t filter_multicopy_receiver();
+#include "input/pcapthread.hh"
+
+#endif

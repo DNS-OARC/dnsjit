@@ -18,7 +18,7 @@
  * along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "core/query.h"
+#include "core/object/packet.h"
 
 #ifndef __dnsjit_output_cpool_client_h
 #define __dnsjit_output_cpool_client_h
@@ -30,6 +30,7 @@
 #endif
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <time.h>
 
 typedef enum client_state client_state_t;
 enum client_state {
@@ -67,35 +68,36 @@ struct client {
     client_t* next;
     client_t* prev;
 
-    int               fd;
-    core_query_t*     query;
-    ev_io             write_watcher;
-    ev_io             read_watcher;
-    ev_io             shutdown_watcher;
-    client_callback_t callback;
-    client_state_t    state;
-    int               errnum;
-    size_t            sent;
-    size_t            recv;
+    int                   fd;
+    core_object_packet_t* query;
+    ev_io                 write_watcher;
+    ev_io                 read_watcher;
+    ev_io                 shutdown_watcher;
+    client_callback_t     callback;
+    client_state_t        state;
+    int                   errnum;
+    size_t                sent;
+    size_t                recv;
 
     struct sockaddr_storage to_addr;
     socklen_t               to_addrlen;
     struct sockaddr_storage from_addr;
     socklen_t               from_addrlen;
 
-    size_t   recvbuf_size;
-    char*    recvbuf;
-    ssize_t  nrecv;
-    uint64_t dst_id;
+    size_t    recvbuf_size;
+    char*     recvbuf;
+    ssize_t   nrecv;
+    ev_tstamp sendts, recvts;
+    uint64_t  dst_id;
 };
 
-client_t* client_new(core_query_t* query, client_callback_t callback);
+client_t* client_new(core_object_packet_t* query, client_callback_t callback);
 void client_free(client_t* client);
 
 client_t* client_next(client_t* client);
 client_t* client_prev(client_t* client);
 int client_fd(const client_t* client);
-const core_query_t* client_query(const client_t* client);
+const core_object_packet_t* client_query(const client_t* client);
 client_state_t client_state(const client_t* client);
 int client_is_connected(const client_t* client);
 int client_errno(const client_t* client);
@@ -106,13 +108,13 @@ int client_set_next(client_t* client, client_t* next);
 int client_set_prev(client_t* client, client_t* prev);
 int client_set_start(client_t* client, ev_tstamp start);
 int client_set_skip_reply(client_t* client);
-core_query_t* client_release_query(client_t* client);
+core_object_packet_t* client_release_query(client_t* client);
 
 int client_set_recvbuf_size(client_t* client, size_t recvbuf_size);
 
 int client_connect(client_t* client, int ipproto, const struct sockaddr* addr, socklen_t addlen, struct ev_loop* loop);
 int client_send(client_t* client, struct ev_loop* loop);
-int client_reuse(client_t* client, core_query_t* query);
+int client_reuse(client_t* client, core_object_packet_t* query);
 int client_close(client_t* client, struct ev_loop* loop);
 
 #endif

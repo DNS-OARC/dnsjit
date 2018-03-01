@@ -6,40 +6,66 @@ if pcap == nil then
     return
 end
 
-local input = require("dnsjit.input.pcap").new()
+local input = require("dnsjit.input.pcapthread").new()
 local output = require("dnsjit.filter.lua").new()
 
-output:func(function(filter, query)
-    print(query:src()..":"..query.sport.." -> "..query:dst()..":"..query.dport)
-    if not query:parse() then
-        local n = query.questions
-        while n > 0 and query:rr_next() == 0 do
-            if query:rr_ok() == 1 then
-                print("  qd:", query:rr_class(), query:rr_type(), query:rr_label())
-            end
-            n = n - 1
+output:func(function(filter, pkt)
+    local dns
+    if pkt:type() == "packet" then
+        dns = require("dnsjit.core.object.dns").new(pkt)
+        if dns:parse() then
+            return
         end
-        n = query.answers
-        while n > 0 and query:rr_next() == 0 do
-            if query:rr_ok() == 1 then
-                print("  an:", query:rr_class(), query:rr_type(), query:rr_ttl(), query:rr_label())
-            end
-            n = n - 1
+    elseif pkt:type() == "dns" then
+        dns = pkt
+        if dns:parse() then
+            return
         end
-        n = query.authorities
-        while n > 0 and query:rr_next() == 0 do
-            if query:rr_ok() == 1 then
-                print("  ns:", query:rr_class(), query:rr_type(), query:rr_ttl(), query:rr_label())
+        pkt = dns:prev()
+        while pkt ~= nil do
+            if pkt:type() == "packet" then
+                pkt = pkt:cast()
+                break
             end
-            n = n - 1
+            pkt = pkt:prev()
         end
-        n = query.additionals
-        while n > 0 and query:rr_next() == 0 do
-            if query:rr_ok() == 1 then
-                print("  ar:", query:rr_class(), query:rr_type(), query:rr_ttl(), query:rr_label())
-            end
-            n = n - 1
+        if pkt == nil then
+            return
         end
+    else
+        return
+    end
+
+    print(pkt:src()..":"..pkt.sport.." -> "..pkt:dst()..":"..pkt.dport)
+
+    print("  id:", dns.id)
+    local n = dns.questions
+    while n > 0 and dns:rr_next() == 0 do
+        if dns:rr_ok() == 1 then
+            print("  qd:", dns:rr_class(), dns:rr_type(), dns:rr_label())
+        end
+        n = n - 1
+    end
+    n = dns.answers
+    while n > 0 and dns:rr_next() == 0 do
+        if dns:rr_ok() == 1 then
+            print("  an:", dns:rr_class(), dns:rr_type(), dns:rr_ttl(), dns:rr_label())
+        end
+        n = n - 1
+    end
+    n = dns.authorities
+    while n > 0 and dns:rr_next() == 0 do
+        if dns:rr_ok() == 1 then
+            print("  ns:", dns:rr_class(), dns:rr_type(), dns:rr_ttl(), dns:rr_label())
+        end
+        n = n - 1
+    end
+    n = dns.additionals
+    while n > 0 and dns:rr_next() == 0 do
+        if dns:rr_ok() == 1 then
+            print("  ar:", dns:rr_class(), dns:rr_type(), dns:rr_ttl(), dns:rr_label())
+        end
+        n = n - 1
     end
 end)
 

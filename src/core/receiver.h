@@ -18,7 +18,7 @@
  * along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "core/query.h"
+#include "core/object.h"
 
 #ifndef __dnsjit_core_receiver_h
 #define __dnsjit_core_receiver_h

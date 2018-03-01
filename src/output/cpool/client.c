@@ -110,7 +110,8 @@ static void client_read(struct ev_loop* loop, ev_io* w, int revents)
     if (!client->always_read) {
         ev_io_stop(loop, w);
     }
-    client->state = CLIENT_SUCCESS;
+    client->state  = CLIENT_SUCCESS;
+    client->recvts = ev_now(loop);
     client->callback(client, loop);
     client->nrecv = 0;
 }
@@ -197,9 +198,9 @@ static void client_write(struct ev_loop* loop, ev_io* w, int revents)
     }
 
     if (client->have_to_addr)
-        nsent = sendto(client->fd, core_query_raw(client->query) + client->sent, client->query->len - client->sent, 0, (struct sockaddr*)&(client->to_addr), client->to_addrlen);
+        nsent = sendto(client->fd, client->query->payload + client->sent, client->query->len - client->sent, 0, (struct sockaddr*)&(client->to_addr), client->to_addrlen);
     else
-        nsent = sendto(client->fd, core_query_raw(client->query) + client->sent, client->query->len - client->sent, 0, 0, 0);
+        nsent = sendto(client->fd, client->query->payload + client->sent, client->query->len - client->sent, 0, 0, 0);
     if (nsent < 0) {
         switch (errno) {
         case EAGAIN:
@@ -224,6 +225,7 @@ static void client_write(struct ev_loop* loop, ev_io* w, int revents)
         return;
 
     ev_io_stop(loop, w);
+    client->sendts = ev_now(loop);
     if (client->skip_reply) {
         client->state = CLIENT_SUCCESS;
         client->callback(client, loop);
@@ -239,7 +241,7 @@ static void client_write(struct ev_loop* loop, ev_io* w, int revents)
  * New/free functions
  */
 
-client_t* client_new(core_query_t* query, client_callback_t callback)
+client_t* client_new(core_object_packet_t* query, client_callback_t callback)
 {
     client_t* client;
 
@@ -249,10 +251,6 @@ client_t* client_new(core_query_t* query, client_callback_t callback)
     }
     assert(callback);
     if (!callback) {
-        return 0;
-    }
-
-    if (!query->have_raw) {
         return 0;
     }
 
@@ -283,7 +281,7 @@ void client_free(client_t* client)
             close(client->fd);
         }
         if (client->query) {
-            core_query_free(client->query);
+            free(client->query);
         }
         if (client->recvbuf) {
             free(client->recvbuf);
@@ -314,7 +312,7 @@ inline int client_fd(const client_t* client)
     return client->fd;
 }
 
-inline const core_query_t* client_query(const client_t* client)
+inline const core_object_packet_t* client_query(const client_t* client)
 {
     assert(client);
     return client->query;
@@ -404,9 +402,9 @@ int client_set_skip_reply(client_t* client)
     return 0;
 }
 
-core_query_t* client_release_query(client_t* client)
+core_object_packet_t* client_release_query(client_t* client)
 {
-    core_query_t* query;
+    core_object_packet_t* query;
 
     assert(client);
     if (!client) {
@@ -588,9 +586,9 @@ int client_send(client_t* client, struct ev_loop* loop)
     }
 
     if (client->have_to_addr)
-        nsent = sendto(client->fd, core_query_raw(client->query), client->query->len, 0, (struct sockaddr*)&(client->to_addr), client->to_addrlen);
+        nsent = sendto(client->fd, client->query->payload, client->query->len, 0, (struct sockaddr*)&(client->to_addr), client->to_addrlen);
     else
-        nsent = sendto(client->fd, core_query_raw(client->query), client->query->len, 0, 0, 0);
+        nsent = sendto(client->fd, client->query->payload, client->query->len, 0, 0, 0);
     if (nsent < 0) {
         switch (errno) {
         case EAGAIN:
@@ -622,6 +620,7 @@ int client_send(client_t* client, struct ev_loop* loop)
         return 0;
     }
 
+    client->sendts = ev_now(loop);
     if (!client->always_read) {
         ev_io_start(loop, &(client->read_watcher));
     }
@@ -629,7 +628,7 @@ int client_send(client_t* client, struct ev_loop* loop)
     return 0;
 }
 
-int client_reuse(client_t* client, core_query_t* query)
+int client_reuse(client_t* client, core_object_packet_t* query)
 {
     assert(client);
     if (!client) {
@@ -643,8 +642,9 @@ int client_reuse(client_t* client, core_query_t* query)
         return 1;
     }
 
-    if (client->query)
-        core_query_free(client->query);
+    if (client->query) {
+        free(client->query);
+    }
     client->query       = query;
     client->sent        = 0;
     client->recv        = 0;

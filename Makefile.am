@@ -19,8 +19,8 @@
 ACLOCAL_AMFLAGS = -I m4 -I src/pcap-thread/m4
 
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in \
-    $(srcdir)/src/config.h.in~ \
-    $(srcdir)/configure
+  $(srcdir)/src/config.h.in~ \
+  $(srcdir)/configure
 
 SUBDIRS = src examples
 
