@@ -244,7 +244,7 @@ int core_object_dns_rr_next(core_object_dns_t* self)
         _self->parsed->at_rr++;
     }
 
-    return _self->parsed->at_rr < _self->parsed->rr_idx ? 0 : 1;
+    return _self->parsed->at_rr < _self->parsed->rr_idx ? 0 : -1;
 }
 
 int core_object_dns_rr_ok(core_object_dns_t* self)

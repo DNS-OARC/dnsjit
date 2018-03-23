@@ -16,12 +16,12 @@ output:func(function(filter, pkt, args)
     local dns
     if pkt:type() == "packet" then
         dns = require("dnsjit.core.object.dns").new(pkt)
-        if dns:parse() then
+        if dns:parse() ~= 0 then
             return
         end
     elseif pkt:type() == "dns" then
         dns = pkt
-        if dns:parse() then
+        if dns:parse() ~= 0 then
             return
         end
         pkt = dns:prev()

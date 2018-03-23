@@ -35,7 +35,6 @@ module(...,package.seeall)
 
 error("This should not be included, only here for documentation generation")
 
--- dnsjit.core.chelpers (3),
 -- dnsjit.core.log (3),
 -- dnsjit.core.mutex (3),
 -- dnsjit.core.object (3),

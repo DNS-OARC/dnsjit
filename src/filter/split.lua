@@ -64,6 +64,7 @@ function Split:sendall()
     self.obj.mode = "FILTER_SPLIT_MODE_SENDALL"
 end
 
+-- Return the C functions and context for receiving objects.
 function Split:receive()
     self.obj._log:debug("receive()")
     return C.filter_split_receiver(), self.obj

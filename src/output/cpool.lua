@@ -33,7 +33,6 @@
 -- there is currently no functionality implemented to retrieve the responses.
 module(...,package.seeall)
 
-local ch = require("dnsjit.core.chelpers")
 require("dnsjit.output.cpool_h")
 local ffi = require("ffi")
 local C = ffi.C
@@ -68,17 +67,17 @@ function Cpool:log()
     return self.obj._log
 end
 
--- Set the maximum clients to emulate, if
+-- Set the maximum clients to emulate and return 0 if successful, if
 -- .I max
 -- is not specified then return the current maximum clients.
 function Cpool:max_clients(max)
     if max == nil then
         return C.output_cpool_max_clients(self.obj)
     end
-    return ch.z2n(C.output_cpool_set_max_clients(self.obj, max))
+    return C.output_cpool_set_max_clients(self.obj, max)
 end
 
--- Set the client ttl (a float/double), if
+-- Set the client ttl (a float/double) and return 0 if successful, if
 -- .I ttl
 -- is not specified then return the current client ttl.
 -- This TTL is used to timeout clients and is specified as fractions of
@@ -87,34 +86,38 @@ function Cpool:client_ttl(ttl)
     if ttl == nil then
         return C.output_cpool_client_ttl(self.obj)
     end
-    return ch.z2n(C.output_cpool_set_client_ttl(self.obj, ttl))
+    return C.output_cpool_set_client_ttl(self.obj, ttl)
 end
 
--- Set the maximum clients to keep around to reuse later on, if
+-- Set the maximum clients to keep around to reuse later on and
+-- return 0 if successful, if
 -- .I reuse
 -- is not specified then return the current maximum clients to reuse.
 function Cpool:max_reuse_clients(reuse)
     if reuse == nil then
         return C.output_cpool_max_reuse_clients(self.obj)
     end
-    return ch.z2n(C.output_cpool_set_max_reuse_clients(self.obj, reuse))
+    return C.output_cpool_set_max_reuse_clients(self.obj, reuse)
 end
 
--- Enable (true) or disable (false) not waiting for a reply, if
+-- Enable (true) or disable (false) not waiting for a reply and
+-- return 0 if successful, if
 -- .I bool
 -- is not specified then return if skipping reply is on (true) or off (false).
 function Cpool:skip_reply(bool)
     if bool == nil then
-        return ch.i2b(C.output_cpool_skip_reply(self.obj))
+        if C.output_cpool_skip_reply(self.obj) == 1 then
+            return true
+        end
+        return false
+    elseif bool == true then
+        return C.output_cpool_set_skip_reply(self.obj, 1)
+    else
+        return C.output_cpool_set_skip_reply(self.obj, 0)
     end
-    local b = ch.b2i(bool)
-    if b == nil then
-        return 1
-    end
-    return ch.z2n(C.output_cpool_set_skip_reply(self.obj, b))
 end
 
--- Set the protocol to send queries as, if
+-- Set the protocol to send queries as and return 0 if successful, if
 -- .I type
 -- is not specified then return the current way to send queries.
 -- Valid ways are;
@@ -125,37 +128,42 @@ function Cpool:sendas(type)
     if type == nil then
         return C.output_cpool_sendas(self.obj)
     elseif type == "original" then
-        return ch.z2n(C.output_cpool_set_sendas_original(self.obj))
+        return C.output_cpool_set_sendas_original(self.obj)
     elseif type == "udp" then
-        return ch.z2n(C.output_cpool_set_sendas_udp(self.obj))
+        return C.output_cpool_set_sendas_udp(self.obj)
     elseif type == "tcp" then
-        return ch.z2n(C.output_cpool_set_sendas_tcp(self.obj))
+        return C.output_cpool_set_sendas_tcp(self.obj)
     end
     return 1
 end
 
--- Enable (true) or disable (false) dry run mode, if
+-- Enable (true) or disable (false) dry run mode and return 0 if
+-- successful, if
 -- .I bool
 -- is not specified then return if dry run is on (true) or off (false).
 function Cpool:dry_run(bool)
     if bool == nil then
-        return ch.i2b(C.output_cpool_dry_run(self.obj))
+        if C.output_cpool_dry_run(self.obj) == 1 then
+            return true
+        end
+        return false
+    elseif bool == true then
+        return C.output_cpool_set_dry_run(self.obj, 1)
+    else
+        return C.output_cpool_set_dry_run(self.obj, 0)
     end
-    local b = ch.b2i(bool)
-    if b == nil then
-        return 1
-    end
-    return ch.z2n(C.output_cpool_set_dry_run(self.obj, b))
 end
 
 -- Start the processing of queries sent to the queue.
+-- Returns 0 on success.
 function Cpool:start()
-    return ch.z2n(C.output_cpool_start(self.obj))
+    return C.output_cpool_start(self.obj)
 end
 
 -- Stop the processing of queries.
+-- Returns 0 on success.
 function Cpool:stop()
-    return ch.z2n(C.output_cpool_stop(self.obj))
+    return C.output_cpool_stop(self.obj)
 end
 
 -- Set the receiver to pass queries and responses to.
@@ -165,6 +173,7 @@ function Cpool:receiver(o)
     self._receiver = o
 end
 
+-- Return the C functions and context for receiving objects.
 function Cpool:receive()
     if self.ishandler then
         error("is handler")

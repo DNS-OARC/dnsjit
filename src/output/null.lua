@@ -39,6 +39,7 @@ function Null.new()
     return setmetatable(self, { __index = Null })
 end
 
+-- Return the C functions and context for receiving objects.
 function Null:receive()
     return C.output_null_receiver(), self.obj
 end

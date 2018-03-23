@@ -25,7 +25,6 @@
 -- Input module for generating empty queries, mostly used for testing.
 module(...,package.seeall)
 
-local ch = require("dnsjit.core.chelpers")
 require("dnsjit.input.zero_h")
 local ffi = require("ffi")
 local C = ffi.C
@@ -62,9 +61,9 @@ end
 
 -- Generate
 -- .I num
--- empty queries and send them to the receiver.
+-- empty queries and send them to the receiver, return 0 if successful.
 function Zero:run(num)
-    return ch.z2n(C.input_zero_run(self.obj, num))
+    return C.input_zero_run(self.obj, num)
 end
 
 -- Return the seconds and nanoseconds (as a list) of the start time for

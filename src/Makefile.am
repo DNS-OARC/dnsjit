@@ -67,14 +67,14 @@ lua_hobjects = \
   output/cpool.luaho output/null.luaho
 # Lua sources
 dist_dnsjit_SOURCES += \
-  core/chelpers.lua core/log.lua core/mutex.lua core/object.lua core/tracking.lua \
+  core/log.lua core/mutex.lua core/object.lua core/tracking.lua \
   core/object/dns.lua core/object/packet.lua \
   lib/getopt.lua lib/parseconf.lua \
   input/pcapthread.lua input/zero.lua \
   filter/lua.lua filter/split.lua filter/timing.lua \
   output/cpool.lua output/null.lua
 lua_objects = \
-  core/chelpers.luao core/log.luao core/mutex.luao core/object.luao core/tracking.luao \
+  core/log.luao core/mutex.luao core/object.luao core/tracking.luao \
   core/object/dns.luao core/object/packet.luao \
   lib/getopt.luao lib/parseconf.luao \
   input/pcapthread.luao input/zero.luao \
@@ -94,7 +94,7 @@ CLEANFILES += $(lua_hobjects) $(lua_objects)
 man1_MANS = dnsjit.1
 CLEANFILES += $(man1_MANS)
 
-man3_MANS = dnsjit.core.3 dnsjit.core.chelpers.3 dnsjit.core.log.3 dnsjit.core.mutex.3 dnsjit.core.object.3 dnsjit.core.receiver.3 dnsjit.core.timespec.3 dnsjit.core.tracking.3 \
+man3_MANS = dnsjit.core.3 dnsjit.core.log.3 dnsjit.core.mutex.3 dnsjit.core.object.3 dnsjit.core.receiver.3 dnsjit.core.timespec.3 dnsjit.core.tracking.3 \
   dnsjit.core.object.dns.3 dnsjit.core.object.packet.3 \
   dnsjit.lib.3 dnsjit.lib.getopt.3 dnsjit.lib.parseconf.3 \
   dnsjit.input.3 dnsjit.input.pcapthread.3 dnsjit.input.zero.3 \
@@ -132,9 +132,6 @@ CLEANFILES += *.3in $(man3_MANS)
 
 dnsjit.core.3in: core.lua gen-manpage.lua
 	$(LUAJIT) "$(srcdir)/gen-manpage.lua" "$(srcdir)/core.lua" > "$@"
-
-dnsjit.core.chelpers.3in: core/chelpers.lua gen-manpage.lua
-	$(LUAJIT) "$(srcdir)/gen-manpage.lua" "$(srcdir)/core/chelpers.lua" > "$@"
 
 dnsjit.core.log.3in: core/log.lua gen-manpage.lua
 	$(LUAJIT) "$(srcdir)/gen-manpage.lua" "$(srcdir)/core/log.lua" > "$@"
