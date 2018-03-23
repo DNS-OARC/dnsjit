@@ -18,15 +18,24 @@
  * along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "config.h"
-#include "pcap-thread/pcap_thread.h"
 #include "core/log.h"
-#include "core/receiver.h"
-#include "core/timespec.h"
+#include "core/object.h"
+#include "core/object/packet.h"
 
-#ifndef __dnsjit_input_pcap_h
-#define __dnsjit_input_pcap_h
+#ifndef __dnsjit_core_object_dns_h
+#define __dnsjit_core_object_dns_h
 
-#include "input/pcap.hh"
+#include <netinet/in.h>
+#include <sys/types.h>
+
+#include "core/object/dns.hh"
+
+#define CORE_OBJECT_DNS_INIT                             \
+    {                                                    \
+        CORE_OBJECT_DNS, 0,                              \
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, \
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, \
+            0, 0, 0, 0                                   \
+    }
 
 #endif

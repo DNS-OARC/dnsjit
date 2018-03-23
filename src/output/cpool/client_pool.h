@@ -65,13 +65,13 @@ struct client_pool {
     client_pool_state_t state;
     pthread_t           thread_id;
 
-    struct ev_loop* ev_loop;
-    sllq_t          queries;
-    core_query_t*   query;
-    ev_async        notify_query;
-    ev_async        notify_stop;
-    ev_timer        timeout;
-    ev_timer        retry;
+    struct ev_loop*       ev_loop;
+    sllq_t                queries;
+    core_object_packet_t* query;
+    ev_async              notify_query;
+    ev_async              notify_stop;
+    ev_timer              timeout;
+    ev_timer              retry;
 
     client_t* client_list_first;
     client_t* client_list_last;
@@ -98,6 +98,6 @@ client_pool_t* client_pool_new(const char* host, const char* port, size_t queue_
 void client_pool_free(client_pool_t* client_pool);
 int client_pool_start(client_pool_t* client_pool);
 int client_pool_stop(client_pool_t* client_pool);
-int client_pool_query(client_pool_t* client_pool, core_query_t* query);
+int client_pool_query(client_pool_t* client_pool, const core_object_packet_t* query);
 
 #endif

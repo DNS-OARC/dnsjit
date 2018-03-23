@@ -19,21 +19,11 @@
  */
 
 //lua:require("dnsjit.core.log")
-//lua:require("dnsjit.core.timespec_h")
-typedef struct core_query {
-    uint64_t src_id, qr_id, dst_id;
+//lua:require("dnsjit.core.object_h")
 
-    unsigned short is_udp : 1;
-    unsigned short is_tcp : 1;
-    unsigned short is_ipv6 : 1;
-    unsigned short have_raw : 1;
-
-    uint16_t        sport, dport;
-    core_timespec_t ts;
-
-    char   small[1500];
-    char*  raw;
-    size_t rlen, len;
+typedef struct core_object_dns {
+    unsigned short       obj_type;
+    const core_object_t* obj_prev;
 
     unsigned short have_id : 1;
     unsigned short have_qr : 1;
@@ -71,24 +61,19 @@ typedef struct core_query {
     size_t answers;
     size_t authorities;
     size_t additionals;
-} core_query_t;
+} core_object_dns_t;
 
-core_log_t*   core_query_log();
-core_query_t* core_query_new();
-void core_query_free(core_query_t* self);
-int core_query_init(core_query_t* self);
-int core_query_destroy(core_query_t* self);
-int core_query_set_raw(core_query_t* self, const char* raw, size_t len);
-core_query_t* core_query_copy(core_query_t* self);
-const char* core_query_src(core_query_t* self);
-const char* core_query_dst(core_query_t* self);
-int core_query_parse_header(core_query_t* self);
-int core_query_parse(core_query_t* self);
-int core_query_rr_next(core_query_t* self);
-int core_query_rr_ok(core_query_t* self);
-const char* core_query_rr_label(core_query_t* self);
-uint16_t core_query_rr_type(core_query_t* self);
-uint16_t core_query_rr_class(core_query_t* self);
-uint32_t core_query_rr_ttl(core_query_t* self);
+core_log_t* core_object_dns_log();
 
-int core_query_copy_addr(core_query_t* self, core_query_t* from);
+core_object_dns_t* core_object_dns_new(const core_object_packet_t* pkt);
+void core_object_dns_free(core_object_dns_t* self);
+
+int core_object_dns_parse_header(core_object_dns_t* self);
+int core_object_dns_parse(core_object_dns_t* self);
+
+int core_object_dns_rr_next(core_object_dns_t* self);
+int core_object_dns_rr_ok(core_object_dns_t* self);
+const char* core_object_dns_rr_label(core_object_dns_t* self);
+uint16_t core_object_dns_rr_type(core_object_dns_t* self);
+uint16_t core_object_dns_rr_class(core_object_dns_t* self);
+uint32_t core_object_dns_rr_ttl(core_object_dns_t* self);

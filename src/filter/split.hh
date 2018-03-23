@@ -18,29 +18,32 @@
  * along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#if 0
-typedef struct {} pthread_t;
-typedef struct {} sllq_t;
-#endif
 //lua:require("dnsjit.core.log")
 //lua:require("dnsjit.core.receiver_h")
-typedef struct thread {
-    core_log_t      _log;
-    unsigned short  have_id : 1;
-    unsigned short  my_queues : 1;
-    pthread_t*      id;
-    sllq_t*         qin;
-    core_receiver_t recv;
-    void*           robj;
-} filter_thread_t;
 
-core_log_t* filter_thread_log();
-int filter_thread_init(filter_thread_t* self);
-int filter_thread_destroy(filter_thread_t* self);
-int filter_thread_create(filter_thread_t* self, const char* bc, size_t len);
-int filter_thread_stop(filter_thread_t* self);
-int filter_thread_join(filter_thread_t* self);
-core_receiver_t filter_thread_receiver();
+typedef enum filter_split_mode {
+    FILTER_SPLIT_MODE_ROUNDROBIN,
+    FILTER_SPLIT_MODE_SENDALL
+} filter_split_mode_t;
 
-core_query_t* filter_thread_recv(filter_thread_t* self);
-int filter_thread_send(filter_thread_t* self, core_query_t* q);
+typedef struct filter_split_recv filter_split_recv_t;
+struct filter_split_recv {
+    filter_split_recv_t* next;
+    core_receiver_t      recv;
+    void*                ctx;
+};
+
+typedef struct filter_split {
+    core_log_t           _log;
+    filter_split_mode_t  mode;
+    filter_split_recv_t* recv_list;
+    filter_split_recv_t* recv;
+} filter_split_t;
+
+core_log_t* filter_split_log();
+
+int filter_split_init(filter_split_t* self);
+int filter_split_destroy(filter_split_t* self);
+int filter_split_add(filter_split_t* self, core_receiver_t recv, void* ctx);
+
+core_receiver_t filter_split_receiver();

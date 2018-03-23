@@ -7,15 +7,40 @@ if pcap == nil or rcode == nil then
     return
 end
 
-local input = require("dnsjit.input.pcap").new()
+local input = require("dnsjit.input.pcapthread").new()
 local output = require("dnsjit.filter.lua").new()
 
 output:push(tonumber(rcode))
-output:func(function(filter, query, args)
+output:func(function(filter, pkt, args)
     local rcode = unpack(args, 0)
-    query:parse()
-    if query.have_rcode == 1 and query.rcode == rcode then
-        print(query.id, query:src().." -> "..query:dst())
+    local dns
+    if pkt:type() == "packet" then
+        dns = require("dnsjit.core.object.dns").new(pkt)
+        if dns:parse() then
+            return
+        end
+    elseif pkt:type() == "dns" then
+        dns = pkt
+        if dns:parse() then
+            return
+        end
+        pkt = dns:prev()
+        while pkt ~= nil do
+            if pkt:type() == "packet" then
+                pkt = pkt:cast()
+                break
+            end
+            pkt = pkt:prev()
+        end
+        if pkt == nil then
+            return
+        end
+    else
+        return
+    end
+
+    if dns.have_rcode == 1 and dns.rcode == rcode then
+        print(dns.id, pkt:src().." -> "..pkt:dst())
     end
 end)
 

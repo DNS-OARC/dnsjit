@@ -21,17 +21,20 @@
 #if 0
 typedef struct {} lua_State;
 #endif
+
 //lua:require("dnsjit.core.log")
 //lua:require("dnsjit.core.receiver_h")
+
 typedef struct filter_lua {
     core_log_t      _log;
     lua_State*      L;
     core_receiver_t recv;
-    void*           robj;
+    void*           ctx;
     size_t          args;
 } filter_lua_t;
 
 core_log_t* filter_lua_log();
+
 int filter_lua_init(filter_lua_t* self);
 int filter_lua_destroy(filter_lua_t* self);
 int filter_lua_func(filter_lua_t* self, const char* bc, size_t len);

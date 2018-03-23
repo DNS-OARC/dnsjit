@@ -27,8 +27,7 @@
 
 static core_log_t   _log      = LOG_T_INIT("filter.lua");
 static filter_lua_t _defaults = {
-    LOG_T_INIT_OBJ("filter.lua"),
-    0, 0, 0, 0
+    LOG_T_INIT_OBJ("filter.lua"), 0, 0, 0, 0
 };
 
 core_log_t* filter_lua_log()
@@ -82,11 +81,11 @@ int filter_lua_func(filter_lua_t* self, const char* bc, size_t len)
     ldebug("func %p %lu", bc, len);
 
     if (self->recv) {
-        ldebug("func recv %p %p", self->recv, self->robj);
+        ldebug("func recv %p %p", self->recv, self->ctx);
         lua_pushlightuserdata(self->L, self->recv);
         lua_setglobal(self->L, "FILTER_LUA_RECV");
-        lua_pushlightuserdata(self->L, self->robj);
-        lua_setglobal(self->L, "FILTER_LUA_ROBJ");
+        lua_pushlightuserdata(self->L, self->ctx);
+        lua_setglobal(self->L, "FILTER_LUA_CTX");
     }
     lua_pushlstring(self->L, bc, len);
     lua_setglobal(self->L, "FILTER_LUA_BYTECODE");
@@ -141,19 +140,18 @@ int filter_lua_push_double(filter_lua_t* self, double d)
     return 0;
 }
 
-static int _receive(void* robj, core_query_t* q)
+static int _receive(void* ctx, const core_object_t* obj)
 {
-    filter_lua_t* self = (filter_lua_t*)robj;
+    filter_lua_t* self = (filter_lua_t*)ctx;
 
-    if (!self || !q) {
-        core_query_free(q);
+    if (!self || !obj) {
         return 1;
     }
 
-    ldebug("receive %p", q);
+    ldebug("receive %p", obj);
 
-    lua_pushlightuserdata(self->L, q);
-    lua_setglobal(self->L, "FILTER_LUA_QUERY");
+    lua_pushlightuserdata(self->L, (void*)obj);
+    lua_setglobal(self->L, "FILTER_LUA_OBJECT");
     if (luaL_dostring(self->L, "FILTER_LUA:run()")) {
         lcritical("%s", lua_tostring(self->L, -1));
         lua_pop(self->L, 1);

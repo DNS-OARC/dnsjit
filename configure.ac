@@ -42,16 +42,16 @@ AC_CHECK_FUNCS([clock_nanosleep nanosleep])
 PKG_CHECK_MODULES([luajit], [luajit >= 2],,AC_MSG_ERROR([luajit v2+ not found]))
 AC_PATH_PROGS([LUAJIT], [luajit luajit51])
 if test "x$ac_cv_path_LUAJIT" = "x"; then
-    AC_MSG_ERROR([luajit not found])
+  AC_MSG_ERROR([luajit not found])
 fi
 
 # Checks for sizes
-AC_CHECK_SIZEOF(void*)
+AC_CHECK_SIZEOF([void*])
 
 # Output Makefiles
 AC_CONFIG_FILES([
-    Makefile
-    src/Makefile
-    examples/Makefile
+  Makefile
+  src/Makefile
+  examples/Makefile
 ])
 AC_OUTPUT

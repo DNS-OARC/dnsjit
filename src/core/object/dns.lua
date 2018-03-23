@@ -16,14 +16,13 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
 
--- dnsjit.core.query
--- Container of a DNS message and related capturing information
---   local query = require("dnsjit.core.query")
---   local q = query.new()
+-- dnsjit.core.object.dns
+-- Container of a DNS message
+--   local query = require("dnsjit.core.object.dns")
+--   local q = query.new(pkt)
 --   print(q:src(), q:dst(), q.id, q.rcode)
 --
--- The core object that is passed between receiver and receivee and describes
--- a DNS message, how it was captured or generated.
+-- The object that describes a DNS message.
 -- .SS Attributes
 -- .TP
 -- src_id
@@ -154,64 +153,74 @@
 module(...,package.seeall)
 
 local ch = require("dnsjit.core.chelpers")
-require("dnsjit.core.query_h")
+require("dnsjit.core.object.dns_h")
 local ffi = require("ffi")
 local C = ffi.C
 
-local t_name = "core_query_t"
-local core_query_t
-local Query = {}
+local t_name = "core_object_dns_t"
+local core_object_dns_t
+local Dns = {}
 
--- Create a new query or bind an existing
--- .IR core_query_t .
-function Query.new(self)
-    if not ffi.istype(t_name, self) then
-        self = C.core_query_new()
+-- Create a new DNS object ontop of a packet.
+function Dns.new(packet)
+    if not ffi.istype("core_object_packet_t*", packet) then
+        return
     end
-    ffi.gc(self, C.core_query_free)
+    local self = C.core_object_dns_new(packet)
+    ffi.gc(self, C.core_object_dns_free)
     return self
 end
 
--- Return the Log object to control logging of this module.
-function Query:log()
-    return C.core_query_log()
+-- Return the textual type of the object.
+function Dns:type()
+    return "dns"
+end
+
+-- Return the previous object.
+function Dns:prev()
+    return self.obj_prev
+end
+
+-- Return the Log object to control logging of this instance or module.
+function Dns:log()
+    return C.core_object_dns_log()
 end
 
 -- Parse the DNS headers or the query.
-function Query:parse_header()
-    return ch.z2n(C.core_query_parse_header(self))
+function Dns:parse_header()
+    return ch.z2n(C.core_object_dns_parse_header(self))
 end
 
 -- Parse the full DNS message or just the body if the header was already parsed.
-function Query:parse()
-    return ch.z2n(C.core_query_parse(self))
+function Dns:parse()
+    return ch.z2n(C.core_object_dns_parse(self))
 end
 
 -- Return the IP source as a string.
-function Query:src()
-    return ffi.string(C.core_query_src(self))
+function Dns:src()
+    return ffi.string(C.core_object_dns_src(self))
 end
 
 -- Return the IP destination as a string.
-function Query:dst()
-    return ffi.string(C.core_query_dst(self))
+function Dns:dst()
+    return ffi.string(C.core_object_dns_dst(self))
 end
 
 -- Start walking the resource record(s) (RR) found or continue with the next,
 -- returns integer > 0 on error or end of RRs.
-function Query:rr_next()
-    return C.core_query_rr_next(self)
+function Dns:rr_next()
+    return C.core_object_dns_rr_next(self)
 end
 
 -- Check if the RR at the current position was parsed successfully or not,
 -- return 1 if successful.
-function Query:rr_ok()
-    return C.core_query_rr_ok(self)
+function Dns:rr_ok()
+    return C.core_object_dns_rr_ok(self)
 end
 
 -- Return the FQDN of the current RR or an empty string on error.
-function Query:rr_label()
-    local ptr = C.core_query_rr_label(self)
+function Dns:rr_label()
+    local ptr = C.core_object_dns_rr_label(self)
     if ptr == nil then
         return ""
     end
@@ -219,21 +228,22 @@ function Query:rr_label()
 end
 
 -- Return an integer with the RR type.
-function Query:rr_type()
-    return C.core_query_rr_type(self)
+function Dns:rr_type()
+    return C.core_object_dns_rr_type(self)
 end
 
 -- Return an integer with the RR class.
-function Query:rr_class()
-    return C.core_query_rr_class(self)
+function Dns:rr_class()
+    return C.core_object_dns_rr_class(self)
 end
 
 -- Return an integer with the RR TTL.
-function Query:rr_ttl()
-    return C.core_query_rr_ttl(self)
+function Dns:rr_ttl()
+    return C.core_object_dns_rr_ttl(self)
 end
 
-core_query_t = ffi.metatype(t_name, { __index = Query })
+core_object_dns_t = ffi.metatype(t_name, { __index = Dns })
 
+-- dnsjit.core.object (3),
 -- dnsjit.core.tracking (3)
-return Query
+return Dns

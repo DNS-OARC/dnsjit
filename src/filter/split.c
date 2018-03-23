@@ -20,19 +20,19 @@
 
 #include "config.h"
 
-#include "filter/roundrobin.h"
+#include "filter/split.h"
 
-static core_log_t          _log      = LOG_T_INIT("filter.roundrobin");
-static filter_roundrobin_t _defaults = {
-    LOG_T_INIT_OBJ("filter.roundrobin"), 0, 0
+static core_log_t     _log      = LOG_T_INIT("filter.split");
+static filter_split_t _defaults = {
+    LOG_T_INIT_OBJ("filter.split"), FILTER_SPLIT_MODE_ROUNDROBIN, 0, 0
 };
 
-core_log_t* filter_roundrobin_log()
+core_log_t* filter_split_log()
 {
     return &_log;
 }
 
-int filter_roundrobin_init(filter_roundrobin_t* self)
+int filter_split_init(filter_split_t* self)
 {
     if (!self) {
         return 1;
@@ -45,9 +45,9 @@ int filter_roundrobin_init(filter_roundrobin_t* self)
     return 0;
 }
 
-int filter_roundrobin_destroy(filter_roundrobin_t* self)
+int filter_split_destroy(filter_split_t* self)
 {
-    filter_roundrobin_recv_t* r;
+    filter_split_recv_t* r;
     if (!self) {
         return 1;
     }
@@ -62,22 +62,22 @@ int filter_roundrobin_destroy(filter_roundrobin_t* self)
     return 0;
 }
 
-int filter_roundrobin_add(filter_roundrobin_t* self, core_receiver_t recv, void* robj)
+int filter_split_add(filter_split_t* self, core_receiver_t recv, void* ctx)
 {
-    filter_roundrobin_recv_t* r;
+    filter_split_recv_t* r;
     if (!self) {
         return 1;
     }
 
-    ldebug("add recv %p obj %p", recv, robj);
+    ldebug("add recv %p obj %p", recv, ctx);
 
-    if (!(r = malloc(sizeof(filter_roundrobin_recv_t)))) {
+    if (!(r = malloc(sizeof(filter_split_recv_t)))) {
         return 1;
     }
 
     r->next         = self->recv_list;
     r->recv         = recv;
-    r->robj         = robj;
+    r->ctx          = ctx;
     self->recv_list = r;
 
     if (!self->recv) {
@@ -87,25 +87,37 @@ int filter_roundrobin_add(filter_roundrobin_t* self, core_receiver_t recv, void*
     return 0;
 }
 
-static int _receive(void* robj, core_query_t* q)
+static int _receive(void* ctx, const core_object_t* obj)
 {
-    filter_roundrobin_t* self = (filter_roundrobin_t*)robj;
+    filter_split_t* self = (filter_split_t*)ctx;
 
-    if (!self || !q || !self->recv) {
-        core_query_free(q);
+    if (!self || !obj || !self->recv) {
         return 1;
     }
 
-    self->recv->recv(self->recv->robj, q);
-    self->recv = self->recv->next;
-    if (!self->recv) {
+    switch (self->mode) {
+    case FILTER_SPLIT_MODE_ROUNDROBIN:
+        self->recv->recv(self->recv->ctx, obj);
+        self->recv = self->recv->next;
+        if (!self->recv) {
+            self->recv = self->recv_list;
+        }
+        return 0;
+    case FILTER_SPLIT_MODE_SENDALL:
+        while (self->recv) {
+            self->recv->recv(self->recv->ctx, obj);
+            self->recv = self->recv->next;
+        }
         self->recv = self->recv_list;
+        return 0;
+    default:
+        break;
     }
 
-    return 0;
+    return 1;
 }
 
-core_receiver_t filter_roundrobin_receiver()
+core_receiver_t filter_split_receiver()
 {
     return _receive;
 }

@@ -25,8 +25,6 @@ module(...,package.seeall)
 error("This should not be included, only here for documentation generation")
 
 -- dnsjit.filter.lua (3),
--- dnsjit.filter.multicopy (3),
--- dnsjit.filter.roundrobin (3),
--- dnsjit.filter.thread (3),
+-- dnsjit.filter.split (3),
 -- dnsjit.filter.timing (3)
 return

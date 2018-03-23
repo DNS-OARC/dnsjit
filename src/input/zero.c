@@ -21,7 +21,7 @@
 #include "config.h"
 
 #include "input/zero.h"
-#include "core/query.h"
+#include "core/object/packet.h"
 
 #include <time.h>
 
@@ -63,7 +63,8 @@ int input_zero_destroy(input_zero_t* self)
 
 int input_zero_run(input_zero_t* self, uint64_t num)
 {
-    struct timespec ts, te;
+    struct timespec      ts, te;
+    core_object_packet_t pkt = CORE_OBJECT_PACKET_INIT;
 
     if (!self || !self->recv) {
         return 1;
@@ -73,10 +74,7 @@ int input_zero_run(input_zero_t* self, uint64_t num)
 
     clock_gettime(CLOCK_MONOTONIC, &ts);
     while (num--) {
-        core_query_t* q = core_query_new();
-        if (q) {
-            self->recv(self->robj, q);
-        }
+        self->recv(self->ctx, (core_object_t*)&pkt);
     }
     clock_gettime(CLOCK_MONOTONIC, &te);
 

@@ -21,16 +21,19 @@
 #if 0
 typedef struct {} client_pool_t;
 #endif
+
 //lua:require("dnsjit.core.log")
 //lua:require("dnsjit.core.receiver_h")
+
 typedef struct output_cpool {
     core_log_t      _log;
     client_pool_t*  p;
     core_receiver_t recv;
-    void*           robj;
+    void*           ctx;
 } output_cpool_t;
 
 core_log_t* output_cpool_log();
+
 int output_cpool_init(output_cpool_t* self, const char* host, const char* port, size_t queue_size);
 int output_cpool_destroy(output_cpool_t* self);
 size_t output_cpool_max_clients(output_cpool_t* self);

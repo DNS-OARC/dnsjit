@@ -21,18 +21,19 @@
 --   local filter = require("dnsjit.filter.lua").new()
 --   filter:push("arg1")
 --   filter:push(2)
---   filter:func(function(filter, query, args)
+--   filter:func(function(filter, object, args)
 --      local arg1, arg2 = unpack(args, 0)
 --      ...
---      filter:send(query)
+--      filter:send(object)
 --   end)
 --
--- Filter module to run custom Lua code on received queries with the option
+-- Filter module to run custom Lua code on received objects with the option
 -- to send them to the next receiver.
 module(...,package.seeall)
 
 local ch = require("dnsjit.core.chelpers")
-local query = require("dnsjit.core.query")
+local object = require("dnsjit.core.object")
+require("dnsjit.core.receiver_h")
 require("dnsjit.filter.lua_h")
 local ffi = require("ffi")
 local C = ffi.C
@@ -96,13 +97,13 @@ function Lua:receive()
     return C.filter_lua_receiver(), self.obj
 end
 
--- Set the receiver to pass queries to.
+-- Set the receiver to pass objects to.
 function Lua:receiver(o)
     if self.ishandler then
         error("is handler")
     end
     self.obj._log:debug("receiver()")
-    self.obj.recv, self.obj.robj = o:receive()
+    self.obj.recv, self.obj.ctx = o:receive()
     self._receiver = o
 end
 
@@ -111,7 +112,7 @@ function Lua.handler()
         ishandler = true,
         _func = nil,
         _recv = nil,
-        _robj = nil,
+        _ctx = nil,
     }, {__index = Lua})
 end
 
@@ -120,7 +121,7 @@ function Lua:decompile()
         error("not handler")
     end
     self._recv = FILTER_LUA_RECV
-    self._robj = FILTER_LUA_ROBJ
+    self._ctx = FILTER_LUA_CTX
     self._func = loadstring(FILTER_LUA_BYTECODE)
 end
 
@@ -128,21 +129,21 @@ function Lua:run()
     if not self.ishandler then
         error("not handler")
     end
-    local q = query.new(ffi.cast("core_query_t*", FILTER_LUA_QUERY))
     if self._func == nil then
         return
     end
-    return self._func(self, q, FILTER_LUA_ARGS)
+    local obj = ffi.cast("core_object_t*", FILTER_LUA_OBJECT)
+    return self._func(self, object.cast(obj), FILTER_LUA_ARGS)
 end
 
--- Used from the Lua function to send queries to the next receiver.
-function Lua:send(query)
+-- Used from the Lua function to send objects to the next receiver.
+function Lua:send(object)
     if not self.ishandler then
         error("not handler")
     end
-    -- TODO: test replace with ffi.gc(query, nil)
-    return ch.z2n(C.receiver_call(self._recv, self._robj, C.core_query_copy(query)))
+    return ch.z2n(C.core_receiver_call(self._recv, self._ctx, object))
 end
 
+-- dnsjit.core.object (3),
 -- dnsjit.filter.thread (3)
 return Lua

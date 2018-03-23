@@ -18,12 +18,28 @@
  * along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "core/log.h"
-#include "core/receiver.h"
+//lua:require("dnsjit.core.object_h")
+//lua:require("dnsjit.core.timespec_h")
 
-#ifndef __dnsjit_filter_roundrobin_h
-#define __dnsjit_filter_roundrobin_h
+typedef struct core_object_packet {
+    unsigned short       obj_type;
+    const core_object_t* obj_prev;
 
-#include "filter/roundrobin.hh"
+    uint64_t src_id, qr_id, dst_id;
 
-#endif
+    unsigned short is_udp : 1;
+    unsigned short is_tcp : 1;
+    unsigned short is_ipv6 : 1;
+
+    const void* src_addr;
+    const void* dst_addr;
+
+    uint16_t        sport, dport;
+    core_timespec_t ts;
+
+    const uint8_t* payload;
+    size_t         len;
+} core_object_packet_t;
+
+char* core_object_packet_src(core_object_packet_t* self);
+char* core_object_packet_dst(core_object_packet_t* self);

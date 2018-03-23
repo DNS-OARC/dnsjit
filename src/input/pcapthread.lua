@@ -16,9 +16,9 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
 
--- dnsjit.input.pcap
+-- dnsjit.input.pcapthread
 -- Read input from an interface or PCAP file
---   local input = require("dnsjit.input.pcap").new()
+--   local input = require("dnsjit.input.pcapthread").new()
 --   input:open_offline("file.pcap")
 --   input:receiver(filter_or_output)
 --   input:run()
@@ -27,42 +27,42 @@
 module(...,package.seeall)
 
 local ch = require("dnsjit.core.chelpers")
-require("dnsjit.input.pcap_h")
+require("dnsjit.input.pcapthread_h")
 local ffi = require("ffi")
 local C = ffi.C
 
-local t_name = "input_pcap_t"
-local input_pcap_t = ffi.typeof(t_name)
-local Pcap = {}
+local t_name = "input_pcapthread_t"
+local input_pcapthread_t = ffi.typeof(t_name)
+local Pcapthread = {}
 
--- Create a new Pcap input.
-function Pcap.new()
+-- Create a new Pcapthread input.
+function Pcapthread.new()
     local self = {
         _receiver = nil,
-        obj = input_pcap_t(),
+        obj = input_pcapthread_t(),
     }
-    C.input_pcap_init(self.obj)
-    ffi.gc(self.obj, C.input_pcap_destroy)
-    return setmetatable(self, { __index = Pcap })
+    C.input_pcapthread_init(self.obj)
+    ffi.gc(self.obj, C.input_pcapthread_destroy)
+    return setmetatable(self, { __index = Pcapthread })
 end
 
 -- Return the Log object to control logging of this instance or module.
-function Pcap:log()
+function Pcapthread:log()
     if self == nil then
-        return C.input_pcap_log()
+        return C.input_pcapthread_log()
     end
     return self.obj._log
 end
 
 -- Set the receiver to pass queries to.
-function Pcap:receiver(o)
+function Pcapthread:receiver(o)
     self.obj._log:debug("receiver()")
-    self.obj.recv, self.obj.robj = o:receive()
+    self.obj.recv, self.obj.ctx = o:receive()
     self._receiver = o
 end
 
 -- Only pass DNS queries, the DNS header will be parsed and QR must be 0.
-function Pcap:only_queries(bool)
+function Pcapthread:only_queries(bool)
     if bool == nil then
         return ch.i2b(self.obj.only_queries)
     end
@@ -76,7 +76,7 @@ end
 -- Return the snaphot length, see
 -- .BR pcap_snapshot (3pcap)
 -- for more information.
-function Pcap:snapshot()
+function Pcapthread:snapshot()
     return C.pcap_thread_snapshot(self.obj.pt)
 end
 
@@ -87,7 +87,7 @@ end
 -- .I len
 -- is not specified then return the number of bytes that was previously
 -- set by this function.
-function Pcap:snaplen(len)
+function Pcapthread:snaplen(len)
     if len == nil then
         return C.pcap_thread_snaplen(self.obj.pt)
     end
@@ -100,7 +100,7 @@ end
 -- See
 -- .BR pcap (3pcap)
 -- for more information.
-function Pcap:promiscuous(bool)
+function Pcapthread:promiscuous(bool)
     if bool == nil then
         return ch.i2b(C.pcap_thread_promiscuous(self.obj.pt))
     end
@@ -117,7 +117,7 @@ end
 -- See
 -- .BR pcap (3pcap)
 -- for more information.
-function Pcap:monitor(bool)
+function Pcapthread:monitor(bool)
     if bool == nil then
         return ch.i2b(C.pcap_thread_monitor(self.obj.pt))
     end
@@ -134,7 +134,7 @@ end
 -- See
 -- .BR pcap_set_timeout (3pcap)
 -- for more information.
-function Pcap:timeout(ms)
+function Pcapthread:timeout(ms)
     if ms == nil then
         return C.pcap_thread_timeout(self.obj.pt)
     end
@@ -147,7 +147,7 @@ end
 -- See
 -- .BR pcap_set_buffer_size (3pcap)
 -- for more information.
-function Pcap:buffer_size(size)
+function Pcapthread:buffer_size(size)
     if size == nil then
         return C.pcap_thread_buffer_size(self.obj.pt)
     end
@@ -161,7 +161,7 @@ end
 -- See
 -- .BR pcap_set_immediate_mode (3pcap)
 -- for more information.
-function Pcap:immediate_mode()
+function Pcapthread:immediate_mode()
     if bool == nil then
         return ch.i2b(C.pcap_thread_immediate_mode(self.obj.pt))
     end
@@ -178,7 +178,7 @@ end
 -- See
 -- .BR pcap-filter (3pcap)
 -- for more information.
-function Pcap:filter(pf)
+function Pcapthread:filter(pf)
     if pf == nil then
         return ffi.string(C.pcap_thread_filter(self.obj.pt))
     elseif pf == false then
@@ -188,7 +188,7 @@ function Pcap:filter(pf)
 end
 
 -- Return the error number return from libpcap while parsing the packet filter.
-function Pcap:filter_errno()
+function Pcapthread:filter_errno()
     return C.pcap_thread_filter_errno(self.obj.pt)
 end
 
@@ -198,7 +198,7 @@ end
 -- See
 -- .BR pcap_compile (3pcap)
 -- for more information.
-function Pcap:filter_optimize(bool)
+function Pcapthread:filter_optimize(bool)
     if bool == nil then
         return ch.i2b(C.pcap_thread_filter_optimize(self.obj.pt))
     end
@@ -215,7 +215,7 @@ end
 -- See
 -- .BR pcap_compile (3pcap)
 -- for more information.
-function Pcap:filter_netmask(netmask)
+function Pcapthread:filter_netmask(netmask)
     if netmask == nil then
         return C.pcap_thread_filter_netmask(self.obj.pt)
     end
@@ -224,78 +224,78 @@ end
 
 -- Open an interface device for capturing, can be given multiple times to
 -- open additional interfaces.
-function Pcap:open(device)
-    return ch.z2n(C.input_pcap_open(self.obj, device))
+function Pcapthread:open(device)
+    return ch.z2n(C.input_pcapthread_open(self.obj, device))
 end
 
 -- Open a PCAP file for processing, can be given multiple times to
 -- open additional files.
-function Pcap:open_offline(file)
-    return ch.z2n(C.input_pcap_open_offline(self.obj, file))
+function Pcapthread:open_offline(file)
+    return ch.z2n(C.input_pcapthread_open_offline(self.obj, file))
 end
 
 -- Start processing packet from opened devices and PCAP files.
-function Pcap:run()
-    return ch.z2n(C.input_pcap_run(self.obj))
+function Pcapthread:run()
+    return ch.z2n(C.input_pcapthread_run(self.obj))
 end
 
 -- Process one packet from the opened devices and PCAP files, the opened
 -- sources are processed as a round robin list.
-function Pcap:next()
-    return ch.z2n(C.input_pcap_next(self.obj))
+function Pcapthread:next()
+    return ch.z2n(C.input_pcapthread_next(self.obj))
 end
 
 -- Return the last error as a string that came from libpcap functions
 -- that takes an error buffer.
 -- See for example
 -- .BR pcap_open_offline (3pcap).
-function Pcap:errbuf()
-    return ffi.string(C.input_pcap_errbuf(self.obj))
+function Pcapthread:errbuf()
+    return ffi.string(C.input_pcapthread_errbuf(self.obj))
 end
 
 -- Return the error
 -- .I err
 -- as a string or if not specified the last error.
-function Pcap:strerr(err)
+function Pcapthread:strerr(err)
     if err == nil then
-        return ffi.string(C.input_pcap_strerr(self.obj.err))
+        return ffi.string(C.input_pcapthread_strerr(self.obj.err))
     end
-    return ffi.string(C.input_pcap_strerr(err))
+    return ffi.string(C.input_pcapthread_strerr(err))
 end
 
 -- Return the seconds and nanoseconds (as a list) of the start time for
--- .BR Pcap:run() .
-function Pcap:start_time()
+-- .BR Pcapthread:run() .
+function Pcapthread:start_time()
     return tonumber(self.obj.ts.sec), tonumber(self.obj.ts.nsec)
 end
 
 -- Return the seconds and nanoseconds (as a list) of the stop time for
--- .BR Pcap:run() .
-function Pcap:end_time()
+-- .BR Pcapthread:run() .
+function Pcapthread:end_time()
     return tonumber(self.obj.te.sec), tonumber(self.obj.te.nsec)
 end
 
 -- Return the number of packets seen.
-function Pcap:packets()
+function Pcapthread:packets()
     return tonumber(self.obj.pkts)
 end
 
 -- Return the number of packets dropped.
-function Pcap:dropped()
+function Pcapthread:dropped()
     return tonumber(self.obj.drop)
 end
 
 -- Return the number of packets ignored as a result of only processing queries.
 -- See
--- .BR Pcap:only_queries() .
-function Pcap:ignored()
+-- .BR Pcapthread:only_queries() .
+function Pcapthread:ignored()
     return tonumber(self.obj.ignore)
 end
 
 -- Return the number of queries seen, see
--- .BR Pcap:only_queries() .
-function Pcap:queries()
+-- .BR Pcapthread:only_queries() .
+function Pcapthread:queries()
     return tonumber(self.obj.queries)
 end
 
-return Pcap
+return Pcapthread

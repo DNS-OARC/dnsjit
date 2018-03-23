@@ -19,6 +19,7 @@
  */
 
 //lua:require("dnsjit.core.receiver_h")
+
 typedef struct output_null {
     size_t pkts;
 } output_null_t;

@@ -20,59 +20,41 @@
 
 #include "config.h"
 
-#include "core/query.h"
+#include "core/object/dns.h"
+#include "omg-dns/omg_dns.h"
 
 #include <string.h>
-#include <arpa/inet.h>
-#include <sys/socket.h>
-#include <pthread.h>
-
-#if INET_ADDRSTRLEN > INET6_ADDRSTRLEN
-#define NTOP_BUFSIZE INET_ADDRSTRLEN
-#else
-#define NTOP_BUFSIZE INET6_ADDRSTRLEN
-#endif
 
 #define NUM_LABELS 128
 #define NUM_RRS 64
 
 typedef struct _parse {
-    size_t       rr_idx;
-    omg_dns_rr_t rr[NUM_RRS];
-    int          rr_ret[NUM_RRS];
-    size_t       rr_label_idx[NUM_RRS];
-
+    size_t          rr_idx;
+    omg_dns_rr_t    rr[NUM_RRS];
+    int             rr_ret[NUM_RRS];
+    size_t          rr_label_idx[NUM_RRS];
     size_t          label_idx;
     omg_dns_label_t label[NUM_LABELS];
-
-    int  at_rr;
-    char label_buf[512];
+    int             at_rr;
+    char            label_buf[512];
 } _parse_t;
 
 typedef struct _query {
-    core_query_t  pub;
-    core_query_t* next;
-
-    int                     af;
-    struct sockaddr_storage src;
-    struct sockaddr_storage dst;
-    char*                   ntop_buf;
-
-    omg_dns_t dns;
-
-    _parse_t* parsed;
+    core_object_dns_t pub;
+    omg_dns_t         dns;
+    _parse_t*         parsed;
 } _query_t;
 
-static core_log_t      _log            = LOG_T_INIT("core.query");
-static core_query_t*   _freelist       = 0;
-static size_t          _numfree        = 0;
-static pthread_mutex_t _freelist_mutex = PTHREAD_MUTEX_INITIALIZER;
-
-#define MAX_FREE (128 * 1024)
+static core_log_t _log      = LOG_T_INIT("core.object.dns");
+static _query_t   _defaults = {
+    CORE_OBJECT_DNS_INIT,
+    OMG_DNS_T_INIT,
+    0
+};
 
 #define _self ((_query_t*)self)
 
-core_log_t* core_query_log()
+core_log_t* core_object_dns_log()
 {
     return &_log;
 }
@@ -103,129 +85,41 @@ static int _rr_callback(int ret, const omg_dns_rr_t* rr, void* self)
     return OMG_DNS_OK;
 }
 
-core_query_t* core_query_new()
+core_object_dns_t* core_object_dns_new(const core_object_packet_t* pkt)
 {
-    core_query_t* self;
-
-    if (pthread_mutex_lock(&_freelist_mutex)) {
-        self            = malloc(sizeof(_query_t));
-        _self->parsed   = 0;
-        _self->ntop_buf = 0;
-        self->raw       = 0;
-    } else {
-        if (_freelist) {
-            self      = _freelist;
-            _freelist = _self->next;
-            _numfree--;
-            pthread_mutex_unlock(&_freelist_mutex);
-        } else {
-            pthread_mutex_unlock(&_freelist_mutex);
-            self            = malloc(sizeof(_query_t));
-            _self->parsed   = 0;
-            _self->ntop_buf = 0;
-            self->raw       = 0;
-        }
-    }
+    core_object_dns_t* self = malloc(sizeof(_query_t));
 
     if (self) {
-        char*  raw  = self->raw;
-        size_t rlen = self->rlen;
-        memset(self, 0, sizeof(core_query_t));
-        self->raw  = raw;
-        self->rlen = rlen;
-        memset(&_self->dns, 0, sizeof(omg_dns_t));
-        _self->af = AF_UNSPEC;
+        *_self         = _defaults;
+        self->obj_prev = (core_object_t*)pkt;
     }
 
     return self;
 }
 
-void core_query_free(core_query_t* self)
+void core_object_dns_free(core_object_dns_t* self)
 {
     if (self) {
-        if (pthread_mutex_lock(&_freelist_mutex)) {
-            free(_self->ntop_buf);
-            free(_self->parsed);
-            free(self->raw);
-            free(self);
-        } else {
-            if (_numfree < MAX_FREE) {
-                _self->next = _freelist;
-                _freelist   = self;
-                _numfree++;
-                pthread_mutex_unlock(&_freelist_mutex);
-            } else {
-                pthread_mutex_unlock(&_freelist_mutex);
-                free(_self->ntop_buf);
-                free(_self->parsed);
-                free(self->raw);
-                free(self);
-            }
-        }
+        free(_self->parsed);
+        free(self);
     }
 }
 
-int core_query_set_raw(core_query_t* self, const char* raw, size_t len)
+int core_object_dns_parse_header(core_object_dns_t* self)
 {
-    if (!self || !raw || !len) {
+    const core_object_packet_t* pkt;
+
+    if (!_self || _self->dns.have_header) {
         return 1;
     }
 
-    if (len > sizeof(self->small)) {
-        if (!self->raw) {
-            if (!(self->raw = malloc(len))) {
-                return 1;
-            }
-            self->rlen = len;
-        } else if (len > self->rlen) {
-            free(self->raw);
-            if (!(self->raw = malloc(len))) {
-                return 1;
-            }
-            self->rlen = len;
-        }
-
-        memcpy(self->raw, raw, len);
-    } else {
-        memcpy(self->small, raw, len);
-    }
-    self->len      = len;
-    self->have_raw = 1;
-
-    return 0;
-}
-
-#define _copy ((_query_t*)copy)
-
-core_query_t* core_query_copy(core_query_t* self)
-{
-    core_query_t* copy = core_query_new();
-
-    if (copy) {
-        memcpy(copy, self, sizeof(_query_t));
-        copy->have_raw = 0;
-        copy->raw      = 0;
-        copy->len      = 0;
-
-        _copy->ntop_buf = 0;
-        _copy->parsed   = 0;
-
-        if (self->have_raw && core_query_set_raw(copy, core_query_raw(self), self->len)) {
-            core_query_free(copy);
-            return 0;
-        }
-    }
-
-    return copy;
-}
-
-int core_query_parse_header(core_query_t* self)
-{
-    if (!_self || !self->have_raw || _self->dns.have_header) {
+    for (pkt = (core_object_packet_t*)self->obj_prev; pkt && pkt->obj_type != CORE_OBJECT_PACKET; pkt = (core_object_packet_t*)pkt->obj_prev)
+        ;
+    if (!pkt) {
         return 1;
     }
 
-    if (omg_dns_parse_header(&_self->dns, (const u_char*)(self->raw ? self->raw : self->small), self->len)) {
+    if (omg_dns_parse_header(&_self->dns, (u_char*)pkt->payload, pkt->len)) {
         return 2;
     }
 
@@ -263,9 +157,17 @@ int core_query_parse_header(core_query_t* self)
     return 0;
 }
 
-int core_query_parse(core_query_t* self)
+int core_object_dns_parse(core_object_dns_t* self)
 {
-    if (!_self || !self->have_raw || _self->parsed || _self->dns.have_body) {
+    const core_object_packet_t* pkt;
+
+    if (!_self || _self->parsed || _self->dns.have_body) {
+        return 1;
+    }
+
+    for (pkt = (core_object_packet_t*)self->obj_prev; pkt && pkt->obj_type != CORE_OBJECT_PACKET; pkt = (core_object_packet_t*)pkt->obj_prev)
+        ;
+    if (!pkt) {
         return 1;
     }
 
@@ -280,7 +182,7 @@ int core_query_parse(core_query_t* self)
     omg_dns_set_label_callback(&_self->dns, _label_callback, (void*)_self);
 
     if (!_self->dns.have_header) {
-        if (omg_dns_parse(&_self->dns, (const u_char*)(self->raw ? self->raw : self->small), self->len)) {
+        if (omg_dns_parse(&_self->dns, (u_char*)pkt->payload, pkt->len)) {
             return 2;
         }
 
@@ -314,8 +216,8 @@ int core_query_parse(core_query_t* self)
         self->ancount      = _self->dns.ancount;
         self->nscount      = _self->dns.nscount;
         self->arcount      = _self->dns.arcount;
-    } else if (self->len > _self->dns.bytes_parsed) {
-        if (omg_dns_parse_body(&_self->dns, (const u_char*)(self->raw ? self->raw : self->small) + _self->dns.bytes_parsed, self->len - _self->dns.bytes_parsed)) {
+    } else if (pkt->len > _self->dns.bytes_parsed) {
+        if (omg_dns_parse_body(&_self->dns, (u_char*)pkt->payload + _self->dns.bytes_parsed, pkt->len - _self->dns.bytes_parsed)) {
             return 2;
         }
     }
@@ -330,7 +232,7 @@ int core_query_parse(core_query_t* self)
     return 0;
 }
 
-int core_query_rr_next(core_query_t* self)
+int core_object_dns_rr_next(core_object_dns_t* self)
 {
     if (!_self || !_self->parsed) {
         return 1;
@@ -345,7 +247,7 @@ int core_query_rr_next(core_query_t* self)
     return _self->parsed->at_rr < _self->parsed->rr_idx ? 0 : 1;
 }
 
-int core_query_rr_ok(core_query_t* self)
+int core_object_dns_rr_ok(core_object_dns_t* self)
 {
     if (!_self || !_self->parsed || _self->parsed->at_rr < 0 || _self->parsed->at_rr >= _self->parsed->rr_idx) {
         return 0;
@@ -354,12 +256,19 @@ int core_query_rr_ok(core_query_t* self)
     return _self->parsed->rr_ret[_self->parsed->at_rr] == OMG_DNS_OK ? 1 : 0;
 }
 
-const char* core_query_rr_label(core_query_t* self)
+const char* core_object_dns_rr_label(core_object_dns_t* self)
 {
-    char*  label;
-    size_t left;
+    const core_object_packet_t* pkt;
+    char*                       label;
+    size_t                      left;
 
     if (!_self || !_self->parsed || _self->parsed->at_rr < 0 || _self->parsed->at_rr >= _self->parsed->rr_idx || _self->parsed->rr_ret[_self->parsed->at_rr] != OMG_DNS_OK) {
+        return 0;
+    }
+
+    for (pkt = (core_object_packet_t*)self->obj_prev; pkt && pkt->obj_type != CORE_OBJECT_PACKET; pkt = (core_object_packet_t*)pkt->obj_prev)
+        ;
+    if (!pkt) {
         return 0;
     }
 
@@ -401,8 +310,8 @@ const char* core_query_rr_label(core_query_t* self)
                 mldebug("label %lu is an extension", l);
                 return 0;
             } else if (omg_dns_label_have_dn(&(_self->parsed->label[l]))) {
-                char*  dn    = (self->raw ? self->raw : self->small) + omg_dns_label_dn_offset(&(_self->parsed->label[l]));
-                size_t dnlen = omg_dns_label_length(&(_self->parsed->label[l]));
+                const char* dn    = (char*)pkt->payload + omg_dns_label_dn_offset(&(_self->parsed->label[l]));
+                size_t      dnlen = omg_dns_label_length(&(_self->parsed->label[l]));
 
                 if ((dnlen + 1) > left) {
                     mldebug("label %lu caused buffer overflow", l);
@@ -428,7 +337,7 @@ const char* core_query_rr_label(core_query_t* self)
     return _self->parsed->label_buf;
 }
 
-uint16_t core_query_rr_type(core_query_t* self)
+uint16_t core_object_dns_rr_type(core_object_dns_t* self)
 {
     if (!_self || !_self->parsed || _self->parsed->at_rr < 0 || _self->parsed->at_rr >= _self->parsed->rr_idx || _self->parsed->rr_ret[_self->parsed->at_rr] != OMG_DNS_OK) {
         return 0;
@@ -437,7 +346,7 @@ uint16_t core_query_rr_type(core_query_t* self)
     return _self->parsed->rr[_self->parsed->at_rr].type;
 }
 
-uint16_t core_query_rr_class(core_query_t* self)
+uint16_t core_object_dns_rr_class(core_object_dns_t* self)
 {
     if (!_self || !_self->parsed || _self->parsed->at_rr < 0 || _self->parsed->at_rr >= _self->parsed->rr_idx || _self->parsed->rr_ret[_self->parsed->at_rr] != OMG_DNS_OK) {
         return 0;
@@ -446,136 +355,11 @@ uint16_t core_query_rr_class(core_query_t* self)
     return _self->parsed->rr[_self->parsed->at_rr].class;
 }
 
-uint32_t core_query_rr_ttl(core_query_t* self)
+uint32_t core_object_dns_rr_ttl(core_object_dns_t* self)
 {
     if (!_self || !_self->parsed || _self->parsed->at_rr < 0 || _self->parsed->at_rr >= _self->parsed->rr_idx || _self->parsed->rr_ret[_self->parsed->at_rr] != OMG_DNS_OK) {
         return 0;
     }
 
     return _self->parsed->rr[_self->parsed->at_rr].ttl;
-}
-
-const char* core_query_src(core_query_t* self)
-{
-    if (!_self || _self->af == AF_UNSPEC) {
-        return 0;
-    }
-
-    if (!_self->ntop_buf && !(_self->ntop_buf = malloc(NTOP_BUFSIZE))) {
-        return 0;
-    }
-
-    if (!inet_ntop(_self->af, &_self->src, _self->ntop_buf, NTOP_BUFSIZE)) {
-        return 0;
-    }
-
-    return _self->ntop_buf;
-}
-
-const char* core_query_dst(core_query_t* self)
-{
-    if (!_self || _self->af == AF_UNSPEC) {
-        return 0;
-    }
-
-    if (!_self->ntop_buf && !(_self->ntop_buf = malloc(NTOP_BUFSIZE))) {
-        return 0;
-    }
-
-    if (!inet_ntop(_self->af, &_self->dst, _self->ntop_buf, NTOP_BUFSIZE)) {
-        return 0;
-    }
-
-    return _self->ntop_buf;
-}
-
-int core_query_set_src(core_query_t* self, int af, const void* addr, size_t len)
-{
-    if (!_self || !addr || !len || len > sizeof(struct sockaddr_storage)) {
-        return 1;
-    }
-
-    if (_self->af != AF_UNSPEC && _self->af != af) {
-        return 1;
-    }
-
-    memcpy(&_self->src, addr, len);
-    _self->af = af;
-
-    return 0;
-}
-
-int core_query_set_dst(core_query_t* self, int af, const void* addr, size_t len)
-{
-    if (!_self || !addr || !len || len > sizeof(struct sockaddr_storage)) {
-        return 1;
-    }
-
-    if (_self->af != AF_UNSPEC && _self->af != af) {
-        return 1;
-    }
-
-    memcpy(&_self->dst, addr, len);
-    _self->af = af;
-
-    return 0;
-}
-
-int core_query_set_parsed_header(core_query_t* self, omg_dns_t dns)
-{
-    if (!_self || !self->have_raw || !dns.have_header || dns.have_body || dns.is_complete) {
-        return 1;
-    }
-
-    _self->dns         = dns;
-    self->have_id      = dns.have_id;
-    self->have_qr      = dns.have_qr;
-    self->have_opcode  = dns.have_opcode;
-    self->have_aa      = dns.have_aa;
-    self->have_tc      = dns.have_tc;
-    self->have_rd      = dns.have_rd;
-    self->have_ra      = dns.have_ra;
-    self->have_z       = dns.have_z;
-    self->have_ad      = dns.have_ad;
-    self->have_cd      = dns.have_cd;
-    self->have_rcode   = dns.have_rcode;
-    self->have_qdcount = dns.have_qdcount;
-    self->have_ancount = dns.have_ancount;
-    self->have_nscount = dns.have_nscount;
-    self->have_arcount = dns.have_arcount;
-    self->id           = dns.id;
-    self->qr           = dns.qr;
-    self->opcode       = dns.opcode;
-    self->aa           = dns.aa;
-    self->tc           = dns.tc;
-    self->rd           = dns.rd;
-    self->ra           = dns.ra;
-    self->z            = dns.z;
-    self->ad           = dns.ad;
-    self->cd           = dns.cd;
-    self->rcode        = dns.rcode;
-    self->qdcount      = dns.qdcount;
-    self->ancount      = dns.ancount;
-    self->nscount      = dns.nscount;
-    self->arcount      = dns.arcount;
-
-    return 0;
-}
-
-int core_query_copy_addr(core_query_t* self, core_query_t* from)
-{
-    _query_t* _from = (_query_t*)from;
-
-    if (!_self || !_from) {
-        return 1;
-    }
-
-    _self->af     = _from->af;
-    _self->src    = _from->src;
-    _self->dst    = _from->dst;
-    self->is_ipv6 = from->is_ipv6;
-    self->sport   = from->sport;
-    self->dport   = from->dport;
-
-    return 0;
 }
