@@ -26,7 +26,6 @@
 -- Input module for reading input from interfaces and PCAP files.
 module(...,package.seeall)
 
-local ch = require("dnsjit.core.chelpers")
 require("dnsjit.input.pcapthread_h")
 local ffi = require("ffi")
 local C = ffi.C
@@ -61,16 +60,21 @@ function Pcapthread:receiver(o)
     self._receiver = o
 end
 
--- Only pass DNS queries, the DNS header will be parsed and QR must be 0.
+-- Enable (true) or disable (false) only passing DNS queries to receiver, if
+-- .I bool
+-- is not specified then return if only passing DNS queries is on (true) or
+-- off (false).
 function Pcapthread:only_queries(bool)
     if bool == nil then
-        return ch.i2b(self.obj.only_queries)
+        if self.obj.only_queries == 1 then
+            return true
+        end
+        return false
+    elseif bool == true then
+        self.obj.only_queries = 1
+    else
+        self.obj.only_queries = 0
     end
-    local b = ch.b2i(bool)
-    if b == nil then
-        return 1
-    end
-    self.obj.only_queries = b
 end
 
 -- Return the snaphot length, see
@@ -80,38 +84,43 @@ function Pcapthread:snapshot()
     return C.pcap_thread_snapshot(self.obj.pt)
 end
 
--- Set the number of bytes to try and capture, use
--- .BR snaphot ()
--- too see how many bytes are actually captured.
--- If
+-- Set the number of bytes to capture and return 0 if successful, if
 -- .I len
 -- is not specified then return the number of bytes that was previously
 -- set by this function.
+-- Use
+-- .BR snaphot ()
+-- too see how many bytes are actually captured.
 function Pcapthread:snaplen(len)
     if len == nil then
         return C.pcap_thread_snaplen(self.obj.pt)
     end
-    return ch.z2n(C.pcap_thread_set_snaplen(self.obj.pt, len))
+    return C.pcap_thread_set_snaplen(self.obj.pt, len)
 end
 
--- Enable (true) or disable (false) promiscuous mode, if
+-- Enable (true) or disable (false) promiscuous mode and return 0 if
+-- successful, if
 -- .I bool
--- is not specified then return if promiscuous mode is on (true) or off (false).
+-- is not specified then return if promiscuous mode is on (true) or
+-- off (false).
 -- See
 -- .BR pcap (3pcap)
 -- for more information.
 function Pcapthread:promiscuous(bool)
     if bool == nil then
-        return ch.i2b(C.pcap_thread_promiscuous(self.obj.pt))
+        if C.pcap_thread_promiscuous(self.obj.pt) == 1 then
+            return true
+        end
+        return false
+    elseif bool == true then
+        return C.pcap_thread_set_promiscuous(self.obj.pt, 1)
+    else
+        return C.pcap_thread_set_promiscuous(self.obj.pt, 0)
     end
-    local b = ch.b2i(bool)
-    if b == nil then
-        return 1
-    end
-    return ch.z2n(C.pcap_thread_set_promiscuous(self.obj.pt, b))
 end
 
--- Enable (true) or disable (false) monitor mode, if
+-- Enable (true) or disable (false) monitor mode and return 0 if
+-- successful, if
 -- .I bool
 -- is not specified then return if monitor mode is on (true) or off (false).
 -- See
@@ -119,16 +128,18 @@ end
 -- for more information.
 function Pcapthread:monitor(bool)
     if bool == nil then
-        return ch.i2b(C.pcap_thread_monitor(self.obj.pt))
+        if C.pcap_thread_monitor(self.obj.pt) == 1 then
+            return true
+        end
+        return false
+    elseif bool == true then
+        return C.pcap_thread_set_monitor(self.obj.pt, 1)
+    else
+        return C.pcap_thread_set_monitor(self.obj.pt, 0)
     end
-    local b = ch.b2i(bool)
-    if b == nil then
-        return 1
-    end
-    return ch.z2n(C.pcap_thread_set_monitor(self.obj.pt, b))
 end
 
--- Set the timeout in milliseconds, if
+-- Set the timeout in milliseconds and return 0 if successful, if
 -- .I ms
 -- is not specified then return the current timeout.
 -- See
@@ -138,10 +149,10 @@ function Pcapthread:timeout(ms)
     if ms == nil then
         return C.pcap_thread_timeout(self.obj.pt)
     end
-    return ch.z2n(C.pcap_thread_set_timeout(self.obj.pt, ms))
+    return C.pcap_thread_set_timeout(self.obj.pt, ms)
 end
 
--- Set the buffer size, if
+-- Set the buffer size and return 0 if successful, if
 -- .I size
 -- is not specified then return the current buffer size.
 -- See
@@ -151,10 +162,11 @@ function Pcapthread:buffer_size(size)
     if size == nil then
         return C.pcap_thread_buffer_size(self.obj.pt)
     end
-    return ch.z2n(C.pcap_thread_set_buffer_size(self.obj.pt, size))
+    return C.pcap_thread_set_buffer_size(self.obj.pt, size)
 end
 
--- Enable (true) or disable (false) immediate mode, if
+-- Enable (true) or disable (false) immediate mode and return 0 if
+-- successful, if
 -- .I bool
 -- is not specified then return if immediate mode is on (true) or off (false).
 -- May have no effect depending on libpcap version.
@@ -163,18 +175,23 @@ end
 -- for more information.
 function Pcapthread:immediate_mode()
     if bool == nil then
-        return ch.i2b(C.pcap_thread_immediate_mode(self.obj.pt))
+        if C.pcap_thread_immediate_mode(self.obj.pt) == 1 then
+            return true
+        end
+        return false
+    elseif bool == true then
+        return C.pcap_thread_set_immediate_mode(self.obj.pt, 1)
+    else
+        return C.pcap_thread_set_immediate_mode(self.obj.pt, 0)
     end
-    local b = ch.b2i(bool)
-    if b == nil then
-        return 1
-    end
-    return ch.z2n(C.pcap_thread_set_immediate_mode(self.obj.pt, b))
 end
 
--- Set the PCAP packet filter to use, if
+-- Set the PCAP packet filter to use and return 0 if successful, if
 -- .I pf
 -- is not specified then return the current packet filter in use.
+-- If
+-- .I pf
+-- is false then clear the packet filter and return 0 on success.
 -- See
 -- .BR pcap-filter (3pcap)
 -- for more information.
@@ -182,34 +199,40 @@ function Pcapthread:filter(pf)
     if pf == nil then
         return ffi.string(C.pcap_thread_filter(self.obj.pt))
     elseif pf == false then
-        return ch.z2n(C.pcap_thread_clear_filter(self.obj.pt))
+        return C.pcap_thread_clear_filter(self.obj.pt)
     end
-    return ch.z2n(C.pcap_thread_set_filter(self.obj.pt, pf, string.len(pf)))
+    return C.pcap_thread_set_filter(self.obj.pt, pf, string.len(pf))
 end
 
--- Return the error number return from libpcap while parsing the packet filter.
+-- Return the error number return from libpcap while parsing the packet
+-- filter.
 function Pcapthread:filter_errno()
     return C.pcap_thread_filter_errno(self.obj.pt)
 end
 
--- Enable (true) or disable (false) packet filter optimizing, if
+-- Enable (true) or disable (false) packet filter optimizing and return 0
+-- if successful, if
 -- .I bool
--- is not specified then return if packet filter optimizing is on (true) or off (false).
+-- is not specified then return if packet filter optimizing is on (true) or
+-- off (false).
 -- See
 -- .BR pcap_compile (3pcap)
 -- for more information.
 function Pcapthread:filter_optimize(bool)
     if bool == nil then
-        return ch.i2b(C.pcap_thread_filter_optimize(self.obj.pt))
+        if C.pcap_thread_filter_optimize(self.obj.pt) == 1 then
+            return true
+        end
+        return false
+    elseif bool == true then
+        return C.pcap_thread_set_filter_optimize(self.obj.pt, 1)
+    else
+        return C.pcap_thread_set_filter_optimize(self.obj.pt, 0)
     end
-    local b = ch.b2i(bool)
-    if b == nil then
-        return 1
-    end
-    return ch.z2n(C.pcap_thread_set_filter_optimize(self.obj.pt, b))
 end
 
--- Set the network mask to give when compiling the packet filter, if
+-- Set the network mask to give when compiling the packet filter and
+-- return 0 if successful, if
 -- .I netmask
 -- is not specified then return the current network mask.
 -- See
@@ -219,30 +242,34 @@ function Pcapthread:filter_netmask(netmask)
     if netmask == nil then
         return C.pcap_thread_filter_netmask(self.obj.pt)
     end
-    return ch.z2n(C.pcap_thread_set_filter_netmask(self.obj.pt, netmask))
+    return C.pcap_thread_set_filter_netmask(self.obj.pt, netmask)
 end
 
 -- Open an interface device for capturing, can be given multiple times to
 -- open additional interfaces.
+-- Returns 0 on success.
 function Pcapthread:open(device)
-    return ch.z2n(C.input_pcapthread_open(self.obj, device))
+    return C.input_pcapthread_open(self.obj, device)
 end
 
 -- Open a PCAP file for processing, can be given multiple times to
 -- open additional files.
+-- Returns 0 on success.
 function Pcapthread:open_offline(file)
-    return ch.z2n(C.input_pcapthread_open_offline(self.obj, file))
+    return C.input_pcapthread_open_offline(self.obj, file)
 end
 
 -- Start processing packet from opened devices and PCAP files.
+-- Returns 0 on success.
 function Pcapthread:run()
-    return ch.z2n(C.input_pcapthread_run(self.obj))
+    return C.input_pcapthread_run(self.obj)
 end
 
 -- Process one packet from the opened devices and PCAP files, the opened
 -- sources are processed as a round robin list.
+-- Returns 0 on success.
 function Pcapthread:next()
-    return ch.z2n(C.input_pcapthread_next(self.obj))
+    return C.input_pcapthread_next(self.obj)
 end
 
 -- Return the last error as a string that came from libpcap functions

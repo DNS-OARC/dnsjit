@@ -152,7 +152,6 @@
 -- The actual number of additionals found.
 module(...,package.seeall)
 
-local ch = require("dnsjit.core.chelpers")
 require("dnsjit.core.object.dns_h")
 local ffi = require("ffi")
 local C = ffi.C
@@ -186,14 +185,15 @@ function Dns:log()
     return C.core_object_dns_log()
 end
 
--- Parse the DNS headers or the query.
+-- Parse the DNS headers or the query, returns 0 on success.
 function Dns:parse_header()
-    return ch.z2n(C.core_object_dns_parse_header(self))
+    return C.core_object_dns_parse_header(self)
 end
 
--- Parse the full DNS message or just the body if the header was already parsed.
+-- Parse the full DNS message or just the body if the header was already
+-- parsed, returns 0 on success.
 function Dns:parse()
-    return ch.z2n(C.core_object_dns_parse(self))
+    return C.core_object_dns_parse(self)
 end
 
 -- Return the IP source as a string.
@@ -206,23 +206,23 @@ function Dns:dst()
     return ffi.string(C.core_object_dns_dst(self))
 end
 
--- Start walking the resource record(s) (RR) found or continue with the next,
--- returns integer > 0 on error or end of RRs.
+-- Start walking the resource record(s) (RR) found or continue with the next.
+-- Returns 0 on success, < 0 on end of RRs and > 0 on error.
 function Dns:rr_next()
     return C.core_object_dns_rr_next(self)
 end
 
 -- Check if the RR at the current position was parsed successfully or not,
--- return 1 if successful.
+-- returns 1 if successful.
 function Dns:rr_ok()
     return C.core_object_dns_rr_ok(self)
 end
 
--- Return the FQDN of the current RR or an empty string on error.
+-- Return the FQDN of the current RR or nil on error.
 function Dns:rr_label()
     local ptr = C.core_object_dns_rr_label(self)
     if ptr == nil then
-        return ""
+        return nil
     end
     return ffi.string(ptr)
 end

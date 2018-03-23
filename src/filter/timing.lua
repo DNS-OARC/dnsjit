@@ -76,6 +76,7 @@ function Timing:multiply(factor)
     self.obj.mul = factor
 end
 
+-- Return the C functions and context for receiving objects.
 function Timing:receive()
     self.obj._log:debug("receive()")
     return C.filter_timing_receiver(), self.obj

@@ -296,37 +296,37 @@ function Log.debug(self, ...)
         self = nil
     end
     if not self then
-        if not L.settings.debug == 3 then
+        if L.settings.debug ~= 3 then
             return
         end
     else
-        if not self.settings.debug == 0 then
-            if not self.settings.debug == 3 then
+        if self.settings.debug ~= 0 then
+            if self.settings.debug ~= 3 then
                 return
             end
-        elseif not self.module and not self.module.debug == 0 then
-            if not self.module.debug == 3 then
+        elseif self.module ~= nil and self.module.debug ~= 0 then
+            if self.module.debug ~= 3 then
                 return
             end
-        elseif not L.settings.debug == 3 then
+        elseif L.settings.debug ~= 3 then
             return
         end
     end
     while true do
         if not self then
-            if not L.settings.display_file_line == 3 then
+            if L.settings.display_file_line ~= 3 then
                 break
             end
         else
-            if not self.settings.display_file_line == 0 then
-                if not self.settings.display_file_line == 3 then
+            if self.settings.display_file_line ~= 0 then
+                if self.settings.display_file_line ~= 3 then
                     break
                 end
-            elseif not self.module and not self.module.display_file_line == 0 then
-                if not self.module.display_file_line == 3 then
+            elseif self.module ~= nil and self.module.display_file_line ~= 0 then
+                if self.module.display_file_line ~= 3 then
                     break
                 end
-            elseif not L.settings.display_file_line == 3 then
+            elseif L.settings.display_file_line ~= 3 then
                 break
             end
         end
@@ -354,37 +354,37 @@ function Log.info(self, ...)
         self = nil
     end
     if not self then
-        if not L.settings.info == 3 then
+        if L.settings.info ~= 3 then
             return
         end
     else
-        if not self.settings.info == 0 then
-            if not self.settings.info == 3 then
+        if self.settings.info ~= 0 then
+            if self.settings.info ~= 3 then
                 return
             end
-        elseif not self.module and not self.module.info == 0 then
-            if not self.module.info == 3 then
+        elseif self.module ~= nil and self.module.info ~= 0 then
+            if self.module.info ~= 3 then
                 return
             end
-        elseif not L.settings.info == 3 then
+        elseif L.settings.info ~= 3 then
             return
         end
     end
     while true do
         if not self then
-            if not L.settings.display_file_line == 3 then
+            if L.settings.display_file_line ~= 3 then
                 break
             end
         else
-            if not self.settings.display_file_line == 0 then
-                if not self.settings.display_file_line == 3 then
+            if self.settings.display_file_line ~= 0 then
+                if self.settings.display_file_line ~= 3 then
                     break
                 end
-            elseif not self.module and not self.module.display_file_line == 0 then
-                if not self.module.display_file_line == 3 then
+            elseif self.module ~= nil and self.module.display_file_line ~= 0 then
+                if self.module.display_file_line ~= 3 then
                     break
                 end
-            elseif not L.settings.display_file_line == 3 then
+            elseif L.settings.display_file_line ~= 3 then
                 break
             end
         end
@@ -412,37 +412,37 @@ function Log.notice(self, ...)
         self = nil
     end
     if not self then
-        if not L.settings.notice == 3 then
+        if L.settings.notice ~= 3 then
             return
         end
     else
-        if not self.settings.notice == 0 then
-            if not self.settings.notice == 3 then
+        if self.settings.notice ~= 0 then
+            if self.settings.notice ~= 3 then
                 return
             end
-        elseif not self.module and not self.module.notice == 0 then
-            if not self.module.notice == 3 then
+        elseif self.module ~= nil and self.module.notice ~= 0 then
+            if self.module.notice ~= 3 then
                 return
             end
-        elseif not L.settings.notice == 3 then
+        elseif L.settings.notice ~= 3 then
             return
         end
     end
     while true do
         if not self then
-            if not L.settings.display_file_line == 3 then
+            if L.settings.display_file_line ~= 3 then
                 break
             end
         else
-            if not self.settings.display_file_line == 0 then
-                if not self.settings.display_file_line == 3 then
+            if self.settings.display_file_line ~= 0 then
+                if self.settings.display_file_line ~= 3 then
                     break
                 end
-            elseif not self.module and not self.module.display_file_line == 0 then
-                if not self.module.display_file_line == 3 then
+            elseif self.module ~= nil and self.module.display_file_line ~= 0 then
+                if self.module.display_file_line ~= 3 then
                     break
                 end
-            elseif not L.settings.display_file_line == 3 then
+            elseif L.settings.display_file_line ~= 3 then
                 break
             end
         end
@@ -470,37 +470,37 @@ function Log.warning(self, ...)
         self = nil
     end
     if not self then
-        if not L.settings.warning == 3 then
+        if L.settings.warning ~= 3 then
             return
         end
     else
-        if not self.settings.warning == 0 then
-            if not self.settings.warning == 3 then
+        if self.settings.warning ~= 0 then
+            if self.settings.warning ~= 3 then
                 return
             end
-        elseif not self.module and not self.module.warning == 0 then
-            if not self.module.warning == 3 then
+        elseif self.module ~= nil and self.module.warning ~= 0 then
+            if self.module.warning ~= 3 then
                 return
             end
-        elseif not L.settings.warning == 3 then
+        elseif L.settings.warning ~= 3 then
             return
         end
     end
     while true do
         if not self then
-            if not L.settings.display_file_line == 3 then
+            if L.settings.display_file_line ~= 3 then
                 break
             end
         else
-            if not self.settings.display_file_line == 0 then
-                if not self.settings.display_file_line == 3 then
+            if self.settings.display_file_line ~= 0 then
+                if self.settings.display_file_line ~= 3 then
                     break
                 end
-            elseif not self.module and not self.module.display_file_line == 0 then
-                if not self.module.display_file_line == 3 then
+            elseif self.module ~= nil and self.module.display_file_line ~= 0 then
+                if self.module.display_file_line ~= 3 then
                     break
                 end
-            elseif not L.settings.display_file_line == 3 then
+            elseif L.settings.display_file_line ~= 3 then
                 break
             end
         end
@@ -529,19 +529,19 @@ function Log.critical(self, ...)
     end
     while true do
         if not self then
-            if not L.settings.display_file_line == 3 then
+            if L.settings.display_file_line ~= 3 then
                 break
             end
         else
-            if not self.settings.display_file_line == 0 then
-                if not self.settings.display_file_line == 3 then
+            if self.settings.display_file_line ~= 0 then
+                if self.settings.display_file_line ~= 3 then
                     break
                 end
-            elseif not self.module and not self.module.display_file_line == 0 then
-                if not self.module.display_file_line == 3 then
+            elseif self.module ~= nil and self.module.display_file_line ~= 0 then
+                if self.module.display_file_line ~= 3 then
                     break
                 end
-            elseif not L.settings.display_file_line == 3 then
+            elseif L.settings.display_file_line ~= 3 then
                 break
             end
         end
@@ -570,19 +570,19 @@ function Log.fatal(self, ...)
     end
     while true do
         if not self then
-            if not L.settings.display_file_line == 3 then
+            if L.settings.display_file_line ~= 3 then
                 break
             end
         else
-            if not self.settings.display_file_line == 0 then
-                if not self.settings.display_file_line == 3 then
+            if self.settings.display_file_line ~= 0 then
+                if self.settings.display_file_line ~= 3 then
                     break
                 end
-            elseif not self.module and not self.module.display_file_line == 0 then
-                if not self.module.display_file_line == 3 then
+            elseif self.module ~= nil and self.module.display_file_line ~= 0 then
+                if self.module.display_file_line ~= 3 then
                     break
                 end
-            elseif not L.settings.display_file_line == 3 then
+            elseif L.settings.display_file_line ~= 3 then
                 break
             end
         end

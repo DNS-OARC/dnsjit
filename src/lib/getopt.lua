@@ -104,7 +104,7 @@ function Getopt:add(short, long, default, help, extensions)
     local counter = false
     local name = long or short
 
-    if not type(name) == "string" then
+    if type(name) ~= "string" then
         error("long|short) need to be a string")
     elseif name == "" then
         error("name (long|short) needs to be set")
@@ -117,7 +117,7 @@ function Getopt:add(short, long, default, help, extensions)
     end
 
     local t = type(default)
-    if not (t == "string" or t == "number" or t == "boolean") then
+    if t ~= "string" and t ~= "number" and t ~= "boolean" then
         error("option "..name..": invalid type "..t)
     end
 
@@ -177,7 +177,7 @@ function Getopt:usage()
         local arg
         if v.type == "string" then
             arg = " \""..v.default.."\""
-        elseif v.type == "number" and not v.counter then
+        elseif v.type == "number" and v.counter == false then
             arg = " "..v.default
         else
             arg = ""
@@ -311,7 +311,7 @@ function Getopt:parse(args, startn)
     end
 
     for k, v in pairs(self.opt) do
-        if not v.optional and v.value == nil then
+        if v.optional == false and v.value == nil then
             error("missing required option "..k.."")
         end
     end

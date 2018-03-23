@@ -31,7 +31,6 @@
 -- to send them to the next receiver.
 module(...,package.seeall)
 
-local ch = require("dnsjit.core.chelpers")
 local object = require("dnsjit.core.object")
 require("dnsjit.core.receiver_h")
 require("dnsjit.filter.lua_h")
@@ -64,31 +63,34 @@ end
 
 -- Set the function to call on each receive, this function runs in it's own
 -- Lua state and in so does not shared any global variables.
+-- Returns 0 on success.
 function Lua:func(func)
     if self.ishandler then
         error("is handler")
     end
     local bc = string.dump(func)
-    return ch.z2n(C.filter_lua_func(self.obj, bc, string.len(bc)))
+    return C.filter_lua_func(self.obj, bc, string.len(bc))
 end
 
 -- Push additional arguments to send to the function, this is the way to
 -- pass variables into the new Lua state.
+-- Returns 0 on success.
 function Lua:push(var)
     local t = type(var)
     if t == "string" then
-        return ch.z2n(C.filter_lua_push_string(self.obj, var, string.len(var)))
+        return C.filter_lua_push_string(self.obj, var, string.len(var))
     elseif t == "number" then
         local n = math.floor(var)
         if n == var then
-            return ch.z2n(C.filter_lua_push_integer(self.obj, n))
+            return C.filter_lua_push_integer(self.obj, n)
         else
-            return ch.z2n(C.filter_lua_push_double(self.obj, var))
+            return C.filter_lua_push_double(self.obj, var)
         end
     end
     return 1
 end
 
+-- Return the C functions and context for receiving objects.
 function Lua:receive()
     if self.ishandler then
         error("is handler")
@@ -136,12 +138,13 @@ function Lua:run()
     return self._func(self, object.cast(obj), FILTER_LUA_ARGS)
 end
 
--- Used from the Lua function to send objects to the next receiver.
+-- Used from the Lua function to send objects to the next receiver,
+-- returns 0 on success.
 function Lua:send(object)
     if not self.ishandler then
         error("not handler")
     end
-    return ch.z2n(C.core_receiver_call(self._recv, self._ctx, object))
+    return C.core_receiver_call(self._recv, self._ctx, object)
 end
 
 -- dnsjit.core.object (3),
