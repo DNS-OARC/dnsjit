@@ -64,10 +64,15 @@ function Split:sendall()
     self.obj.mode = "FILTER_SPLIT_MODE_SENDALL"
 end
 
+-- Set the passthrough mode to send to any of the receivers, TODO
+function Split:any()
+    self.obj.mode = "FILTER_SPLIT_MODE_ANY"
+end
+
 -- Return the C functions and context for receiving objects.
 function Split:receive()
     self.obj._log:debug("receive()")
-    return C.filter_split_receiver(), self.obj
+    return C.filter_split_receiver(self.obj), self.obj
 end
 
 -- Set the receiver to pass objects to, this can be called multiple times to

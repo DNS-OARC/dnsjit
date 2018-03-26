@@ -1,0 +1,110 @@
+-- Copyright (c) 2018, OARC, Inc.
+-- All rights reserved.
+--
+-- This file is part of dnsjit.
+--
+-- dnsjit is free software: you can redistribute it and/or modify
+-- it under the terms of the GNU General Public License as published by
+-- the Free Software Foundation, either version 3 of the License, or
+-- (at your option) any later version.
+--
+-- dnsjit is distributed in the hope that it will be useful,
+-- but WITHOUT ANY WARRANTY; without even the implied warranty of
+-- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+-- GNU General Public License for more details.
+--
+-- You should have received a copy of the GNU General Public License
+-- along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
+
+-- dnsjit.input.pcap
+-- Read input from an interface or PCAP file using libpcap
+--   local input = require("dnsjit.input.pcapthread").new()
+--   input:open_offline("file.pcap")
+--   input:receiver(filter_or_output)
+--   input:run()
+--
+-- Input module for reading packets from interfaces and PCAP files.
+module(...,package.seeall)
+
+require("dnsjit.input.pcap_h")
+local ffi = require("ffi")
+local C = ffi.C
+
+local t_name = "input_pcap_t"
+local input_pcap_t = ffi.typeof(t_name)
+local Pcap = {}
+
+-- Create a new Pcap input.
+function Pcap.new()
+    local self = {
+        _receiver = nil,
+        obj = input_pcap_t(),
+    }
+    C.input_pcap_init(self.obj)
+    ffi.gc(self.obj, C.input_pcap_destroy)
+    return setmetatable(self, { __index = Pcap })
+end
+
+-- Return the Log object to control logging of this instance or module.
+function Pcap:log()
+    if self == nil then
+        return C.input_pcap_log()
+    end
+    return self.obj._log
+end
+
+-- Set the receiver to pass queries to.
+function Pcap:receiver(o)
+    self.obj._log:debug("receiver()")
+    self.obj.recv, self.obj.ctx = o:receive()
+    self._receiver = o
+end
+
+-- Open a PCAP file for processing.
+-- Returns 0 on success.
+function Pcap:open_offline(file)
+    return C.input_pcap_open_offline(self.obj, file)
+end
+
+-- Process packets from a live capture or savefile until
+-- .I cnt
+-- packets are processed, see
+-- .BR pcap_loop (3pcap)
+-- for more information.
+function Pcap:loop(cnt)
+    if cnt == nil then
+        cnt = -1
+    end
+    return C.input_pcap_loop(self.obj, cnt)
+end
+
+-- Process packets from a live capture or savefile until
+-- .I cnt
+-- packets are processed, see
+-- .BR pcap_dispatch (3pcap)
+-- for more information.
+function Pcap:dispatch(cnt)
+    if cnt == nil then
+        cnt = -1
+    end
+    return C.input_pcap_dispatch(self.obj, cnt)
+end
+
+-- Return the seconds and nanoseconds (as a list) of the start time for
+-- .BR Pcap:run() .
+function Pcap:start_time()
+    return tonumber(self.obj.ts.sec), tonumber(self.obj.ts.nsec)
+end
+
+-- Return the seconds and nanoseconds (as a list) of the stop time for
+-- .BR Pcap:run() .
+function Pcap:end_time()
+    return tonumber(self.obj.te.sec), tonumber(self.obj.te.nsec)
+end
+
+-- Return the number of packets seen.
+function Pcap:packets()
+    return tonumber(self.obj.pkts)
+end
+
+return Pcap

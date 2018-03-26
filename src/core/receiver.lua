@@ -26,8 +26,6 @@
 -- input, filter and output modules to pass query objects for processing.
 module(...,package.seeall)
 
-error("This should not be included, only here for documentation generation")
-
 -- dnsjit.core.query (3),
 -- dnsjit.input.lua (3)
 return

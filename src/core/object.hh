@@ -23,3 +23,5 @@ struct core_object {
     unsigned short       obj_type;
     const core_object_t* obj_prev;
 };
+
+core_object_t* core_object_copy(const core_object_t* obj);

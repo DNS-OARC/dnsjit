@@ -27,7 +27,8 @@
 
 static core_log_t   _log      = LOG_T_INIT("filter.lua");
 static filter_lua_t _defaults = {
-    LOG_T_INIT_OBJ("filter.lua"), 0, 0, 0, 0
+    LOG_T_INIT_OBJ("filter.lua"),
+    0, 0, 0, 0
 };
 
 core_log_t* filter_lua_log()

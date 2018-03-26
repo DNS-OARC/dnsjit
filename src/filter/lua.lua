@@ -17,7 +17,7 @@
 -- along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
 
 -- dnsjit.filter.lua
--- Filter through custom Lua function
+-- Filter through a custom Lua function
 --   local filter = require("dnsjit.filter.lua").new()
 --   filter:push("arg1")
 --   filter:push(2)
@@ -29,6 +29,10 @@
 --
 -- Filter module to run custom Lua code on received objects with the option
 -- to send them to the next receiver.
+-- It will create a new Lua state for the function provided which means it
+-- can not share any globals or knows of any previous loaded modules, see
+-- .BR dnsjit.filter.coro (3)
+-- for another way to do this using Lua coroutines.
 module(...,package.seeall)
 
 local object = require("dnsjit.core.object")
@@ -148,5 +152,5 @@ function Lua:send(object)
 end
 
 -- dnsjit.core.object (3),
--- dnsjit.filter.thread (3)
+-- dnsjit.filter.coro (3)
 return Lua

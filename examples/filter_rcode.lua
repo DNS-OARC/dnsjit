@@ -12,6 +12,7 @@ local output = require("dnsjit.filter.lua").new()
 
 output:push(tonumber(rcode))
 output:func(function(filter, pkt, args)
+    require("dnsjit.core.object.packet")
     local rcode = unpack(args, 0)
     local dns
     if pkt:type() == "packet" then

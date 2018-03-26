@@ -22,8 +22,25 @@
 #define __dnsjit_core_object_h
 
 #define CORE_OBJECT_NONE 0
-#define CORE_OBJECT_PACKET 1
-#define CORE_OBJECT_DNS 2
+#define CORE_OBJECT_PCAP 1
+/* link level objects */
+#define CORE_OBJECT_ETHER 10
+#define CORE_OBJECT_NULL 11
+#define CORE_OBJECT_LOOP 12
+#define CORE_OBJECT_LINUXSLL 13
+#define CORE_OBJECT_IEEE802 14
+#define CORE_OBJECT_GRE 15
+/* protocol objects */
+#define CORE_OBJECT_IP 20
+#define CORE_OBJECT_IP6 21
+#define CORE_OBJECT_ICMP 22
+#define CORE_OBJECT_ICMP6 23
+/* DNS carrying objects */
+#define CORE_OBJECT_UDP 30
+#define CORE_OBJECT_TCP 31
+#define CORE_OBJECT_PACKET 32
+/* DNS object(s) */
+#define CORE_OBJECT_DNS 40
 
 #include "core/object.hh"
 

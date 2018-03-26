@@ -30,9 +30,9 @@
 
 #include "core/object/dns.hh"
 
-#define CORE_OBJECT_DNS_INIT                             \
+#define CORE_OBJECT_DNS_INIT(prev)                       \
     {                                                    \
-        CORE_OBJECT_DNS, 0,                              \
+        CORE_OBJECT_DNS, (core_object_t*)prev,           \
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, \
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, \
             0, 0, 0, 0                                   \

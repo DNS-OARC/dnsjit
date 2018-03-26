@@ -64,7 +64,7 @@ int input_zero_destroy(input_zero_t* self)
 int input_zero_run(input_zero_t* self, uint64_t num)
 {
     struct timespec      ts, te;
-    core_object_packet_t pkt = CORE_OBJECT_PACKET_INIT;
+    core_object_packet_t pkt = CORE_OBJECT_PACKET_INIT(0);
 
     if (!self || !self->recv) {
         return 1;

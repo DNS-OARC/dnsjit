@@ -24,7 +24,8 @@
 
 static core_log_t     _log      = LOG_T_INIT("filter.split");
 static filter_split_t _defaults = {
-    LOG_T_INIT_OBJ("filter.split"), FILTER_SPLIT_MODE_ROUNDROBIN, 0, 0
+    LOG_T_INIT_OBJ("filter.split"),
+    FILTER_SPLIT_MODE_ROUNDROBIN, 0, 0
 };
 
 core_log_t* filter_split_log()
@@ -89,35 +90,76 @@ int filter_split_add(filter_split_t* self, core_receiver_t recv, void* ctx)
 
 static int _receive(void* ctx, const core_object_t* obj)
 {
+    (void)ctx;
+    (void)obj;
+    return 1;
+}
+
+static int _roundrobin(void* ctx, const core_object_t* obj)
+{
     filter_split_t* self = (filter_split_t*)ctx;
 
     if (!self || !obj || !self->recv) {
         return 1;
     }
 
-    switch (self->mode) {
-    case FILTER_SPLIT_MODE_ROUNDROBIN:
+    self->recv->recv(self->recv->ctx, obj);
+    self->recv = self->recv->next;
+    if (!self->recv) {
+        self->recv = self->recv_list;
+    }
+
+    return 0;
+}
+
+static int _sendall(void* ctx, const core_object_t* obj)
+{
+    filter_split_t* self = (filter_split_t*)ctx;
+
+    if (!self || !obj || !self->recv) {
+        return 1;
+    }
+
+    while (self->recv) {
         self->recv->recv(self->recv->ctx, obj);
+        self->recv = self->recv->next;
+    }
+    self->recv = self->recv_list;
+
+    return 0;
+}
+
+static int _any(void* ctx, const core_object_t* obj)
+{
+    filter_split_t* self = (filter_split_t*)ctx;
+
+    if (!self || !obj || !self->recv) {
+        return 1;
+    }
+
+    while (self->recv->recv(self->recv->ctx, obj)) {
         self->recv = self->recv->next;
         if (!self->recv) {
             self->recv = self->recv_list;
         }
-        return 0;
-    case FILTER_SPLIT_MODE_SENDALL:
-        while (self->recv) {
-            self->recv->recv(self->recv->ctx, obj);
-            self->recv = self->recv->next;
-        }
+    }
+    self->recv = self->recv->next;
+    if (!self->recv) {
         self->recv = self->recv_list;
-        return 0;
-    default:
-        break;
     }
 
-    return 1;
+    return 0;
 }
 
-core_receiver_t filter_split_receiver()
+core_receiver_t filter_split_receiver(filter_split_t* self)
 {
+    switch (self->mode) {
+    case FILTER_SPLIT_MODE_ROUNDROBIN:
+        return _roundrobin;
+    case FILTER_SPLIT_MODE_SENDALL:
+        return _sendall;
+    case FILTER_SPLIT_MODE_ANY:
+        return _any;
+    }
     return _receive;
 }
