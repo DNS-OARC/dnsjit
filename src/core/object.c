@@ -27,10 +27,16 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* TODO: document */
 core_object_t* core_object_copy(const core_object_t* obj)
 {
     if (!obj) {
         return 0;
+    }
+
+    if (obj->obj_ref) {
+        obj->obj_ref((core_object_t*)obj, CORE_OBJECT_INCREF);
+        return (core_object_t*)obj;
     }
 
     switch (obj->obj_type) {

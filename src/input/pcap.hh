@@ -31,14 +31,14 @@ typedef struct input_pcap {
     core_receiver_t recv;
     void*           ctx;
 
+    unsigned short is_swapped : 1;
+
     pcap_t*         pcap;
     core_timespec_t ts, te;
     size_t          pkts;
 
     size_t   snaplen;
     uint32_t linktype;
-
-    unsigned short swapped : 1;
 } input_pcap_t;
 
 core_log_t* input_pcap_log();

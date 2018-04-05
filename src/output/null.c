@@ -21,12 +21,25 @@
 #include "config.h"
 
 #include "output/null.h"
+#include "core/object/pcap.h"
+
+#include "core/log.h"
 
 static int _receive(void* ctx, const core_object_t* obj)
 {
     output_null_t* self = (output_null_t*)ctx;
 
     if (self) {
+        if (obj && obj->obj_type == CORE_OBJECT_PCAP) {
+            const core_object_pcap_t* pkt = (core_object_pcap_t*)obj;
+            if (pkt->is_multiple) {
+                while (pkt) {
+                    self->pkts++;
+                    pkt = (core_object_pcap_t*)pkt->obj_prev;
+                }
+                return 0;
+            }
+        }
         self->pkts++;
     }
 

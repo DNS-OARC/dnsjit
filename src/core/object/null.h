@@ -28,10 +28,11 @@
 
 #include "core/object/null.hh"
 
-#define CORE_OBJECT_NULL_INIT(prev)             \
-    {                                           \
-        CORE_OBJECT_NULL, (core_object_t*)prev, \
-            0                                   \
+#define CORE_OBJECT_NULL_INIT(prev)              \
+    {                                            \
+        CORE_OBJECT_INIT(CORE_OBJECT_NULL, prev) \
+        ,                                        \
+            0                                    \
     }
 
 #endif

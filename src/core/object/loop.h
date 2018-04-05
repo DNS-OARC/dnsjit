@@ -28,10 +28,11 @@
 
 #include "core/object/loop.hh"
 
-#define CORE_OBJECT_LOOP_INIT(prev)             \
-    {                                           \
-        CORE_OBJECT_LOOP, (core_object_t*)prev, \
-            0                                   \
+#define CORE_OBJECT_LOOP_INIT(prev)              \
+    {                                            \
+        CORE_OBJECT_INIT(CORE_OBJECT_LOOP, prev) \
+        ,                                        \
+            0                                    \
     }
 
 #endif

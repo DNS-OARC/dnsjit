@@ -21,6 +21,7 @@
 #include "core/log.h"
 #include "core/receiver.h"
 #include "core/timespec.h"
+#include "core/object/pcap.h"
 
 #ifndef __dnsjit_input_fpcap_h
 #define __dnsjit_input_fpcap_h

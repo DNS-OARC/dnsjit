@@ -21,6 +21,7 @@
 //lua:require("dnsjit.core.log")
 //lua:require("dnsjit.core.receiver_h")
 //lua:require("dnsjit.core.timespec_h")
+//lua:require("dnsjit.core.object.pcap_h")
 
 typedef struct input_mmpcap {
     core_log_t      _log;
@@ -29,6 +30,11 @@ typedef struct input_mmpcap {
 
     unsigned short is_swapped : 1;
     unsigned short is_nanosec : 1;
+    unsigned short use_shared : 1;
+
+    core_object_pcap_t* shared_pkts;
+    size_t              num_shared_pkts;
+    size_t              num_multiple_pkts;
 
     int             fd;
     size_t          len, at;

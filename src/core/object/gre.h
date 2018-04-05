@@ -28,10 +28,11 @@
 
 #include "core/object/gre.hh"
 
-#define CORE_OBJECT_GRE_INIT(prev)             \
-    {                                          \
-        CORE_OBJECT_GRE, (core_object_t*)prev, \
-            0, 0, 0, 0, 0                      \
+#define CORE_OBJECT_GRE_INIT(prev)              \
+    {                                           \
+        CORE_OBJECT_INIT(CORE_OBJECT_GRE, prev) \
+        ,                                       \
+            0, 0, 0, 0, 0                       \
     }
 
 #endif

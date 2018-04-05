@@ -30,7 +30,8 @@
 
 #define CORE_OBJECT_IP_INIT(prev)                                      \
     {                                                                  \
-        CORE_OBJECT_IP, (core_object_t*)prev,                          \
+        CORE_OBJECT_INIT(CORE_OBJECT_IP, prev)                         \
+        ,                                                              \
             0, 0, 0, 0, 0, 0, 0, 0, 0, { 0, 0, 0, 0 }, { 0, 0, 0, 0 }, \
             0, 0                                                       \
     }

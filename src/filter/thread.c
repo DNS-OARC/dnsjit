@@ -24,10 +24,6 @@
 
 #include <sched.h>
 
-#if SIZEOF_UINT64_T < SIZEOF_PTHREAD_T
-#error "Can not store pthread_t in uint64_t, please report this"
-#endif
-
 static core_log_t      _log      = LOG_T_INIT("filter.thread");
 static filter_thread_t _defaults = {
     LOG_T_INIT_OBJ("filter.thread"),
@@ -66,7 +62,7 @@ void* _thread(void* user)
 
         if (obj) {
             self->recv(self->ctx, obj);
-            free(obj);
+            core_object_free(obj);
             obj = 0;
         }
 
@@ -118,30 +114,24 @@ int filter_thread_destroy(filter_thread_t* self)
 
 int filter_thread_start(filter_thread_t* self)
 {
-    pthread_t tid;
-
     if (!self || !self->work) {
         return 1;
     }
 
-    if (pthread_create(&tid, 0, _thread, (void*)self)) {
+    if (pthread_create(&self->tid, 0, _thread, (void*)self)) {
         return 2;
     }
-    self->tid = (uint64_t)tid;
 
     return 0;
 }
 
 int filter_thread_stop(filter_thread_t* self)
 {
-    pthread_t tid;
-    size_t    n;
+    size_t n;
 
     if (!self) {
         return 1;
     }
-
-    tid = (pthread_t)self->tid;
 
     for (n = 0; n < self->works; n++) {
         filter_thread_work_t* w = &self->work[n];
@@ -150,7 +140,7 @@ int filter_thread_stop(filter_thread_t* self)
         pthread_cond_broadcast(&w->read);
         pthread_mutex_unlock(&w->mutex);
     }
-    pthread_join(tid, 0);
+    pthread_join(self->tid, 0);
 
     return 0;
 }

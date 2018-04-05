@@ -59,6 +59,23 @@ function Zero:receiver(o)
     self._receiver = o
 end
 
+-- Enable (true) or disable (false) usage of shared objects, if
+-- .I bool
+-- is not specified then return the current state.
+function Zero:use_shared(bool)
+    if bool == nil then
+        if self.obj.use_shared == 1 then
+            return true
+        else
+            return false
+        end
+    elseif bool == true then
+        self.obj.use_shared = 1
+    else
+        self.obj.use_shared = 0
+    end
+end
+
 -- Generate
 -- .I num
 -- empty queries and send them to the receiver, return 0 if successful.

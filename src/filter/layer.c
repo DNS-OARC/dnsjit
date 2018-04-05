@@ -453,16 +453,10 @@ static int _ieee802(filter_layer_t* self, uint16_t tpid, const core_object_t* ob
     return 0;
 }
 
-static int _receive(void* ctx, const core_object_t* obj)
+static int _link(filter_layer_t* self, const core_object_pcap_t* pcap)
 {
-    filter_layer_t*      self = (filter_layer_t*)ctx;
-    core_object_pcap_t*  pcap = (core_object_pcap_t*)obj;
     const unsigned char* pkt;
     size_t               len;
-
-    if (!self || !obj || obj->obj_type != CORE_OBJECT_PCAP || !self->recv) {
-        return 1;
-    }
 
     pkt = pcap->bytes;
     len = pcap->caplen;
@@ -569,6 +563,29 @@ static int _receive(void* ctx, const core_object_t* obj)
     }
 
     self->recv(self->ctx, (core_object_t*)pcap);
+
+    return 0;
+}
+
+static int _receive(void* ctx, const core_object_t* obj)
+{
+    filter_layer_t*           self = (filter_layer_t*)ctx;
+    const core_object_pcap_t* pcap = (core_object_pcap_t*)obj;
+
+    if (!self || !obj || obj->obj_type != CORE_OBJECT_PCAP || !self->recv) {
+        return 1;
+    }
+
+    if (pcap->is_multiple) {
+        while (pcap) {
+            int ret = _link(self, pcap);
+            if (ret)
+                return ret;
+            pcap = (const core_object_pcap_t*)pcap->obj_prev;
+        }
+    } else {
+        return _link(self, pcap);
+    }
 
     return 0;
 }
