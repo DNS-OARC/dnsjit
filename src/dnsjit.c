@@ -31,6 +31,8 @@
 #include <string.h>
 #include <stdio.h>
 
+void dnsjit_globals(lua_State* L);
+
 static void* _sighthr(void* arg)
 {
     sigset_t* set = (sigset_t*)arg;
@@ -85,6 +87,7 @@ int main(int argc, char* argv[])
 
     L = luaL_newstate();
     luaL_openlibs(L);
+    dnsjit_globals(L);
 
     lua_createtable(L, argc, 0);
     for (n = 0; n < argc; n++) {

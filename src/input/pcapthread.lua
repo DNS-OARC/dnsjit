@@ -17,13 +17,13 @@
 -- along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
 
 -- dnsjit.input.pcapthread
--- Read input from an interface or PCAP file
+-- Read input from an interface or PCAP file using pcap-thread
 --   local input = require("dnsjit.input.pcapthread").new()
 --   input:open_offline("file.pcap")
 --   input:receiver(filter_or_output)
 --   input:run()
 --
--- Input module for reading input from interfaces and PCAP files.
+-- Input module for reading packets from interfaces and PCAP files.
 module(...,package.seeall)
 
 require("dnsjit.input.pcapthread_h")
@@ -259,7 +259,7 @@ function Pcapthread:open_offline(file)
     return C.input_pcapthread_open_offline(self.obj, file)
 end
 
--- Start processing packet from opened devices and PCAP files.
+-- Start processing packets from opened devices and PCAP files.
 -- Returns 0 on success.
 function Pcapthread:run()
     return C.input_pcapthread_run(self.obj)

@@ -42,7 +42,8 @@ typedef struct _filter_timing {
 
 static core_log_t      _log      = LOG_T_INIT("filter.timing");
 static filter_timing_t _defaults = {
-    LOG_T_INIT_OBJ("filter.timing"), 0, 0,
+    LOG_T_INIT_OBJ("filter.timing"),
+    0, 0,
     TIMING_MODE_KEEP, 0, 0, 0.0,
 };
 

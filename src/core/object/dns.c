@@ -47,7 +47,7 @@ typedef struct _query {
 
 static core_log_t _log      = LOG_T_INIT("core.object.dns");
 static _query_t   _defaults = {
-    CORE_OBJECT_DNS_INIT,
+    CORE_OBJECT_DNS_INIT(0),
     OMG_DNS_T_INIT,
     0
 };

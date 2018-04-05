@@ -28,14 +28,14 @@
 
 #include "core/object/packet.hh"
 
-#define CORE_OBJECT_PACKET_INIT       \
-    {                                 \
-        CORE_OBJECT_PACKET, 0,        \
-            0, 0, 0,                  \
-            0, 0, 0,                  \
-            0, 0,                     \
-            0, 0, CORE_TIMESPEC_INIT, \
-            0, 0                      \
+#define CORE_OBJECT_PACKET_INIT(prev)             \
+    {                                             \
+        CORE_OBJECT_PACKET, (core_object_t*)prev, \
+            0, 0, 0,                              \
+            0, 0, 0,                              \
+            0, 0,                                 \
+            0, 0, CORE_TIMESPEC_INIT,             \
+            0, 0                                  \
     }
 
 #endif

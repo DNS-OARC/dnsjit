@@ -244,13 +244,11 @@ void _client_read(void* vp, const client_t* client)
         return;
     }
     if (client->nrecv > 0) {
-        core_object_packet_t pkt = CORE_OBJECT_PACKET_INIT;
+        core_object_packet_t pkt = CORE_OBJECT_PACKET_INIT(client->query);
         ev_tstamp            ts  = client->recvts - client->sendts;
         if (ts < 0.) {
             ts = 0.;
         }
-
-        pkt.obj_prev = (core_object_t*)client->query;
 
         pkt.src_id = client->query->src_id;
         pkt.qr_id  = client->query->qr_id;

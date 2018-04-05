@@ -30,5 +30,3 @@
 -- Mainly used in C modules for a system independent time specification
 -- structure that can be passed to Lua.
 module(...,package.seeall)
-
-error("This should not be included, only here for documentation generation")

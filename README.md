@@ -4,7 +4,7 @@
 
 **dnsjit** is a combination of parts taken from **dsc**, **dnscap**, **drool**,
 and put together around Lua to create a script-based engine for easy
-capturing, parsing and statistics gathering of DNS message while also
+capturing, parsing and statistics gathering of DNS messages while also
 providing facilities for replaying DNS traffic.
 
 One of the core functionality that **dnsjit** brings is to tie together C
@@ -99,8 +99,9 @@ local output = require("dnsjit.filter.lua").new()
 
 output:func(function(filter, packet)
     local dns = require("dnsjit.core.object.dns").new(packet)
-    dns:parse()
-    print(dns.id)
+    if dns:parse() == 0 then
+        print(dns.id)
+    end
 end)
 
 input:open_offline("file.pcap")

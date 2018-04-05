@@ -45,7 +45,7 @@ core_log_t* input_pcapthread_log()
 static void _udp(u_char* user, const pcap_thread_packet_t* packet, const u_char* payload, size_t length)
 {
     input_pcapthread_t*  self = (input_pcapthread_t*)user;
-    core_object_packet_t pkt  = CORE_OBJECT_PACKET_INIT;
+    core_object_packet_t pkt  = CORE_OBJECT_PACKET_INIT(0);
 
     self->pkts++;
 
@@ -104,7 +104,7 @@ static void _udp(u_char* user, const pcap_thread_packet_t* packet, const u_char*
 static void _tcp(u_char* user, const pcap_thread_packet_t* packet, const u_char* payload, size_t length)
 {
     input_pcapthread_t*  self = (input_pcapthread_t*)user;
-    core_object_packet_t pkt  = CORE_OBJECT_PACKET_INIT;
+    core_object_packet_t pkt  = CORE_OBJECT_PACKET_INIT(0);
 
     self->pkts++;
 

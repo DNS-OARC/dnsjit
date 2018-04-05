@@ -20,8 +20,6 @@
 -- Various Lua libraries or C library bindings
 module(...,package.seeall)
 
-error("This should not be included, only here for documentation generation")
-
 -- dnsjit.lib.getopt (3),
 -- dnsjit.lib.parseconf (3)
 return

@@ -23,8 +23,7 @@
 -- replay them against other targets.
 module(...,package.seeall)
 
-error("This should not be included, only here for documentation generation")
-
 -- dnsjit.output.cpool (3),
--- dnsjit.output.null (3)
+-- dnsjit.output.null (3),
+-- dnsjit.output.udpcli (3)
 return
