@@ -97,7 +97,8 @@ Following example display the DNS ID found in queries.
 local input = require("dnsjit.input.pcapthread").new()
 local output = require("dnsjit.filter.lua").new()
 
-output:func(function(filter, packet)
+output:func(function(filter, object)
+    local packet = object:cast()
     local dns = require("dnsjit.core.object.dns").new(packet)
     if dns:parse() == 0 then
         print(dns.id)

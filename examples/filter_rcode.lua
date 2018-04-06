@@ -11,8 +11,9 @@ local input = require("dnsjit.input.pcapthread").new()
 local output = require("dnsjit.filter.lua").new()
 
 output:push(tonumber(rcode))
-output:func(function(filter, pkt, args)
+output:func(function(filter, obj, args)
     require("dnsjit.core.object.packet")
+    local pkt = obj:cast()
     local rcode = unpack(args, 0)
     local dns
     if pkt:type() == "packet" then
