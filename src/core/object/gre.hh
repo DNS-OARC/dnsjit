@@ -21,8 +21,10 @@
 //lua:require("dnsjit.core.object_h")
 
 typedef struct core_object_gre {
-    unsigned short       obj_type;
-    const core_object_t* obj_prev;
+    unsigned short        obj_type;
+    const core_object_t*  obj_prev;
+    core_object_refcall_t obj_ref;
+    void*                 obj_refctx;
 
     uint16_t gre_flags;
     uint16_t ether_type;

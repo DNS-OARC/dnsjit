@@ -28,10 +28,11 @@
 
 #include "core/object/linuxsll.hh"
 
-#define CORE_OBJECT_LINUXSLL_INIT(prev)             \
-    {                                               \
-        CORE_OBJECT_LINUXSLL, (core_object_t*)prev, \
-            0, 0, 0, { 0, 0, 0, 0, 0, 0, 0, 0 }, 0  \
+#define CORE_OBJECT_LINUXSLL_INIT(prev)              \
+    {                                                \
+        CORE_OBJECT_INIT(CORE_OBJECT_LINUXSLL, prev) \
+        ,                                            \
+            0, 0, 0, { 0, 0, 0, 0, 0, 0, 0, 0 }, 0   \
     }
 
 #endif

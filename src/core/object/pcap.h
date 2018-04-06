@@ -26,12 +26,13 @@
 
 #include "core/object/pcap.hh"
 
-#define CORE_OBJECT_PCAP_INIT(prev)             \
-    {                                           \
-        CORE_OBJECT_PCAP, (core_object_t*)prev, \
-            0, 0,                               \
-            { 0, 0 }, 0, 0, 0,                  \
-            0                                   \
+#define CORE_OBJECT_PCAP_INIT(prev)              \
+    {                                            \
+        CORE_OBJECT_INIT(CORE_OBJECT_PCAP, prev) \
+        ,                                        \
+            0, 0,                                \
+            { 0, 0 }, 0, 0, 0,                   \
+            0, 0                                 \
     }
 
 #endif

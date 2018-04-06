@@ -27,13 +27,6 @@
 #include <stdint.h>
 #include <pthread.h>
 
-typedef struct filter_thread_work {
-    core_object_t*  obj;
-    pthread_mutex_t mutex;
-    pthread_cond_t  read, write;
-    char            end;
-} filter_thread_work_t;
-
 #include "filter/thread.hh"
 
 #endif

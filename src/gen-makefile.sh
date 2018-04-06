@@ -40,7 +40,7 @@ dist_dnsjit_SOURCES = core.lua lib.lua input.lua filter.lua output.lua \
   omg-dns/omg_dns.h \
   pcap-thread/pcap_thread.h \
   sllq/sllq.h
-lua_hobjects =
+lua_hobjects = core/compat.luaho
 lua_objects = core.luao lib.luao input.luao filter.luao output.luao
 dnsjit_LDADD = $(PTHREAD_LIBS) $(luajit_LIBS)
 
@@ -99,6 +99,9 @@ echo 'CLEANFILES += *.3in $(man3_MANS)
   -e '"'"'s,[@]PACKAGE_URL[@],$(PACKAGE_URL),g'"'"' \
   -e '"'"'s,[@]PACKAGE_BUGREPORT[@],$(PACKAGE_BUGREPORT),g'"'"' \
   < "$<" > "$@"
+
+core/compat.hh: gen-compat.lua
+	$(LUAJIT) "$(srcdir)/gen-compat.lua" > "$@"
 ';
 
 for file in core.lua lib.lua input.lua filter.lua output.lua; do

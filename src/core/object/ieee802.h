@@ -28,10 +28,11 @@
 
 #include "core/object/ieee802.hh"
 
-#define CORE_OBJECT_IEEE802_INIT(prev)             \
-    {                                              \
-        CORE_OBJECT_IEEE802, (core_object_t*)prev, \
-            0, 0, 0, 0, 0                          \
+#define CORE_OBJECT_IEEE802_INIT(prev)              \
+    {                                               \
+        CORE_OBJECT_INIT(CORE_OBJECT_IEEE802, prev) \
+        ,                                           \
+            0, 0, 0, 0, 0                           \
     }
 
 #endif

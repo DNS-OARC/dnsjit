@@ -29,9 +29,9 @@ static core_log_t   _log      = LOG_T_INIT("input.pcap");
 static input_pcap_t _defaults = {
     LOG_T_INIT_OBJ("input.pcap"),
     0, 0,
+    0,
     0, { 0, 0 }, { 0, 0 }, 0,
-    0, 0,
-    0
+    0, 0
 };
 
 core_log_t* input_pcap_log()
@@ -81,9 +81,9 @@ int input_pcap_open_offline(input_pcap_t* self, const char* file)
         return 1;
     }
 
-    self->snaplen  = pcap_snapshot(self->pcap);
-    self->linktype = pcap_datalink(self->pcap);
-    self->swapped  = pcap_is_swapped(self->pcap);
+    self->snaplen    = pcap_snapshot(self->pcap);
+    self->linktype   = pcap_datalink(self->pcap);
+    self->is_swapped = pcap_is_swapped(self->pcap);
 
     return 0;
 }
@@ -106,7 +106,7 @@ static void _handler(u_char* user, const struct pcap_pkthdr* h, const u_char* by
     pkt.caplen     = h->caplen;
     pkt.len        = h->len;
     pkt.bytes      = bytes;
-    pkt.is_swapped = self->swapped;
+    pkt.is_swapped = self->is_swapped;
 
     self->recv(self->ctx, (core_object_t*)&pkt);
 }

@@ -26,7 +26,10 @@ typedef struct input_zero {
     core_log_t      _log;
     core_receiver_t recv;
     void*           ctx;
+
     core_timespec_t ts, te;
+
+    unsigned short use_shared : 1;
 } input_zero_t;
 
 core_log_t* input_zero_log();

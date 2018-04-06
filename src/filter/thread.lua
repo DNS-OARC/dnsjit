@@ -48,7 +48,7 @@ function Thread.new(queue_size)
         queue_size = 1000
     end
     local self = {
-        receivers = {},
+        _receiver = nil,
         obj = filter_thread_t(),
     }
     C.filter_thread_init(self.obj, queue_size)

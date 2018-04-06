@@ -28,10 +28,11 @@
 
 #include "core/object/icmp.hh"
 
-#define CORE_OBJECT_ICMP_INIT(prev)             \
-    {                                           \
-        CORE_OBJECT_ICMP, (core_object_t*)prev, \
-            0, 0, 0                             \
+#define CORE_OBJECT_ICMP_INIT(prev)              \
+    {                                            \
+        CORE_OBJECT_INIT(CORE_OBJECT_ICMP, prev) \
+        ,                                        \
+            0, 0, 0                              \
     }
 
 #endif

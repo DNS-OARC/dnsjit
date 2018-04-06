@@ -30,15 +30,38 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <string.h>
+#include <pthread.h>
 
 static core_log_t     _log      = LOG_T_INIT("input.mmpcap");
 static input_mmpcap_t _defaults = {
     LOG_T_INIT_OBJ("input.mmpcap"),
     0, 0,
-    0, 0,
+    0, 0, 0,
+    0, 10000, 100,
     -1, 0, 0, { 0, 0 }, { 0, 0 }, 0, 0,
     0, 0, 0, 0, 0, 0, 0
 };
+
+struct _ctx {
+    pthread_mutex_t m;
+    pthread_cond_t  c;
+    size_t          ref;
+};
+
+static void _ref(core_object_t* obj, core_object_reference_t ref)
+{
+    struct _ctx* ctx = (struct _ctx*)obj->obj_refctx;
+
+    pthread_mutex_lock(&ctx->m);
+    if (ref == CORE_OBJECT_INCREF) {
+        ctx->ref++;
+    } else {
+        ctx->ref--;
+        if (!ctx->ref)
+            pthread_cond_signal(&ctx->c);
+    }
+    pthread_mutex_unlock(&ctx->m);
+}
 
 core_log_t* input_mmpcap_log()
 {
@@ -72,6 +95,7 @@ int input_mmpcap_destroy(input_mmpcap_t* self)
     if (self->fd) {
         close(self->fd);
     }
+    free(self->shared_pkts);
 
     return 0;
 }
@@ -101,6 +125,8 @@ int input_mmpcap_open(input_mmpcap_t* self, const char* file)
     if (self->fd) {
         close(self->fd);
     }
+    free(self->shared_pkts);
+    self->shared_pkts = 0;
 
     if ((self->fd = open(file, O_RDONLY)) < 0) {
         return 1;
@@ -153,6 +179,27 @@ int input_mmpcap_open(input_mmpcap_t* self, const char* file)
     }
 
     if (self->version_major == 2 && self->version_minor == 4) {
+        if (self->use_shared) {
+            size_t n;
+
+            if (!(self->shared_pkts = malloc(sizeof(core_object_pcap_t) * self->num_shared_pkts))) {
+                munmap(self->buf, self->len);
+                self->buf = 0;
+                close(self->fd);
+                self->fd = -1;
+                return 1;
+            }
+
+            for (n = 0; n < self->num_shared_pkts; n++) {
+                self->shared_pkts[n].obj_type   = CORE_OBJECT_PCAP;
+                self->shared_pkts[n].snaplen    = self->snaplen;
+                self->shared_pkts[n].linktype   = self->network;
+                self->shared_pkts[n].bytes      = 0;
+                self->shared_pkts[n].is_swapped = self->is_swapped;
+                self->shared_pkts[n].obj_ref    = _ref;
+            }
+        }
+
         ldebug("pcap v%u.%u snaplen:%lu %s", self->version_major, self->version_minor, self->snaplen, self->is_swapped ? " swapped" : "");
         return 0;
     }
@@ -164,30 +211,19 @@ int input_mmpcap_open(input_mmpcap_t* self, const char* file)
     return 2;
 }
 
-struct _hdr {
-    uint32_t ts_sec;
-    uint32_t ts_usec;
-    uint32_t incl_len;
-    uint32_t orig_len;
-};
-
-int input_mmpcap_run(input_mmpcap_t* self)
+static int _run(input_mmpcap_t* self)
 {
-    struct timespec    ts;
-    struct _hdr        hdr;
+    struct {
+        uint32_t ts_sec;
+        uint32_t ts_usec;
+        uint32_t incl_len;
+        uint32_t orig_len;
+    } hdr;
     core_object_pcap_t pkt = CORE_OBJECT_PCAP_INIT(0);
-
-    if (!self || !self->buf || !self->recv) {
-        return 1;
-    }
 
     pkt.snaplen    = self->snaplen;
     pkt.linktype   = self->network;
     pkt.is_swapped = self->is_swapped;
-
-    clock_gettime(CLOCK_MONOTONIC, &ts);
-    self->ts.sec  = ts.tv_sec;
-    self->ts.nsec = ts.tv_nsec;
 
     while (self->len - self->at > 16) {
         memcpy(&hdr, &self->buf[self->at], 16);
@@ -222,9 +258,119 @@ int input_mmpcap_run(input_mmpcap_t* self)
         self->at += hdr.incl_len;
     }
 
+    return 0;
+}
+
+static int _run_shared(input_mmpcap_t* self)
+{
+    struct {
+        uint32_t ts_sec;
+        uint32_t ts_usec;
+        uint32_t incl_len;
+        uint32_t orig_len;
+    } hdr;
+    struct _ctx ctx = {
+        .m   = PTHREAD_MUTEX_INITIALIZER,
+        .c   = PTHREAD_COND_INITIALIZER,
+        .ref = 0
+    };
+    size_t n, m;
+
+    for (n = 0; n < self->num_shared_pkts; n++) {
+        self->shared_pkts[n].obj_refctx  = (void*)&ctx;
+        self->shared_pkts[n].is_multiple = 1;
+    }
+
+    n = 0;
+    m = 0;
+
+    while (self->len - self->at > 16) {
+        memcpy(&hdr, &self->buf[self->at], 16);
+        self->at += 16;
+        if (self->is_swapped) {
+            hdr.ts_sec   = _flip32(hdr.ts_sec);
+            hdr.ts_usec  = _flip32(hdr.ts_usec);
+            hdr.incl_len = _flip32(hdr.incl_len);
+            hdr.orig_len = _flip32(hdr.orig_len);
+        }
+        if (n == self->num_shared_pkts) {
+            if (m) {
+                self->recv(self->ctx, (core_object_t*)&self->shared_pkts[n - 1]);
+            }
+            pthread_mutex_lock(&ctx.m);
+            while (ctx.ref) {
+                pthread_cond_wait(&ctx.c, &ctx.m);
+            }
+            pthread_mutex_unlock(&ctx.m);
+            n = 0;
+            m = 0;
+        }
+        if (self->len - self->at < hdr.incl_len) {
+            return 3;
+        }
+
+        self->pkts++;
+
+        self->shared_pkts[n].ts.sec = hdr.ts_sec;
+        if (self->is_nanosec) {
+            self->shared_pkts[n].ts.nsec = hdr.ts_usec;
+        } else {
+            self->shared_pkts[n].ts.nsec = hdr.ts_usec * 1000;
+        }
+        self->shared_pkts[n].bytes  = (unsigned char*)&self->buf[self->at];
+        self->shared_pkts[n].caplen = hdr.incl_len;
+        self->shared_pkts[n].len    = hdr.orig_len;
+
+        if (!m) {
+            self->shared_pkts[n].obj_prev = 0;
+        } else {
+            self->shared_pkts[n].obj_prev = (core_object_t*)&self->shared_pkts[n - 1];
+        }
+        m++;
+        if (m == self->num_multiple_pkts) {
+            self->recv(self->ctx, (core_object_t*)&self->shared_pkts[n]);
+            m = 0;
+        }
+
+        n++;
+
+        self->at += hdr.incl_len;
+    }
+
+    if (m) {
+        self->recv(self->ctx, (core_object_t*)&self->shared_pkts[n - 1]);
+    }
+    pthread_mutex_lock(&ctx.m);
+    while (ctx.ref) {
+        pthread_cond_wait(&ctx.c, &ctx.m);
+    }
+    pthread_mutex_unlock(&ctx.m);
+
+    return 0;
+}
+
+int input_mmpcap_run(input_mmpcap_t* self)
+{
+    struct timespec ts;
+    int             ret;
+
+    if (!self || !self->buf || !self->recv) {
+        return 1;
+    }
+
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    self->ts.sec  = ts.tv_sec;
+    self->ts.nsec = ts.tv_nsec;
+
+    if (self->use_shared) {
+        ret = _run_shared(self);
+    } else {
+        ret = _run(self);
+    }
+
     clock_gettime(CLOCK_MONOTONIC, &ts);
     self->te.sec  = ts.tv_sec;
     self->te.nsec = ts.tv_nsec;
 
-    return 0;
+    return ret;
 }

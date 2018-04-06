@@ -49,8 +49,9 @@ fi
 
 # Checks for sizes
 AC_CHECK_SIZEOF([void*])
-AC_CHECK_SIZEOF([uint64_t])
 AC_CHECK_SIZEOF([pthread_t])
+AC_CHECK_SIZEOF([pthread_mutex_t])
+AC_CHECK_SIZEOF([pthread_cond_t])
 
 # Output Makefiles
 AC_CONFIG_FILES([

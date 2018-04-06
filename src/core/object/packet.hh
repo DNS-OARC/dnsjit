@@ -22,8 +22,10 @@
 //lua:require("dnsjit.core.timespec_h")
 
 typedef struct core_object_packet {
-    unsigned short       obj_type;
-    const core_object_t* obj_prev;
+    unsigned short        obj_type;
+    const core_object_t*  obj_prev;
+    core_object_refcall_t obj_ref;
+    void*                 obj_refctx;
 
     uint64_t src_id, qr_id, dst_id;
 

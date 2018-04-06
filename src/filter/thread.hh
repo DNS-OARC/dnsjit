@@ -18,19 +18,23 @@
  * along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#if 0
-typedef struct {} filter_thread_work_t;
-#endif
-
+//lua:require("dnsjit.core.compat_h")
 //lua:require("dnsjit.core.log")
 //lua:require("dnsjit.core.receiver_h")
+
+typedef struct filter_thread_work {
+    core_object_t*  obj;
+    pthread_mutex_t mutex;
+    pthread_cond_t  read, write;
+    char            end;
+} filter_thread_work_t;
 
 typedef struct filter_thread {
     core_log_t      _log;
     core_receiver_t recv;
     void*           ctx;
 
-    uint64_t              tid;
+    pthread_t             tid;
     filter_thread_work_t* work;
     size_t                works, at;
 } filter_thread_t;

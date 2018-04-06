@@ -29,7 +29,8 @@ static core_log_t   _log      = LOG_T_INIT("input.zero");
 static input_zero_t _defaults = {
     LOG_T_INIT_OBJ("input.zero"),
     0, 0,
-    { 0, 0 }, { 0, 0 }
+    { 0, 0 }, { 0, 0 },
+    0
 };
 
 core_log_t* input_zero_log()
@@ -61,10 +62,17 @@ int input_zero_destroy(input_zero_t* self)
     return 0;
 }
 
+static core_object_packet_t shared_pkt = CORE_OBJECT_PACKET_INIT(0);
+
+static void _ref(core_object_t* obj, core_object_reference_t ref)
+{
+}
+
 int input_zero_run(input_zero_t* self, uint64_t num)
 {
     struct timespec      ts, te;
     core_object_packet_t pkt = CORE_OBJECT_PACKET_INIT(0);
+    core_object_t*       obj = (core_object_t*)&pkt;
 
     if (!self || !self->recv) {
         return 1;
@@ -72,9 +80,14 @@ int input_zero_run(input_zero_t* self, uint64_t num)
 
     ldebug("run");
 
+    if (self->use_shared) {
+        shared_pkt.obj_ref = _ref;
+        obj                = (core_object_t*)&shared_pkt;
+    }
+
     clock_gettime(CLOCK_MONOTONIC, &ts);
     while (num--) {
-        self->recv(self->ctx, (core_object_t*)&pkt);
+        self->recv(self->ctx, obj);
     }
     clock_gettime(CLOCK_MONOTONIC, &te);
 
