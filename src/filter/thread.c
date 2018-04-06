@@ -22,8 +22,6 @@
 
 #include "filter/thread.h"
 
-#include <sched.h>
-
 static core_log_t      _log      = LOG_T_INIT("filter.thread");
 static filter_thread_t _defaults = {
     LOG_T_INIT_OBJ("filter.thread"),

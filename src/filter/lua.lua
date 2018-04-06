@@ -139,7 +139,7 @@ function Lua:run()
         return
     end
     local obj = ffi.cast("core_object_t*", FILTER_LUA_OBJECT)
-    return self._func(self, object.cast(obj), FILTER_LUA_ARGS)
+    return self._func(self, obj, FILTER_LUA_ARGS)
 end
 
 -- Used from the Lua function to send objects to the next receiver,

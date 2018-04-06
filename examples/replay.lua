@@ -36,8 +36,9 @@ input:open_offline(pcap)
 
 if getopt:val("responses") then
     local lua = require("dnsjit.filter.lua").new()
-    lua:func(function(f, pkt)
+    lua:func(function(f, obj)
         require("dnsjit.core.object.packet")
+        local pkt = obj:cast()
         local dns
         if pkt:type() == "packet" then
             dns = require("dnsjit.core.object.dns").new(pkt)

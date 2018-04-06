@@ -9,8 +9,9 @@ end
 local input = require("dnsjit.input.pcapthread").new()
 local output = require("dnsjit.filter.lua").new()
 
-output:func(function(filter, pkt)
+output:func(function(filter, obj)
     require("dnsjit.core.object.packet")
+    local pkt = obj:cast()
     local dns
     if pkt:type() == "packet" then
         dns = require("dnsjit.core.object.dns").new(pkt)
