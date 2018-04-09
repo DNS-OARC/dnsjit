@@ -23,14 +23,13 @@
 #include "input/pcap.h"
 #include "core/object/pcap.h"
 
-#include <time.h>
-
 static core_log_t   _log      = LOG_T_INIT("input.pcap");
 static input_pcap_t _defaults = {
     LOG_T_INIT_OBJ("input.pcap"),
     0, 0,
     0,
-    0, { 0, 0 }, { 0, 0 }, 0,
+    CORE_OBJECT_PCAP_INIT(0),
+    0, 0,
     0, 0
 };
 
@@ -85,6 +84,10 @@ int input_pcap_open_offline(input_pcap_t* self, const char* file)
     self->linktype   = pcap_datalink(self->pcap);
     self->is_swapped = pcap_is_swapped(self->pcap);
 
+    self->prod_pkt.snaplen    = self->snaplen;
+    self->prod_pkt.linktype   = self->linktype;
+    self->prod_pkt.is_swapped = self->is_swapped;
+
     return 0;
 }
 
@@ -113,44 +116,48 @@ static void _handler(u_char* user, const struct pcap_pkthdr* h, const u_char* by
 
 int input_pcap_loop(input_pcap_t* self, int cnt)
 {
-    struct timespec ts;
-    int             ret;
-
     if (!self || !self->pcap || !self->recv) {
         return -1;
     }
 
-    clock_gettime(CLOCK_MONOTONIC, &ts);
-    self->ts.sec  = ts.tv_sec;
-    self->ts.nsec = ts.tv_nsec;
-
-    ret = pcap_loop(self->pcap, cnt, _handler, (void*)self);
-
-    clock_gettime(CLOCK_MONOTONIC, &ts);
-    self->te.sec  = ts.tv_sec;
-    self->te.nsec = ts.tv_nsec;
-
-    return ret;
+    return pcap_loop(self->pcap, cnt, _handler, (void*)self);
 }
 
 int input_pcap_dispatch(input_pcap_t* self, int cnt)
 {
-    struct timespec ts;
-    int             ret;
-
     if (!self || !self->pcap || !self->recv) {
         return -1;
     }
 
-    clock_gettime(CLOCK_MONOTONIC, &ts);
-    self->ts.sec  = ts.tv_sec;
-    self->ts.nsec = ts.tv_nsec;
+    return pcap_dispatch(self->pcap, cnt, _handler, (void*)self);
+}
 
-    ret = pcap_dispatch(self->pcap, cnt, _handler, (void*)self);
+static const core_object_t* _produce(void* ctx)
+{
+    input_pcap_t*       self = (input_pcap_t*)ctx;
+    struct pcap_pkthdr* h;
+    const u_char*       bytes;
+    int                 ret = 0;
 
-    clock_gettime(CLOCK_MONOTONIC, &ts);
-    self->te.sec  = ts.tv_sec;
-    self->te.nsec = ts.tv_nsec;
+    if (!self || !self->pcap) {
+        return 0;
+    }
 
-    return ret;
+    while (!(ret = pcap_next_ex(self->pcap, &h, &bytes)))
+        ;
+    if (ret == 1 && h && bytes) {
+        self->prod_pkt.ts.sec  = h->ts.tv_sec;
+        self->prod_pkt.ts.nsec = h->ts.tv_usec * 1000;
+        self->prod_pkt.caplen  = h->caplen;
+        self->prod_pkt.len     = h->len;
+        self->prod_pkt.bytes   = bytes;
+        return (core_object_t*)&self->prod_pkt;
+    }
+
+    return 0;
+}
+
+core_producer_t input_pcap_producer()
+{
+    return _produce;
 }

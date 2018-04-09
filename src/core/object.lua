@@ -52,6 +52,7 @@ require("dnsjit.core.object.tcp_h")
 require("dnsjit.core.object.packet_h")
 require("dnsjit.core.object.dns_h")
 local ffi = require("ffi")
+local C = ffi.C
 
 local t_name = "core_object_t"
 local core_object_t
@@ -74,40 +75,28 @@ local Object = {
     CORE_OBJECT_DNS = 40
 }
 
+local _type = {}
+_type[Object.CORE_OBJECT_PCAP] = "pcap"
+_type[Object.CORE_OBJECT_ETHER] = "ether"
+_type[Object.CORE_OBJECT_NULL] = "null"
+_type[Object.CORE_OBJECT_LOOP] = "loop"
+_type[Object.CORE_OBJECT_LINUXSLL] = "linuxsll"
+_type[Object.CORE_OBJECT_IEEE802] = "ieee802"
+_type[Object.CORE_OBJECT_GRE] = "gre"
+_type[Object.CORE_OBJECT_IP] = "ip"
+_type[Object.CORE_OBJECT_IP6] = "ip6"
+_type[Object.CORE_OBJECT_ICMP] = "icmp"
+_type[Object.CORE_OBJECT_ICMP6] = "icmp6"
+_type[Object.CORE_OBJECT_UDP] = "udp"
+_type[Object.CORE_OBJECT_TCP] = "tcp"
+_type[Object.CORE_OBJECT_PACKET] = "packet"
+_type[Object.CORE_OBJECT_DNS] = "dns"
+
+_type[Object.CORE_OBJECT_NONE] = "none"
+
 -- Return the textual type of the object.
 function Object:type()
-    if self.obj_type == Object.CORE_OBJECT_PCAP then
-        return "pcap"
-    elseif self.obj_type == Object.CORE_OBJECT_ETHER then
-        return "ether"
-    elseif self.obj_type == Object.CORE_OBJECT_NULL then
-        return "null"
-    elseif self.obj_type == Object.CORE_OBJECT_LOOP then
-        return "loop"
-    elseif self.obj_type == Object.CORE_OBJECT_LINUXSLL then
-        return "linuxsll"
-    elseif self.obj_type == Object.CORE_OBJECT_IEEE802 then
-        return "ieee802"
-    elseif self.obj_type == Object.CORE_OBJECT_GRE then
-        return "gre"
-    elseif self.obj_type == Object.CORE_OBJECT_IP then
-        return "ip"
-    elseif self.obj_type == Object.CORE_OBJECT_IP6 then
-        return "ip6"
-    elseif self.obj_type == Object.CORE_OBJECT_ICMP then
-        return "icmp"
-    elseif self.obj_type == Object.CORE_OBJECT_ICMP6 then
-        return "icmp6"
-    elseif self.obj_type == Object.CORE_OBJECT_UDP then
-        return "udp"
-    elseif self.obj_type == Object.CORE_OBJECT_TCP then
-        return "tcp"
-    elseif self.obj_type == Object.CORE_OBJECT_PACKET then
-        return "packet"
-    elseif self.obj_type == Object.CORE_OBJECT_DNS then
-        return "dns"
-    end
-    return "none"
+    return ffi.cast(_type[self.obj_type], self)
 end
 
 -- Return the previous object.
@@ -115,39 +104,26 @@ function Object:prev()
     return self.obj_prev
 end
 
+local _cast = {}
+_cast[Object.CORE_OBJECT_PCAP] = "core_object_pcap_t*"
+_cast[Object.CORE_OBJECT_ETHER] = "core_object_ether_t*"
+_cast[Object.CORE_OBJECT_NULL] = "core_object_null_t*"
+_cast[Object.CORE_OBJECT_LOOP] = "core_object_loop_t*"
+_cast[Object.CORE_OBJECT_LINUXSLL] = "core_object_linuxsll_t*"
+_cast[Object.CORE_OBJECT_IEEE802] = "core_object_ieee802_t*"
+_cast[Object.CORE_OBJECT_GRE] = "core_object_gre_t*"
+_cast[Object.CORE_OBJECT_IP] = "core_object_ip_t*"
+_cast[Object.CORE_OBJECT_IP6] = "core_object_ip6_t*"
+_cast[Object.CORE_OBJECT_ICMP] = "core_object_icmp_t*"
+_cast[Object.CORE_OBJECT_ICMP6] = "core_object_icmp6_t*"
+_cast[Object.CORE_OBJECT_UDP] = "core_object_udp_t*"
+_cast[Object.CORE_OBJECT_TCP] = "core_object_tcp_t*"
+_cast[Object.CORE_OBJECT_PACKET] = "core_object_packet_t*"
+_cast[Object.CORE_OBJECT_DNS] = "core_object_dns_t*"
+
 -- Cast the object to the underlining object module and return it.
 function Object:cast()
-    if self.obj_type == Object.CORE_OBJECT_PCAP then
-        return ffi.cast("core_object_pcap_t*", self)
-    elseif self.obj_type == Object.CORE_OBJECT_ETHER then
-        return ffi.cast("core_object_ether_t*", self)
-    elseif self.obj_type == Object.CORE_OBJECT_NULL then
-        return ffi.cast("core_object_null_t*", self)
-    elseif self.obj_type == Object.CORE_OBJECT_LOOP then
-        return ffi.cast("core_object_loop_t*", self)
-    elseif self.obj_type == Object.CORE_OBJECT_LINUXSLL then
-        return ffi.cast("core_object_linuxsll_t*", self)
-    elseif self.obj_type == Object.CORE_OBJECT_IEEE802 then
-        return ffi.cast("core_object_ieee802_t*", self)
-    elseif self.obj_type == Object.CORE_OBJECT_GRE then
-        return ffi.cast("core_object_gre_t*", self)
-    elseif self.obj_type == Object.CORE_OBJECT_IP then
-        return ffi.cast("core_object_ip_t*", self)
-    elseif self.obj_type == Object.CORE_OBJECT_IP6 then
-        return ffi.cast("core_object_ip6_t*", self)
-    elseif self.obj_type == Object.CORE_OBJECT_ICMP then
-        return ffi.cast("core_object_icmp_t*", self)
-    elseif self.obj_type == Object.CORE_OBJECT_ICMP6 then
-        return ffi.cast("core_object_icmp6_t*", self)
-    elseif self.obj_type == Object.CORE_OBJECT_UDP then
-        return ffi.cast("core_object_udp_t*", self)
-    elseif self.obj_type == Object.CORE_OBJECT_TCP then
-        return ffi.cast("core_object_tcp_t*", self)
-    elseif self.obj_type == Object.CORE_OBJECT_PACKET then
-        return ffi.cast("core_object_packet_t*", self)
-    elseif self.obj_type == Object.CORE_OBJECT_DNS then
-        return ffi.cast("core_object_dns_t*", self)
-    end
+    return ffi.cast(_cast[self.obj_type], self)
 end
 
 core_object_t = ffi.metatype(t_name, { __index = Object })

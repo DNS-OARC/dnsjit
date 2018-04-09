@@ -20,6 +20,7 @@
 -- Various Lua libraries or C library bindings
 module(...,package.seeall)
 
+-- dnsjit.lib.clock (3),
 -- dnsjit.lib.getopt (3),
 -- dnsjit.lib.parseconf (3)
 return

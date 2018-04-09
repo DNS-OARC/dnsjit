@@ -148,7 +148,7 @@ function Lua:send(object)
     if not self.ishandler then
         error("not handler")
     end
-    return C.core_receiver_call(self._recv, self._ctx, object)
+    return self._recv(self._ctx, object)
 end
 
 -- dnsjit.core.object (3),

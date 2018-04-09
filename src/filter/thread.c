@@ -25,7 +25,7 @@
 static core_log_t      _log      = LOG_T_INIT("filter.thread");
 static filter_thread_t _defaults = {
     LOG_T_INIT_OBJ("filter.thread"),
-    0, 0,
+    0,
     0, 0, 0
 };
 
@@ -36,9 +36,10 @@ core_log_t* filter_thread_log()
 
 void* _thread(void* user)
 {
-    filter_thread_t* self = (filter_thread_t*)user;
-    size_t           ends = 0, at = 0;
-    core_object_t*   obj = 0;
+    filter_thread_recv_t* recv = (filter_thread_recv_t*)user;
+    filter_thread_t*      self = (filter_thread_t*)recv->self;
+    size_t                ends = 0, at = 0;
+    core_object_t*        obj = 0;
 
     while (ends < self->works) {
         filter_thread_work_t* w = &self->work[at];
@@ -59,7 +60,7 @@ void* _thread(void* user)
         pthread_mutex_unlock(&w->mutex);
 
         if (obj) {
-            self->recv(self->ctx, obj);
+            recv->recv(recv->ctx, obj);
             core_object_free(obj);
             obj = 0;
         }
@@ -99,6 +100,8 @@ int filter_thread_init(filter_thread_t* self, size_t queue_size)
 
 int filter_thread_destroy(filter_thread_t* self)
 {
+    filter_thread_recv_t* r;
+
     if (!self) {
         return 1;
     }
@@ -106,26 +109,59 @@ int filter_thread_destroy(filter_thread_t* self)
     ldebug("destroy");
 
     free(self->work);
+    while ((r = self->recv)) {
+        self->recv = r->next;
+        free(r);
+    }
+
+    return 0;
+}
+
+int filter_thread_add(filter_thread_t* self, core_receiver_t recv, void* ctx)
+{
+    filter_thread_recv_t* r;
+
+    if (!self) {
+        return 1;
+    }
+
+    if (!(r = malloc(sizeof(filter_thread_recv_t)))) {
+        return 1;
+    }
+
+    r->self    = self;
+    r->next    = self->recv;
+    r->recv    = recv;
+    r->ctx     = ctx;
+    r->tid     = 0;
+    self->recv = r;
 
     return 0;
 }
 
 int filter_thread_start(filter_thread_t* self)
 {
-    if (!self || !self->work) {
+    filter_thread_recv_t* r;
+
+    if (!self || !self->work || !self->recv) {
         return 1;
     }
 
-    if (pthread_create(&self->tid, 0, _thread, (void*)self)) {
-        return 2;
+    for (r = self->recv; r; r = r->next) {
+        if (pthread_create(&r->tid, 0, _thread, (void*)r)) {
+            return 2;
+        }
     }
+
+    ldebug("start");
 
     return 0;
 }
 
 int filter_thread_stop(filter_thread_t* self)
 {
-    size_t n;
+    filter_thread_recv_t* r;
+    size_t                n;
 
     if (!self) {
         return 1;
@@ -138,7 +174,11 @@ int filter_thread_stop(filter_thread_t* self)
         pthread_cond_broadcast(&w->read);
         pthread_mutex_unlock(&w->mutex);
     }
-    pthread_join(self->tid, 0);
+    for (r = self->recv; r; r = r->next) {
+        pthread_join(r->tid, 0);
+    }
+
+    ldebug("stop");
 
     return 0;
 }

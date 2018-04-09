@@ -97,7 +97,7 @@ function Coro:receive()
     return C.filter_coro_receiver(), self.obj
 end
 
--- Set the receiver to pass queries to.
+-- Set the receiver to pass objects to.
 function Coro:receiver(o)
     self.obj._log:debug("receiver()")
     self.obj.recv, self.obj.ctx = o:receive()
@@ -107,7 +107,7 @@ end
 -- Used from the Lua function to send objects to the next receiver,
 -- returns 0 on success.
 function Coro:send(object)
-    return C.core_receiver_call(self.obj.recv, self.obj.ctx, object)
+    return self.obj.recv(self.obj.ctx, object)
 end
 
 -- dnsjit.core.object (3),

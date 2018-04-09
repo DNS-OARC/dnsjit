@@ -23,7 +23,6 @@
 #include "input/fpcap.h"
 #include "core/object/pcap.h"
 
-#include <time.h>
 #include <stdio.h>
 #include <pthread.h>
 
@@ -32,8 +31,9 @@ static input_fpcap_t _defaults = {
     LOG_T_INIT_OBJ("input.fpcap"),
     0, 0,
     0, 0, 0,
+    CORE_OBJECT_PCAP_INIT(0), 0,
     0, 10000, 100,
-    0, { 0, 0 }, { 0, 0 }, 0, 0, 0,
+    0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0
 };
 
@@ -41,6 +41,26 @@ struct _ctx {
     pthread_mutex_t m;
     pthread_cond_t  c;
     size_t          ref;
+};
+
+struct _prod_ctx {
+    struct {
+        uint32_t ts_sec;
+        uint32_t ts_usec;
+        uint32_t incl_len;
+        uint32_t orig_len;
+    } hdr;
+    struct _ctx    ctx;
+    size_t         n, m, buf_left;
+    uint8_t*       bufp;
+    unsigned short wait : 1;
+    unsigned short conthdr : 1;
+};
+static struct _prod_ctx _prod_ctx_defaults = {
+    { 0, 0, 0, 0 },
+    { PTHREAD_MUTEX_INITIALIZER, PTHREAD_COND_INITIALIZER, 0 },
+    0, 0, 0, 0,
+    0, 0
 };
 
 static void _ref(core_object_t* obj, core_object_reference_t ref)
@@ -65,11 +85,15 @@ core_log_t* input_fpcap_log()
 
 int input_fpcap_init(input_fpcap_t* self)
 {
-    if (!self) {
+    struct _prod_ctx* ctx = malloc(sizeof(struct _prod_ctx));
+
+    if (!self || !ctx) {
         return 1;
     }
 
-    *self = _defaults;
+    *self          = _defaults;
+    *ctx           = _prod_ctx_defaults;
+    self->prod_ctx = (void*)ctx;
 
     ldebug("init");
 
@@ -89,6 +113,7 @@ int input_fpcap_destroy(input_fpcap_t* self)
     }
     free(self->buf);
     free(self->shared_pkts);
+    free(self->prod_ctx);
 
     return 0;
 }
@@ -174,13 +199,24 @@ int input_fpcap_open(input_fpcap_t* self, const char* file)
                 self->shared_pkts[n].bytes      = 0;
                 self->shared_pkts[n].is_swapped = self->is_swapped;
                 self->shared_pkts[n].obj_ref    = _ref;
+
+                self->shared_pkts[n].obj_refctx  = &((struct _prod_ctx*)self->prod_ctx)->ctx;
+                self->shared_pkts[n].is_multiple = 1;
             }
+
+            ((struct _prod_ctx*)self->prod_ctx)->bufp     = self->buf;
+            ((struct _prod_ctx*)self->prod_ctx)->buf_left = self->buf_size;
         } else {
             if (!(self->buf = malloc(self->snaplen))) {
                 fclose(self->file);
                 self->file = 0;
                 return 1;
             }
+
+            self->prod_pkt.snaplen    = self->snaplen;
+            self->prod_pkt.linktype   = self->network;
+            self->prod_pkt.bytes      = (unsigned char*)self->buf;
+            self->prod_pkt.is_swapped = self->is_swapped;
         }
         ldebug("pcap v%u.%u snaplen:%lu %s", self->version_major, self->version_minor, self->snaplen, self->is_swapped ? " swapped" : "");
         return 0;
@@ -331,26 +367,157 @@ static int _run_shared(input_fpcap_t* self)
 
 int input_fpcap_run(input_fpcap_t* self)
 {
-    struct timespec ts;
-    int             ret;
-
     if (!self || !self->file || !self->recv) {
         return 1;
     }
 
-    clock_gettime(CLOCK_MONOTONIC, &ts);
-    self->ts.sec  = ts.tv_sec;
-    self->ts.nsec = ts.tv_nsec;
-
     if (self->use_shared) {
-        ret = _run_shared(self);
-    } else {
-        ret = _run(self);
+        return _run_shared(self);
+    }
+    return _run(self);
+}
+
+static const core_object_t* _produce(void* ctx)
+{
+    input_fpcap_t* self = (input_fpcap_t*)ctx;
+    struct {
+        uint32_t ts_sec;
+        uint32_t ts_usec;
+        uint32_t incl_len;
+        uint32_t orig_len;
+    } hdr;
+
+    if (!self) {
+        return 0;
     }
 
-    clock_gettime(CLOCK_MONOTONIC, &ts);
-    self->te.sec  = ts.tv_sec;
-    self->te.nsec = ts.tv_nsec;
+    if (fread(&hdr, 1, 16, self->file) == 16) {
+        if (self->is_swapped) {
+            hdr.ts_sec   = _flip32(hdr.ts_sec);
+            hdr.ts_usec  = _flip32(hdr.ts_usec);
+            hdr.incl_len = _flip32(hdr.incl_len);
+            hdr.orig_len = _flip32(hdr.orig_len);
+        }
+        if (hdr.incl_len > self->snaplen) {
+            return 0;
+        }
+        if (fread(self->buf, 1, hdr.incl_len, self->file) != hdr.incl_len) {
+            return 0;
+        }
 
-    return ret;
+        self->pkts++;
+
+        self->prod_pkt.ts.sec = hdr.ts_sec;
+        if (self->is_nanosec) {
+            self->prod_pkt.ts.nsec = hdr.ts_usec;
+        } else {
+            self->prod_pkt.ts.nsec = hdr.ts_usec * 1000;
+        }
+        self->prod_pkt.caplen = hdr.incl_len;
+        self->prod_pkt.len    = hdr.orig_len;
+
+        return (core_object_t*)&self->prod_pkt;
+    }
+
+    return 0;
+}
+
+static const core_object_t* _produce_shared(void* self_ctx)
+{
+    input_fpcap_t*    self = (input_fpcap_t*)self_ctx;
+    struct _prod_ctx* ctx;
+
+    if (!self) {
+        return 0;
+    }
+    ctx = (struct _prod_ctx*)self->prod_ctx;
+    if (!ctx) {
+        return 0;
+    }
+
+    if (ctx->wait) {
+        pthread_mutex_lock(&ctx->ctx.m);
+        while (ctx->ctx.ref) {
+            pthread_cond_wait(&ctx->ctx.c, &ctx->ctx.m);
+        }
+        pthread_mutex_unlock(&ctx->ctx.m);
+
+        ctx->n        = 0;
+        ctx->m        = 0;
+        ctx->bufp     = self->buf;
+        ctx->buf_left = self->buf_size;
+        ctx->wait     = 0;
+    }
+
+    if (ctx->conthdr || fread(&ctx->hdr, 1, 16, self->file) == 16) {
+        ctx->conthdr = 0;
+
+        if (self->is_swapped) {
+            ctx->hdr.ts_sec   = _flip32(ctx->hdr.ts_sec);
+            ctx->hdr.ts_usec  = _flip32(ctx->hdr.ts_usec);
+            ctx->hdr.incl_len = _flip32(ctx->hdr.incl_len);
+            ctx->hdr.orig_len = _flip32(ctx->hdr.orig_len);
+        }
+        if (ctx->hdr.incl_len > ctx->buf_left || ctx->n == self->num_shared_pkts) {
+            ctx->wait    = 1;
+            ctx->conthdr = 1;
+            return (core_object_t*)&self->shared_pkts[ctx->n - 1];
+        }
+        if (fread(ctx->bufp, 1, ctx->hdr.incl_len, self->file) != ctx->hdr.incl_len) {
+            return 0;
+        }
+
+        self->pkts++;
+
+        self->shared_pkts[ctx->n].ts.sec = ctx->hdr.ts_sec;
+        if (self->is_nanosec) {
+            self->shared_pkts[ctx->n].ts.nsec = ctx->hdr.ts_usec;
+        } else {
+            self->shared_pkts[ctx->n].ts.nsec = ctx->hdr.ts_usec * 1000;
+        }
+        self->shared_pkts[ctx->n].caplen = ctx->hdr.incl_len;
+        self->shared_pkts[ctx->n].len    = ctx->hdr.orig_len;
+        self->shared_pkts[ctx->n].bytes  = ctx->bufp;
+
+        if (!ctx->m) {
+            self->shared_pkts[ctx->n].obj_prev = 0;
+        } else {
+            self->shared_pkts[ctx->n].obj_prev = (core_object_t*)&self->shared_pkts[ctx->n - 1];
+        }
+        ctx->m++;
+        if (ctx->m == self->num_multiple_pkts) {
+            size_t n = ctx->n;
+
+            ctx->m = 0;
+            ctx->bufp += ctx->hdr.incl_len;
+            ctx->buf_left -= ctx->hdr.incl_len;
+            ctx->n++;
+            return (core_object_t*)&self->shared_pkts[n];
+        }
+
+        ctx->bufp += ctx->hdr.incl_len;
+        ctx->buf_left -= ctx->hdr.incl_len;
+        ctx->n++;
+    }
+
+    if (ctx->m) {
+        ctx->wait = 1;
+        return (core_object_t*)&self->shared_pkts[ctx->n - 1];
+    }
+
+    pthread_mutex_lock(&ctx->ctx.m);
+    while (ctx->ctx.ref) {
+        pthread_cond_wait(&ctx->ctx.c, &ctx->ctx.m);
+    }
+    pthread_mutex_unlock(&ctx->ctx.m);
+
+    return 0;
+}
+
+core_producer_t input_fpcap_producer(input_fpcap_t* self)
+{
+    if (self && self->use_shared) {
+        return _produce_shared;
+    }
+    return _produce;
 }

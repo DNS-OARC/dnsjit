@@ -31,7 +31,6 @@ static input_pcapthread_t _defaults = {
     LOG_T_INIT_OBJ("input.pcapthread"),
     0, 0,
     0, 0, 0,
-    { 0, 0 }, { 0, 0 },
     0, 0, 0, 0,
     PCAP_THREAD_OK,
     0, 1
@@ -245,23 +244,15 @@ int input_pcapthread_open_offline(input_pcapthread_t* self, const char* file)
 
 int input_pcapthread_run(input_pcapthread_t* self)
 {
-    struct timespec ts, te;
     if (!self || !self->setup_ok || !self->recv) {
         return 1;
     }
 
     ldebug("run");
 
-    clock_gettime(CLOCK_MONOTONIC, &ts);
     if ((self->err = pcap_thread_run(self->pt)) != PCAP_THREAD_OK) {
         return 1;
     }
-    clock_gettime(CLOCK_MONOTONIC, &te);
-
-    self->ts.sec  = ts.tv_sec;
-    self->ts.nsec = ts.tv_nsec;
-    self->te.sec  = te.tv_sec;
-    self->te.nsec = te.tv_nsec;
 
     return 0;
 }

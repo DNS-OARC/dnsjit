@@ -16,13 +16,32 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
 
--- dnsjit.core.receiver
--- Receiver interfaces
---   require("dnsjit.core.receiver_h")
+-- dnsjit.lib.clock
+-- Clock and time functions
+--   local clock = require("dnsjit.lib.clock")
+--   local sec, nsec = clock.monotonic()
 --
--- Receiver interfaces are used by input, filter and output modules to pass
--- objects for processing.
+-- Functions to get the time from system-wide clocks.
 module(...,package.seeall)
 
--- dnsjit.core.object (3)
-return
+require("dnsjit.lib.clock_h")
+local C = require("ffi").C
+
+Clock = {}
+
+-- Return the current seconds and nanoseconds (as a list) from the realtime
+-- clock.
+function Clock.realtime()
+    local ts = C.lib_clock_gettime("LIB_CLOCK_REALTIME")
+    return tonumber(ts.sec), tonumber(ts.nsec)
+end
+
+-- Return the current seconds and nanoseconds (as a list) from the monotonic
+-- clock.
+function Clock.monotonic()
+    local ts = C.lib_clock_gettime("LIB_CLOCK_MONOTONIC")
+    return tonumber(ts.sec), tonumber(ts.nsec)
+end
+
+-- clock_gettime (2)
+return Clock

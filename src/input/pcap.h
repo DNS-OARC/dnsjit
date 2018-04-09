@@ -20,7 +20,8 @@
 
 #include "core/log.h"
 #include "core/receiver.h"
-#include "core/timespec.h"
+#include "core/producer.h"
+#include "core/object/pcap.h"
 
 #ifndef __dnsjit_input_pcap_h
 #define __dnsjit_input_pcap_h

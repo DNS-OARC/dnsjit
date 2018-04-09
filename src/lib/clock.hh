@@ -18,16 +18,12 @@
  * along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "core/log.h"
-#include "core/receiver.h"
-#include "core/producer.h"
+//lua:require("dnsjit.core.timespec_h")
 
-#ifndef __dnsjit_output_null_h
-#define __dnsjit_output_null_h
+typedef enum lib_clock_clkid {
+    LIB_CLOCK_REALTIME,
+    LIB_CLOCK_MONOTONIC
+} lib_clock_clkid_t;
 
-#include <stddef.h>
-#include <stdint.h>
-
-#include "output/null.hh"
-
-#endif
+core_timespec_t lib_clock_getres(lib_clock_clkid_t clkid);
+core_timespec_t lib_clock_gettime(lib_clock_clkid_t clkid);

@@ -17,7 +17,7 @@
 -- along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
 
 -- dnsjit.filter.timing
--- Filter to pass queries to the next receiver based on timing between packets
+-- Filter to pass objects to the next receiver based on timing between packets
 --   local filter = require("dnsjit.filter.timing").new()
 --   ...
 --   filter:receiver(...)
@@ -82,7 +82,7 @@ function Timing:receive()
     return C.filter_timing_receiver(), self.obj
 end
 
--- Set the receiver to pass queries to.
+-- Set the receiver to pass objects to.
 function Timing:receiver(o)
     self.obj._log:debug("receiver()")
     self.obj.recv, self.obj.ctx = o:receive()

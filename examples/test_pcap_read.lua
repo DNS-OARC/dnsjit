@@ -1,9 +1,10 @@
 #!/usr/bin/env dnsjit
+local clock = require("dnsjit.lib.clock")
 local pcap = arg[2]
-local num = arg[3]
+local runs = tonumber(arg[3])
 
 if pcap == nil then
-    print("usage: "..arg[1].." <pcap> [num times]")
+    print("usage: "..arg[1].." <pcap> [runs]")
     return
 end
 
@@ -12,8 +13,10 @@ result = {}
 results = {}
 highest = nil
 
-if num == nil then
-    num = 10
+if runs == nil then
+    runs = 10
+else
+    runs = tonumber(runs)
 end
 
 for _, name in pairs(inputs) do
@@ -21,25 +24,26 @@ for _, name in pairs(inputs) do
     p = 0
 
     print("run", name)
-    for n = 1, num do
+    for n = 1, runs do
         o = require("dnsjit.output.null").new()
         i = require("dnsjit.input."..name).new()
         if name == "pcap" then
             i:open_offline(pcap)
             i:receiver(o)
+            ss, sns = clock:monotonic()
             i:dispatch()
         elseif name == "pcapthread" then
             i:open_offline(pcap)
             i:receiver(o)
+            ss, sns = clock:monotonic()
             i:run()
         else
             i:open(pcap)
             i:receiver(o)
+            ss, sns = clock:monotonic()
             i:run()
         end
-
-        ss, sns = i:start_time()
-        es, ens = i:end_time()
+        es, ens = clock:monotonic()
 
         if es > ss then
             rt = rt + ((es - ss) - 1) + ((1000000000 - sns + ens)/1000000000)

@@ -45,7 +45,6 @@ int pcap_thread_set_filter_netmask(pcap_thread_t* pcap_thread, const uint32_t fi
 
 //lua:require("dnsjit.core.log")
 //lua:require("dnsjit.core.receiver_h")
-//lua:require("dnsjit.core.timespec_h")
 
 typedef struct input_pcapthread {
     core_log_t      _log;
@@ -54,7 +53,6 @@ typedef struct input_pcapthread {
     pcap_thread_t*  pt;
     core_receiver_t recv;
     void*           ctx;
-    core_timespec_t ts, te;
     size_t          pkts, drop, ignore, queries;
     int             err;
     uint64_t        src_id;

@@ -36,6 +36,7 @@ module(...,package.seeall)
 -- dnsjit.core.log (3),
 -- dnsjit.core.mutex (3),
 -- dnsjit.core.object (3),
+-- dnsjit.core.producer (3),
 -- dnsjit.core.receiver (3),
 -- dnsjit.core.timespec (3),
 -- dnsjit.core.tracking (3)

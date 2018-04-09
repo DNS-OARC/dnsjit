@@ -20,10 +20,12 @@
 
 #include "core/log.h"
 #include "core/receiver.h"
-#include "core/timespec.h"
+#include "core/producer.h"
 
 #ifndef __dnsjit_input_zero_h
 #define __dnsjit_input_zero_h
+
+#include <stdint.h>
 
 #include "input/zero.hh"
 

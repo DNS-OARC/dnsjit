@@ -24,7 +24,8 @@ typedef struct pcap {} pcap_t;
 
 //lua:require("dnsjit.core.log")
 //lua:require("dnsjit.core.receiver_h")
-//lua:require("dnsjit.core.timespec_h")
+//lua:require("dnsjit.core.producer_h")
+//lua:require("dnsjit.core.object.pcap_h")
 
 typedef struct input_pcap {
     core_log_t      _log;
@@ -33,9 +34,10 @@ typedef struct input_pcap {
 
     unsigned short is_swapped : 1;
 
-    pcap_t*         pcap;
-    core_timespec_t ts, te;
-    size_t          pkts;
+    core_object_pcap_t prod_pkt;
+
+    pcap_t* pcap;
+    size_t  pkts;
 
     size_t   snaplen;
     uint32_t linktype;
@@ -48,3 +50,5 @@ int input_pcap_destroy(input_pcap_t* self);
 int input_pcap_open_offline(input_pcap_t* self, const char* file);
 int input_pcap_loop(input_pcap_t* self, int cnt);
 int input_pcap_dispatch(input_pcap_t* self, int cnt);
+
+core_producer_t input_pcap_producer();
