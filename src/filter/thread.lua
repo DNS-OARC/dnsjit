@@ -64,6 +64,21 @@ function Thread:log()
     return self.obj._log
 end
 
+-- Control if writers marker should be used, can improve performance if the
+-- work load in the threads are high.
+function Thread:use_writers(bool)
+    if bool == nil then
+        if self.obj.use_writers == 1 then
+            return true
+        end
+        return false
+    elseif bool == true then
+        self.obj.use_writers = 1
+    else
+        self.obj.use_writers = 0
+    end
+end
+
 -- Start the thread(s), returns 0 on success.
 function Thread:start()
     return C.filter_thread_start(self.obj)
@@ -77,7 +92,7 @@ end
 -- Return the C functions and context for receiving objects.
 function Thread:receive()
     self.obj._log:debug("receive()")
-    return C.filter_thread_receiver(), self.obj
+    return C.filter_thread_receiver(self.obj), self.obj
 end
 
 -- Set the receiver to pass objects to, this can be called multiple times to

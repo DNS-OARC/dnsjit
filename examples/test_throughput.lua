@@ -2,6 +2,7 @@
 local clock = require("dnsjit.lib.clock")
 local getopt = require("dnsjit.lib.getopt").new({
     { "t", "thread", false, "Test also with dnsjit.filter.thread", "?" },
+    { nil, "thread-writers", false, "Use writers for thread", "?" },
     { "c", "coro", false, "Test also with dnsjit.filter.coro", "?" },
     { "s", "split", false, "Test also with dnsjit.filter.split", "?" }
 })
@@ -53,6 +54,10 @@ if getopt:val("t") then
         local t = require("dnsjit.filter.thread").new()
         local o = require("dnsjit.output.null").new()
 
+        if getopt:val("thread-writers") then
+            t.obj.use_writers = 1
+        end
+
         t:receiver(o)
         i:receiver(t)
         t:start()
@@ -79,6 +84,10 @@ if getopt:val("t") then
         local t = require("dnsjit.filter.thread").new()
         local o1 = require("dnsjit.output.null").new()
         local o2 = require("dnsjit.output.null").new()
+
+        if getopt:val("thread-writers") then
+            t:use_writers(true)
+        end
 
         t:receiver(o1)
         t:receiver(o2)
@@ -109,6 +118,10 @@ if getopt:val("t") then
         local o2 = require("dnsjit.output.null").new()
         local o3 = require("dnsjit.output.null").new()
         local o4 = require("dnsjit.output.null").new()
+
+        if getopt:val("thread-writers") then
+            t:use_writers(true)
+        end
 
         t:receiver(o1)
         t:receiver(o2)
@@ -170,6 +183,11 @@ if getopt:val("s") and getopt:val("t") then
         local o1 = require("dnsjit.output.null").new()
         local t2 = require("dnsjit.filter.thread").new()
         local o2 = require("dnsjit.output.null").new()
+
+        if getopt:val("thread-writers") then
+            t1:use_writers(true)
+            t2:use_writers(true)
+        end
 
         t1:receiver(o1)
         t1:start()
