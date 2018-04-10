@@ -26,6 +26,7 @@ typedef struct filter_thread_work {
     core_object_t*  obj;
     pthread_mutex_t mutex;
     pthread_cond_t  read, write;
+    uint8_t         writers;
     char            end;
 } filter_thread_work_t;
 
@@ -37,6 +38,7 @@ typedef struct filter_thread {
 
     filter_thread_work_t* work;
     size_t                works, at;
+    unsigned short use_writers : 1;
 } filter_thread_t;
 
 struct filter_thread_recv {
@@ -55,4 +57,4 @@ int filter_thread_add(filter_thread_t* self, core_receiver_t recv, void* ctx);
 int filter_thread_start(filter_thread_t* self);
 int filter_thread_stop(filter_thread_t* self);
 
-core_receiver_t filter_thread_receiver();
+core_receiver_t filter_thread_receiver(filter_thread_t* self);
