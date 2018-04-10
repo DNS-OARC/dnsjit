@@ -8,7 +8,7 @@ capturing, parsing and statistics gathering of DNS messages while also
 providing facilities for replaying DNS traffic.
 
 One of the core functionality that **dnsjit** brings is to tie together C
-and Lua modules through a receiver/receive interface.
+and Lua modules through a receiver/producer interface.
 This allows creation of custom chains of functionality to meet various
 requirements.
 Another core functionality is the ability to parse and process DNS messages

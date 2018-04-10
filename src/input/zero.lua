@@ -17,12 +17,12 @@
 -- along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
 
 -- dnsjit.input.zero
--- Generate empty queries (/dev/zero)
+-- Generate empty packets (/dev/zero)
 --   local input = require("dnsjit.input.zero").new()
 --   input:receiver(filter_or_output)
 --   input:run(10000000)
 --
--- Input module for generating empty queries, mostly used for testing.
+-- Input module for generating empty packets, mostly used for testing.
 module(...,package.seeall)
 
 require("dnsjit.input.zero_h")
@@ -52,11 +52,16 @@ function Zero:log()
     return self.obj._log
 end
 
--- Set the receiver to pass queries to.
+-- Set the receiver to pass objects to.
 function Zero:receiver(o)
     self.obj._log:debug("receiver()")
     self.obj.recv, self.obj.ctx = o:receive()
     self._receiver = o
+end
+
+-- Return the C functions and context for producing objects.
+function Zero:produce()
+    return C.input_zero_producer(self.obj), self.obj
 end
 
 -- Enable (true) or disable (false) usage of shared objects, if
@@ -78,21 +83,9 @@ end
 
 -- Generate
 -- .I num
--- empty queries and send them to the receiver, return 0 if successful.
+-- empty packets and send them to the receiver, return 0 if successful.
 function Zero:run(num)
     return C.input_zero_run(self.obj, num)
-end
-
--- Return the seconds and nanoseconds (as a list) of the start time for
--- .BR Zero:run() .
-function Zero:start_time()
-    return tonumber(self.obj.ts.sec), tonumber(self.obj.ts.nsec)
-end
-
--- Return the seconds and nanoseconds (as a list) of the stop time for
--- .BR Zero:run() .
-function Zero:end_time()
-    return tonumber(self.obj.te.sec), tonumber(self.obj.te.nsec)
 end
 
 return Zero

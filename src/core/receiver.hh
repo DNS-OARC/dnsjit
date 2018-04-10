@@ -21,5 +21,3 @@
 //lua:require("dnsjit.core.object_h")
 
 typedef int (*core_receiver_t)(void* ctx, const core_object_t* obj);
-
-int core_receiver_call(core_receiver_t recv, void* ctx, const core_object_t* obj);

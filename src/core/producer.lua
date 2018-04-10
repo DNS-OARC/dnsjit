@@ -16,11 +16,11 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
 
--- dnsjit.core.receiver
--- Receiver interfaces
---   require("dnsjit.core.receiver_h")
+-- dnsjit.core.producer
+-- Producer interfaces
+--   require("dnsjit.core.producer_h")
 --
--- Receiver interfaces are used by input, filter and output modules to pass
+-- Producer interfaces are used by input, filter and output modules to pass
 -- objects for processing.
 module(...,package.seeall)
 

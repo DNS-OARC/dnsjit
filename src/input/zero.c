@@ -29,9 +29,14 @@ static core_log_t   _log      = LOG_T_INIT("input.zero");
 static input_zero_t _defaults = {
     LOG_T_INIT_OBJ("input.zero"),
     0, 0,
-    { 0, 0 }, { 0, 0 },
     0
 };
+
+static core_object_packet_t _shared_pkt = CORE_OBJECT_PACKET_INIT(0);
+
+static void _ref(core_object_t* obj, core_object_reference_t ref)
+{
+}
 
 core_log_t* input_zero_log()
 {
@@ -44,7 +49,8 @@ int input_zero_init(input_zero_t* self)
         return 1;
     }
 
-    *self = _defaults;
+    *self               = _defaults;
+    _shared_pkt.obj_ref = _ref;
 
     ldebug("init");
 
@@ -62,15 +68,8 @@ int input_zero_destroy(input_zero_t* self)
     return 0;
 }
 
-static core_object_packet_t shared_pkt = CORE_OBJECT_PACKET_INIT(0);
-
-static void _ref(core_object_t* obj, core_object_reference_t ref)
-{
-}
-
 int input_zero_run(input_zero_t* self, uint64_t num)
 {
-    struct timespec      ts, te;
     core_object_packet_t pkt = CORE_OBJECT_PACKET_INIT(0);
     core_object_t*       obj = (core_object_t*)&pkt;
 
@@ -81,20 +80,32 @@ int input_zero_run(input_zero_t* self, uint64_t num)
     ldebug("run");
 
     if (self->use_shared) {
-        shared_pkt.obj_ref = _ref;
-        obj                = (core_object_t*)&shared_pkt;
+        obj = (core_object_t*)&_shared_pkt;
     }
 
-    clock_gettime(CLOCK_MONOTONIC, &ts);
     while (num--) {
         self->recv(self->ctx, obj);
     }
-    clock_gettime(CLOCK_MONOTONIC, &te);
-
-    self->ts.sec  = ts.tv_sec;
-    self->ts.nsec = ts.tv_nsec;
-    self->te.sec  = te.tv_sec;
-    self->te.nsec = te.tv_nsec;
 
     return 0;
+}
+
+static core_object_packet_t _pkt = CORE_OBJECT_PACKET_INIT(0);
+
+static const core_object_t* _produce(void* ctx)
+{
+    return (core_object_t*)&_pkt;
+}
+
+static const core_object_t* _produce_shared(void* ctx)
+{
+    return (core_object_t*)&_shared_pkt;
+}
+
+core_producer_t input_zero_producer(input_zero_t* self)
+{
+    if (self && self->use_shared) {
+        return _produce_shared;
+    }
+    return _produce;
 }

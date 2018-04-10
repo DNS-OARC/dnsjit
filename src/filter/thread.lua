@@ -48,7 +48,7 @@ function Thread.new(queue_size)
         queue_size = 1000
     end
     local self = {
-        _receiver = nil,
+        _receivers = {},
         obj = filter_thread_t(),
     }
     C.filter_thread_init(self.obj, queue_size)
@@ -80,11 +80,17 @@ function Thread:receive()
     return C.filter_thread_receiver(), self.obj
 end
 
--- Set the receiver to pass queries to.
+-- Set the receiver to pass objects to, this can be called multiple times to
+-- set addtional receivers.
 function Thread:receiver(o)
     self.obj._log:debug("receiver()")
-    self.obj.recv, self.obj.ctx = o:receive()
-    self._receiver = o
+    local recv, ctx = o:receive()
+    local ret = C.filter_thread_add(self.obj, recv, ctx)
+    if ret == 0 then
+        table.insert(self._receivers, o)
+        return
+    end
+    return ret
 end
 
 return Thread

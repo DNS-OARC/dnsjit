@@ -23,7 +23,40 @@
 #include "output/null.h"
 #include "core/object/pcap.h"
 
-#include "core/log.h"
+static core_log_t    _log      = LOG_T_INIT("output.null");
+static output_null_t _defaults = {
+    LOG_T_INIT_OBJ("output.null"),
+    0, 0, 0
+};
+
+core_log_t* output_null_log()
+{
+    return &_log;
+}
+
+int output_null_init(output_null_t* self)
+{
+    if (!self) {
+        return 1;
+    }
+
+    *self = _defaults;
+
+    ldebug("init");
+
+    return 0;
+}
+
+int output_null_destroy(output_null_t* self)
+{
+    if (!self) {
+        return 1;
+    }
+
+    ldebug("destroy");
+
+    return 0;
+}
 
 static int _receive(void* ctx, const core_object_t* obj)
 {
@@ -49,4 +82,32 @@ static int _receive(void* ctx, const core_object_t* obj)
 core_receiver_t output_null_receiver()
 {
     return _receive;
+}
+
+int output_null_run(output_null_t* self, uint64_t num)
+{
+    if (!self || !self->prod) {
+        return 1;
+    }
+
+    ldebug("run");
+
+    while (num--) {
+        const core_object_t* obj = self->prod(self->ctx);
+        if (obj) {
+            if (obj->obj_type == CORE_OBJECT_PCAP) {
+                const core_object_pcap_t* pkt = (core_object_pcap_t*)obj;
+                if (pkt->is_multiple) {
+                    while (pkt) {
+                        self->pkts++;
+                        pkt = (core_object_pcap_t*)pkt->obj_prev;
+                    }
+                    continue;
+                }
+            }
+            self->pkts++;
+        }
+    }
+
+    return 0;
 }

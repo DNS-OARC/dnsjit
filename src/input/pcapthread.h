@@ -22,7 +22,6 @@
 #include "pcap-thread/pcap_thread.h"
 #include "core/log.h"
 #include "core/receiver.h"
-#include "core/timespec.h"
 
 #ifndef __dnsjit_input_pcapthread_h
 #define __dnsjit_input_pcapthread_h

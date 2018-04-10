@@ -29,20 +29,29 @@ typedef struct filter_thread_work {
     char            end;
 } filter_thread_work_t;
 
-typedef struct filter_thread {
-    core_log_t      _log;
-    core_receiver_t recv;
-    void*           ctx;
+typedef struct filter_thread_recv filter_thread_recv_t;
 
-    pthread_t             tid;
+typedef struct filter_thread {
+    core_log_t            _log;
+    filter_thread_recv_t* recv;
+
     filter_thread_work_t* work;
     size_t                works, at;
 } filter_thread_t;
+
+struct filter_thread_recv {
+    filter_thread_t*      self;
+    filter_thread_recv_t* next;
+    core_receiver_t       recv;
+    void*                 ctx;
+    pthread_t             tid;
+};
 
 core_log_t* filter_thread_log();
 
 int filter_thread_init(filter_thread_t* self, size_t queue_size);
 int filter_thread_destroy(filter_thread_t* self);
+int filter_thread_add(filter_thread_t* self, core_receiver_t recv, void* ctx);
 int filter_thread_start(filter_thread_t* self);
 int filter_thread_stop(filter_thread_t* self);
 

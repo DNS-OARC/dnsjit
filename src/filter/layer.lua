@@ -60,7 +60,7 @@ function Layer:receive()
     return C.filter_layer_receiver(), self.obj
 end
 
--- Set the receiver to pass queries to.
+-- Set the receiver to pass objects to.
 function Layer:receiver(o)
     self.obj._log:debug("receiver()")
     self.obj.recv, self.obj.ctx = o:receive()

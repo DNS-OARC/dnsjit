@@ -53,7 +53,7 @@ function Pcapthread:log()
     return self.obj._log
 end
 
--- Set the receiver to pass queries to.
+-- Set the receiver to pass objects to.
 function Pcapthread:receiver(o)
     self.obj._log:debug("receiver()")
     self.obj.recv, self.obj.ctx = o:receive()
@@ -288,18 +288,6 @@ function Pcapthread:strerr(err)
         return ffi.string(C.input_pcapthread_strerr(self.obj.err))
     end
     return ffi.string(C.input_pcapthread_strerr(err))
-end
-
--- Return the seconds and nanoseconds (as a list) of the start time for
--- .BR Pcapthread:run() .
-function Pcapthread:start_time()
-    return tonumber(self.obj.ts.sec), tonumber(self.obj.ts.nsec)
-end
-
--- Return the seconds and nanoseconds (as a list) of the stop time for
--- .BR Pcapthread:run() .
-function Pcapthread:end_time()
-    return tonumber(self.obj.te.sec), tonumber(self.obj.te.nsec)
 end
 
 -- Return the number of packets seen.

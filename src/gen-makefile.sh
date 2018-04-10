@@ -28,7 +28,7 @@ AM_CFLAGS = -I$(srcdir) \
   $(PTHREAD_CFLAGS) \
   $(luajit_CFLAGS)
 
-EXTRA_DIST = gen-manpage.lua dnsjit.1in
+EXTRA_DIST = gen-manpage.lua gen-compat.lua dnsjit.1in
 
 bin_PROGRAMS = dnsjit
 

@@ -85,11 +85,16 @@ function Mmpcap:log()
     return self.obj._log
 end
 
--- Set the receiver to pass queries to.
+-- Set the receiver to pass objects to.
 function Mmpcap:receiver(o)
     self.obj._log:debug("receiver()")
     self.obj.recv, self.obj.ctx = o:receive()
     self._receiver = o
+end
+
+-- Return the C functions and context for producing objects.
+function Mmpcap:produce()
+    return C.input_mmpcap_producer(self.obj), self.obj
 end
 
 -- Open a PCAP file for processing and read the PCAP header.
@@ -119,18 +124,6 @@ end
 -- Returns 0 on success.
 function Mmpcap:run()
     return C.input_mmpcap_run(self.obj)
-end
-
--- Return the seconds and nanoseconds (as a list) of the start time for
--- .BR Mmpcap:run() .
-function Mmpcap:start_time()
-    return tonumber(self.obj.ts.sec), tonumber(self.obj.ts.nsec)
-end
-
--- Return the seconds and nanoseconds (as a list) of the stop time for
--- .BR Mmpcap:run() .
-function Mmpcap:end_time()
-    return tonumber(self.obj.te.sec), tonumber(self.obj.te.nsec)
 end
 
 -- Return the number of packets seen.

@@ -18,16 +18,6 @@
  * along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "core/log.h"
-#include "core/receiver.h"
+#include "config.h"
+
 #include "core/producer.h"
-
-#ifndef __dnsjit_output_null_h
-#define __dnsjit_output_null_h
-
-#include <stddef.h>
-#include <stdint.h>
-
-#include "output/null.hh"
-
-#endif

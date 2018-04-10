@@ -18,16 +18,6 @@
  * along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "core/log.h"
-#include "core/receiver.h"
-#include "core/producer.h"
+//lua:require("dnsjit.core.object_h")
 
-#ifndef __dnsjit_output_null_h
-#define __dnsjit_output_null_h
-
-#include <stddef.h>
-#include <stdint.h>
-
-#include "output/null.hh"
-
-#endif
+typedef const core_object_t* (*core_producer_t)(void* ctx);

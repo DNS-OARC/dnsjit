@@ -20,7 +20,7 @@
 
 //lua:require("dnsjit.core.log")
 //lua:require("dnsjit.core.receiver_h")
-//lua:require("dnsjit.core.timespec_h")
+//lua:require("dnsjit.core.producer_h")
 //lua:require("dnsjit.core.object.pcap_h")
 
 typedef struct input_mmpcap {
@@ -32,15 +32,17 @@ typedef struct input_mmpcap {
     unsigned short is_nanosec : 1;
     unsigned short use_shared : 1;
 
+    core_object_pcap_t prod_pkt;
+    void*              prod_ctx;
+
     core_object_pcap_t* shared_pkts;
     size_t              num_shared_pkts;
     size_t              num_multiple_pkts;
 
-    int             fd;
-    size_t          len, at;
-    core_timespec_t ts, te;
-    size_t          pkts;
-    uint8_t*        buf;
+    int      fd;
+    size_t   len, at;
+    size_t   pkts;
+    uint8_t* buf;
 
     uint32_t magic_number;
     uint16_t version_major;
@@ -57,3 +59,5 @@ int input_mmpcap_init(input_mmpcap_t* self);
 int input_mmpcap_destroy(input_mmpcap_t* self);
 int input_mmpcap_open(input_mmpcap_t* self, const char* file);
 int input_mmpcap_run(input_mmpcap_t* self);
+
+core_producer_t input_mmpcap_producer(input_mmpcap_t* self);

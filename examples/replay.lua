@@ -1,4 +1,5 @@
 #!/usr/bin/env dnsjit
+local clock = require("dnsjit.lib.clock")
 local log = require("dnsjit.core.log")
 local getopt = require("dnsjit.lib.getopt").new({
     { "v", "verbose", 0, "Enable and increase verbosity for each time given", "?+" },
@@ -109,14 +110,12 @@ end
 input:receiver(output)
 
 output:start()
+local start_sec, start_nsec = clock:monotonic()
 input:run()
 output:stop()
+local end_sec, end_nsec = clock:monotonic()
 
-local start_sec, start_nsec, end_sec, end_nsec, runtime
-
-start_sec, start_nsec = input:start_time()
-end_sec, end_nsec = input:end_time()
-runtime = 0
+local runtime = 0
 if end_sec > start_sec then
     runtime = ((end_sec - start_sec) - 1) + ((1000000000 - start_nsec + end_nsec)/1000000000)
 elseif end_sec == start_sec and end_nsec > start_nsec then

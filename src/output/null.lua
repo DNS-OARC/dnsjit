@@ -20,7 +20,7 @@
 -- Output to nothing (/dev/null)
 --   local output = require("dnsjit.output.null").new()
 --
--- Output module for those that doesn't really like queries.
+-- Output module for those that doesn't really like packets.
 module(...,package.seeall)
 
 require("dnsjit.output.null_h")
@@ -34,9 +34,20 @@ local Null = {}
 -- Create a new Null output.
 function Null.new()
     local self = {
+        _producer = nil,
         obj = output_null_t(),
     }
+    C.output_null_init(self.obj)
+    ffi.gc(self.obj, C.output_null_destroy)
     return setmetatable(self, { __index = Null })
+end
+
+-- Return the Log object to control logging of this instance or module.
+function Null:log()
+    if self == nil then
+        return C.output_null_log()
+    end
+    return self.obj._log
 end
 
 -- Return the C functions and context for receiving objects.
@@ -44,7 +55,21 @@ function Null:receive()
     return C.output_null_receiver(), self.obj
 end
 
--- Return the number of queries we sent into the void.
+-- Set the producer to pass objects to.
+function Null:producer(o)
+    self.obj._log:debug("producer()")
+    self.obj.prod, self.obj.ctx = o:produce()
+    self._producer = o
+end
+
+-- Retrieve
+-- .I num
+-- objects from the producer, return 0 if successful.
+function Null:run(num)
+    return C.output_null_run(self.obj, num)
+end
+
+-- Return the number of packets we sent into the void.
 function Null:packets()
     return tonumber(self.obj.pkts)
 end

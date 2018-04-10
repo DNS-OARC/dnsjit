@@ -21,12 +21,3 @@
 #include "config.h"
 
 #include "core/receiver.h"
-
-int core_receiver_call(core_receiver_t recv, void* ctx, const core_object_t* obj)
-{
-    if (!recv) {
-        return 1;
-    }
-
-    return recv(ctx, obj);
-}

@@ -53,11 +53,16 @@ function Pcap:log()
     return self.obj._log
 end
 
--- Set the receiver to pass queries to.
+-- Set the receiver to pass objects to.
 function Pcap:receiver(o)
     self.obj._log:debug("receiver()")
     self.obj.recv, self.obj.ctx = o:receive()
     self._receiver = o
+end
+
+-- Return the C functions and context for producing objects.
+function Pcap:produce()
+    return C.input_pcap_producer(), self.obj
 end
 
 -- Open a PCAP file for processing.
@@ -88,18 +93,6 @@ function Pcap:dispatch(cnt)
         cnt = -1
     end
     return C.input_pcap_dispatch(self.obj, cnt)
-end
-
--- Return the seconds and nanoseconds (as a list) of the start time for
--- .BR Pcap:run() .
-function Pcap:start_time()
-    return tonumber(self.obj.ts.sec), tonumber(self.obj.ts.nsec)
-end
-
--- Return the seconds and nanoseconds (as a list) of the stop time for
--- .BR Pcap:run() .
-function Pcap:end_time()
-    return tonumber(self.obj.te.sec), tonumber(self.obj.te.nsec)
 end
 
 -- Return the number of packets seen.
