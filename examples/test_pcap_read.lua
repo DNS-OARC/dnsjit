@@ -1,7 +1,14 @@
 #!/usr/bin/env dnsjit
 local clock = require("dnsjit.lib.clock")
-local pcap = arg[2]
-local runs = tonumber(arg[3])
+local getopt = require("dnsjit.lib.getopt").new({
+    { "t", "thread", 0, "Test also with dnsjit.filter.thread, give number of threads to run", "?" },
+    { "l", "layer", false, "Test also with dnsjit.filter.layer", "?" },
+})
+local pcap, runs = unpack(getopt:parse())
+if getopt:val("help") then
+    getopt:usage()
+    return
+end
 
 if pcap == nil then
     print("usage: "..arg[1].." <pcap> [runs]")
@@ -25,11 +32,32 @@ for _, name in pairs(inputs) do
 
     print("run", name)
     for n = 1, runs do
-        o = require("dnsjit.output.null").new()
+        t = nil
+        tos = nil
+        if getopt:val("t") > 1 then
+            local nn
+            tos = {}
+            o = require("dnsjit.filter.thread").new()
+            for nn = 1, getopt:val("t") do
+                local oo = require("dnsjit.output.null").new()
+                o:receiver(oo)
+                table.insert(tos, oo)
+            end
+            o:start()
+            t = o
+        else
+            o = require("dnsjit.output.null").new()
+        end
         i = require("dnsjit.input."..name).new()
         if name == "pcap" then
             i:open_offline(pcap)
-            i:receiver(o)
+            if getopt:val("l") then
+                f = require("dnsjit.filter.layer").new()
+                f:receiver(o)
+                i:receiver(f)
+            else
+                i:receiver(o)
+            end
             ss, sns = clock:monotonic()
             i:dispatch()
         elseif name == "pcapthread" then
@@ -38,10 +66,22 @@ for _, name in pairs(inputs) do
             ss, sns = clock:monotonic()
             i:run()
         else
+            if t then
+                i:use_shared(true)
+            end
             i:open(pcap)
-            i:receiver(o)
+            if getopt:val("l") then
+                f = require("dnsjit.filter.layer").new()
+                f:receiver(o)
+                i:receiver(f)
+            else
+                i:receiver(o)
+            end
             ss, sns = clock:monotonic()
             i:run()
+        end
+        if t then
+            t:stop()
         end
         es, ens = clock:monotonic()
 
@@ -51,7 +91,17 @@ for _, name in pairs(inputs) do
             rt = rt + (ens - sns) / 1000000000
         end
 
-        p = p + o:packets()
+        if name == "pcapthread" then
+            p = p + i:packets()
+        else
+            if tos then
+                for _, oo in pairs(tos) do
+                    p = p + oo:packets()
+                end
+            else
+                p = p + o:packets()
+            end
+        end
     end
 
     result[name] = {
@@ -68,6 +118,7 @@ print("name", "runtime", "pps", "x", "pkts")
 print(highest, result[highest].rt, result[highest].p/result[highest].rt, 1.0, result[highest].p)
 for _, name in pairs(results) do
     if name ~= highest then
-        print(name, result[name].rt, result[name].p/result[name].rt, result[highest].rt/result[name].rt, result[name].p)
+        local f = result[name].p / result[highest].p
+        print(name, result[name].rt, result[name].p/result[name].rt, (result[highest].rt/result[name].rt)*f, result[name].p)
     end
 end
