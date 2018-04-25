@@ -32,6 +32,7 @@ static input_zero_t _defaults = {
     0
 };
 
+static core_object_packet_t _pkt        = CORE_OBJECT_PACKET_INIT(0);
 static core_object_packet_t _shared_pkt = CORE_OBJECT_PACKET_INIT(0);
 
 static void _ref(core_object_t* obj, core_object_reference_t ref)
@@ -70,8 +71,9 @@ int input_zero_destroy(input_zero_t* self)
 
 int input_zero_run(input_zero_t* self, uint64_t num)
 {
-    core_object_packet_t pkt = CORE_OBJECT_PACKET_INIT(0);
-    core_object_t*       obj = (core_object_t*)&pkt;
+    core_object_t*  obj;
+    core_receiver_t r;
+    void*           c;
 
     if (!self || !self->recv) {
         return 1;
@@ -81,16 +83,18 @@ int input_zero_run(input_zero_t* self, uint64_t num)
 
     if (self->use_shared) {
         obj = (core_object_t*)&_shared_pkt;
+    } else {
+        obj = (core_object_t*)&_pkt;
     }
 
+    r = self->recv;
+    c = self->ctx;
     while (num--) {
-        self->recv(self->ctx, obj);
+        r(c, obj);
     }
 
     return 0;
 }
-
-static core_object_packet_t _pkt = CORE_OBJECT_PACKET_INIT(0);
 
 static const core_object_t* _produce(void* ctx)
 {

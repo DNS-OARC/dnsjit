@@ -37,8 +37,9 @@ struct filter_split_recv {
 typedef struct filter_split {
     core_log_t           _log;
     filter_split_mode_t  mode;
-    filter_split_recv_t* recv_list;
+    filter_split_recv_t* recv_first;
     filter_split_recv_t* recv;
+    filter_split_recv_t* recv_last;
 } filter_split_t;
 
 core_log_t* filter_split_log();
