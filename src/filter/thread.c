@@ -287,7 +287,7 @@ static int _receive(void* ctx, const core_object_t* obj)
     while (w->obj) {
         pthread_cond_wait(&w->write, &w->mutex);
     }
-    w->obj     = copy;
+    w->obj = copy;
     pthread_cond_signal(&w->read);
     pthread_mutex_unlock(&w->mutex);
 

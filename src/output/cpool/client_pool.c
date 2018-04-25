@@ -29,6 +29,27 @@
 #include <assert.h>
 #include <netinet/in.h>
 
+#define ev_async_init_(ev, cb) \
+    {                          \
+        ev_async* p = &ev;     \
+        ev_async_init(p, cb);  \
+    }
+#define ev_timer_init_(ev, cb, a, b) \
+    {                                \
+        ev_timer* p = &ev;           \
+        ev_timer_init(p, cb, a, b);  \
+    }
+#define ev_timer_set_(ev, a, b) \
+    {                           \
+        ev_timer* p = &ev;      \
+        ev_timer_set(p, a, b);  \
+    }
+#define ev_is_active_(ev) (ev_is_active__((ev_watcher*)ev))
+static inline int ev_is_active__(ev_watcher* p)
+{
+    return ev_is_active(p);
+}
+
 /*
  * List helpers
  */
@@ -43,7 +64,7 @@ static inline void client_list_add(client_pool_t* self, client_t* client, struct
         self->client_list_first = client;
     self->clients++;
 
-    if (!ev_is_active(&(self->timeout))) {
+    if (!ev_is_active_(&self->timeout)) {
         ev_tstamp timeout = ev_now(loop) - client_start(self->client_list_first);
 
         if (timeout < 0.)
@@ -51,7 +72,7 @@ static inline void client_list_add(client_pool_t* self, client_t* client, struct
         else if (timeout > self->client_ttl)
             timeout = self->client_ttl;
 
-        ev_timer_set(&(self->timeout), timeout, 0.);
+        ev_timer_set_(self->timeout, timeout, 0.);
         ev_timer_start(loop, &(self->timeout));
     }
 }
@@ -79,7 +100,7 @@ static inline void client_list_remove(client_pool_t* self, client_t* client, str
         lpdebug("removed client but clients already zero");
     }
 
-    if (self->clients && ev_is_active(&(self->timeout))) {
+    if (self->clients && ev_is_active_(&self->timeout)) {
         ev_timer_stop(loop, &(self->timeout));
     }
 }
@@ -524,7 +545,7 @@ static void client_pool_engine_query(struct ev_loop* loop, ev_async* w, int reve
         } else if (query) {
             lpdebug("unable to create client, query requeued");
             self->query = query;
-            if (!ev_is_active(&(self->retry))) {
+            if (!ev_is_active_(&self->retry)) {
                 ev_timer_start(loop, &(self->retry));
             }
             return;
@@ -578,10 +599,10 @@ int client_pool_start(client_pool_t* self)
 
     lpdebug("client pool ev init");
 
-    ev_async_init(&(self->notify_query), &client_pool_engine_query);
-    ev_async_init(&(self->notify_stop), &client_pool_engine_stop);
-    ev_timer_init(&(self->timeout), &client_pool_engine_timeout, 0., 0.);
-    ev_timer_init(&(self->retry), &client_pool_engine_retry, 1., 1.);
+    ev_async_init_(self->notify_query, client_pool_engine_query);
+    ev_async_init_(self->notify_stop, client_pool_engine_stop);
+    ev_timer_init_(self->timeout, client_pool_engine_timeout, 0., 0.);
+    ev_timer_init_(self->retry, client_pool_engine_retry, 1., 1.);
 
     ev_async_start(self->ev_loop, &(self->notify_query));
     ev_async_start(self->ev_loop, &(self->notify_stop));

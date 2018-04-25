@@ -38,7 +38,7 @@ typedef struct filter_thread {
 
     filter_thread_work_t* work;
     size_t                works, at;
-    unsigned short use_writers : 1;
+    unsigned short        use_writers : 1;
 } filter_thread_t;
 
 struct filter_thread_recv {
