@@ -25,7 +25,7 @@
 static core_log_t     _log      = LOG_T_INIT("filter.split");
 static filter_split_t _defaults = {
     LOG_T_INIT_OBJ("filter.split"),
-    FILTER_SPLIT_MODE_ROUNDROBIN, 0, 0
+    FILTER_SPLIT_MODE_ROUNDROBIN, 0, 0, 0
 };
 
 core_log_t* filter_split_log()
@@ -55,8 +55,11 @@ int filter_split_destroy(filter_split_t* self)
 
     ldebug("destroy");
 
-    while ((r = self->recv_list)) {
-        self->recv_list = r->next;
+    while ((r = self->recv_first) && r != self->recv_last) {
+        self->recv_first = r->next;
+        free(r);
+    }
+    if (r) {
         free(r);
     }
 
@@ -76,13 +79,15 @@ int filter_split_add(filter_split_t* self, core_receiver_t recv, void* ctx)
         return 1;
     }
 
-    r->next         = self->recv_list;
-    r->recv         = recv;
-    r->ctx          = ctx;
-    self->recv_list = r;
+    r->recv = recv;
+    r->ctx  = ctx;
 
-    if (!self->recv) {
-        self->recv = self->recv_list;
+    if (self->recv_last) {
+        self->recv_last->next = r;
+        r->next               = self->recv_first;
+        self->recv_first      = r;
+    } else {
+        self->recv_first = self->recv = self->recv_last = r;
     }
 
     return 0;
@@ -105,26 +110,25 @@ static int _roundrobin(void* ctx, const core_object_t* obj)
 
     self->recv->recv(self->recv->ctx, obj);
     self->recv = self->recv->next;
-    if (!self->recv) {
-        self->recv = self->recv_list;
-    }
 
     return 0;
 }
 
 static int _sendall(void* ctx, const core_object_t* obj)
 {
-    filter_split_t* self = (filter_split_t*)ctx;
+    filter_split_t*      self = (filter_split_t*)ctx;
+    filter_split_recv_t* r;
 
     if (!self || !obj || !self->recv) {
         return 1;
     }
 
-    while (self->recv) {
-        self->recv->recv(self->recv->ctx, obj);
-        self->recv = self->recv->next;
+    for (r = self->recv_first; r && r != self->recv_last; r = r->next) {
+        r->recv(r->ctx, obj);
     }
-    self->recv = self->recv_list;
+    if (r) {
+        r->recv(r->ctx, obj);
+    }
 
     return 0;
 }
@@ -139,14 +143,8 @@ static int _any(void* ctx, const core_object_t* obj)
 
     while (self->recv->recv(self->recv->ctx, obj)) {
         self->recv = self->recv->next;
-        if (!self->recv) {
-            self->recv = self->recv_list;
-        }
     }
     self->recv = self->recv->next;
-    if (!self->recv) {
-        self->recv = self->recv_list;
-    }
 
     return 0;
 }

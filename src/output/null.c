@@ -86,14 +86,19 @@ core_receiver_t output_null_receiver()
 
 int output_null_run(output_null_t* self, uint64_t num)
 {
+    core_producer_t p;
+    void*           c;
+
     if (!self || !self->prod) {
         return 1;
     }
 
     ldebug("run");
 
+    p = self->prod;
+    c = self->ctx;
     while (num--) {
-        const core_object_t* obj = self->prod(self->ctx);
+        const core_object_t* obj = p(c);
         if (obj) {
             if (obj->obj_type == CORE_OBJECT_PCAP) {
                 const core_object_pcap_t* pkt = (core_object_pcap_t*)obj;
