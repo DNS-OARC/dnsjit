@@ -241,6 +241,12 @@ static void client_write(struct ev_loop* loop, ev_io* w, int revents)
  * New/free functions
  */
 
+#define ev_init_(ev, cb) \
+    {                    \
+        ev_io* p = &ev;  \
+        ev_init(p, cb);  \
+    }
+
 client_t* client_new(core_object_packet_t* query, client_callback_t callback)
 {
     client_t* client;
@@ -258,11 +264,11 @@ client_t* client_new(core_object_packet_t* query, client_callback_t callback)
         client->query              = query;
         client->callback           = callback;
         client->write_watcher.data = (void*)client;
-        ev_init(&(client->write_watcher), &client_write);
+        ev_init_(client->write_watcher, client_write);
         client->read_watcher.data = (void*)client;
-        ev_init(&(client->read_watcher), &client_read);
+        ev_init_(client->read_watcher, client_read);
         client->shutdown_watcher.data = (void*)client;
-        ev_init(&(client->shutdown_watcher), &client_shutdown);
+        ev_init_(client->shutdown_watcher, client_shutdown);
 
         client->dst_id        = core_tracking_dst_id();
         client->query->dst_id = client->dst_id;

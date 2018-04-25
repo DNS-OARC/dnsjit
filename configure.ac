@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
 
-AC_PREREQ(2.61)
+AC_PREREQ(2.64)
 AC_INIT([dnsjit], [0.9.3], [admin@dns-oarc.net], [dnsjit], [https://github.com/DNS-OARC/dnsjit/issues])
 AM_INIT_AUTOMAKE([-Wall -Werror foreign subdir-objects])
 AC_CONFIG_SRCDIR([src/dnsjit.c])
@@ -29,6 +29,21 @@ AM_PROG_CC_C_O
 AC_CANONICAL_HOST
 m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
 LT_INIT([disable-static])
+
+# Check --enable-warn-all
+AC_ARG_ENABLE([warn-all], [AS_HELP_STRING([--enable-warn-all], [Enable all compiler warnings])], [AX_CFLAGS_WARN_ALL()])
+
+# Check --with-extra-cflags
+AC_ARG_WITH([extra-cflags], [AS_HELP_STRING([--with-extra-cflags=CFLAGS], [Add extra CFLAGS])], [
+  AC_MSG_NOTICE([appending extra CFLAGS... $withval])
+  AS_VAR_APPEND(CFLAGS, [" $withval"])
+])
+
+# Check --with-extra-ldflags
+AC_ARG_WITH([extra-ldflags], [AS_HELP_STRING([--with-extra-ldflags=CFLAGS], [Add extra LDFLAGS])], [
+  AC_MSG_NOTICE([appending extra LDFLAGS... $withval])
+  AS_VAR_APPEND(LDFLAGS, [" $withval"])
+])
 
 # Checks for support.
 AC_CHECK_LIB([dl], [dlopen])
