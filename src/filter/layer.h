@@ -20,6 +20,20 @@
 
 #include "core/log.h"
 #include "core/receiver.h"
+#include "core/producer.h"
+#include "core/object/pcap.h"
+#include "core/object/null.h"
+#include "core/object/ether.h"
+#include "core/object/loop.h"
+#include "core/object/linuxsll.h"
+#include "core/object/ieee802.h"
+#include "core/object/ip.h"
+#include "core/object/ip6.h"
+#include "core/object/gre.h"
+#include "core/object/icmp.h"
+#include "core/object/icmp6.h"
+#include "core/object/udp.h"
+#include "core/object/tcp.h"
 
 #ifndef __dnsjit_filter_layer_h
 #define __dnsjit_filter_layer_h
