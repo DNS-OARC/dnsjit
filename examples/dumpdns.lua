@@ -14,7 +14,7 @@ output:func(function(filter, obj)
     local pkt = obj:cast()
     local dns
     if pkt:type() == "packet" then
-        dns = require("dnsjit.core.object.dns").new(pkt)
+        dns = require("dnsjit.core.object.dns").new(obj)
         if dns:parse() ~= 0 then
             return
         end

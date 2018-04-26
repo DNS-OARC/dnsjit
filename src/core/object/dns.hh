@@ -67,7 +67,7 @@ typedef struct core_object_dns {
 
 core_log_t* core_object_dns_log();
 
-core_object_dns_t* core_object_dns_new(const core_object_packet_t* pkt);
+core_object_dns_t* core_object_dns_new(const core_object_t* obj);
 void core_object_dns_free(core_object_dns_t* self);
 
 int core_object_dns_parse_header(core_object_dns_t* self);

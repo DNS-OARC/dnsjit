@@ -39,4 +39,5 @@ typedef struct core_object_ip {
 
     const uint8_t* payload;
     size_t         plen;
+    size_t         pad_len;
 } core_object_ip_t;

@@ -151,7 +151,7 @@ int filter_layer_destroy(filter_layer_t* self)
     p += x;                \
     l -= x
 
-static int _ip(filter_layer_t* self, const core_object_t* obj, const unsigned char* pkt, size_t len);
+//static int _ip(filter_layer_t* self, const core_object_t* obj, const unsigned char* pkt, size_t len);
 
 static int _proto(filter_layer_t* self, uint8_t proto, const core_object_t* obj, const unsigned char* pkt, size_t len)
 {
@@ -264,7 +264,8 @@ static int _ip(filter_layer_t* self, const core_object_t* obj, const unsigned ch
         switch ((*pkt >> 4)) {
         case 4: {
             core_object_ip_t* ip = &self->ip;
-            ip->obj_prev         = obj;
+
+            ip->obj_prev = obj;
 
             need4x2(ip->v, ip->hl, pkt, len);
             need8(ip->tos, pkt, len);
@@ -285,20 +286,20 @@ static int _ip(filter_layer_t* self, const core_object_t* obj, const unsigned ch
                 advancexb((ip->hl - 5) * 4, pkt, len);
             }
 
-            /* Check reported length for missing payload or padding */
+            /* Check reported length for missing payload */
             if (ip->len < (ip->hl * 4)) {
                 break;
             }
             if (len < (ip->len - (ip->hl * 4))) {
                 break;
             }
-            // TODO: Padding
-            // if (len > (ip->len - (ip->hl * 4))) {
-            //     layer_trace("have_ippadding");
-            //     packet->ippadding      = len - (ip->len - (ip->hl * 4));
-            //     packet->have_ippadding = 1;
-            //     len -= packet->ippadding;
-            // }
+            /* Check for padding */
+            if (len > (ip->len - (ip->hl * 4))) {
+                ip->pad_len = len - (ip->len - (ip->hl * 4));
+                len -= ip->pad_len;
+            } else {
+                ip->pad_len = 0;
+            }
 
             if (ip->off & 0x2000 || ip->off & 0x1fff) {
                 ip->payload    = (uint8_t*)pkt;
@@ -307,14 +308,16 @@ static int _ip(filter_layer_t* self, const core_object_t* obj, const unsigned ch
                 return 0;
             }
 
+            ip->payload = 0;
+            ip->plen    = 0;
             return _proto(self, ip->p, (core_object_t*)ip, pkt, len);
         }
         case 6: {
             core_object_ip6_t* ip6 = &self->ip6;
             struct ip6_ext     ext;
-            size_t             already_advanced = 0;
 
             ip6->obj_prev = obj;
+            ip6->is_frag = ip6->have_rtdst = 0;
 
             need32(ip6->flow, pkt, len);
             need16(ip6->plen, pkt, len);
@@ -323,16 +326,16 @@ static int _ip(filter_layer_t* self, const core_object_t* obj, const unsigned ch
             needxb(&ip6->src, 16, pkt, len);
             needxb(&ip6->dst, 16, pkt, len);
 
-            /* Check reported length for missing payload or padding */
+            /* Check reported length for missing payload */
             if (len < ip6->plen) {
                 break;
             }
+            /* Check for padding */
             if (len > ip6->plen) {
-                // TODO: Padding
-                // layer_trace("have_ip6padding");
-                // packet->ip6padding      = len - ip6->ip6_plen;
-                // packet->have_ip6padding = 1;
-                // len -= packet->ip6padding;
+                ip6->pad_len = len - ip6->plen;
+                len -= ip6->pad_len;
+            } else {
+                ip6->pad_len = 0;
             }
 
             ext.ip6e_nxt = ip6->nxt;
@@ -348,79 +351,63 @@ static int _ip(filter_layer_t* self, const core_object_t* obj, const unsigned ch
                  * if it's the first header or if the header is supported.
                  */
                 if (ext.ip6e_len) {
-                    if (ext.ip6e_len < already_advanced) {
-                        ext.ip6e_nxt = IPPROTO_NONE;
-                        break;
-                    }
-                    /* Advance if not already there */
-                    else if (ext.ip6e_len > already_advanced) {
-                        advancexb((ext.ip6e_len - already_advanced) * 8, pkt, len);
-                    }
-                    already_advanced = 0;
-                } else if (already_advanced) {
-                    ext.ip6e_nxt = IPPROTO_NONE;
-                    break;
+                    advancexb(ext.ip6e_len * 8, pkt, len);
                 }
 
                 /* TODO: Store IPv6 headers? */
 
                 /* Handle supported headers */
                 if (ext.ip6e_nxt == IPPROTO_FRAGMENT) {
-                    break;
-                    // if (packet->have_ip6frag) {
-                    //     layer_trace("dup ip6frag");
-                    //     break;
-                    // }
-                    // layer_trace("ip6frag");
-                    // need8(ext.ip6e_nxt, pkt, len);
-                    // need8(packet->ip6frag.ip6f_reserved, pkt, len);
-                    // need16(packet->ip6frag.ip6f_offlg, pkt, len);
-                    // need32(packet->ip6frag.ip6f_ident, pkt, len);
-                    // packet->have_ip6frag = 1;
-                    // ext.ip6e_len         = 1;
-                    // already_advanced     = 1;
-                    // } else if (ext.ip6e_nxt == IPPROTO_ROUTING) {
-                    //     struct ip6_rthdr rthdr;
-                    //     struct in6_addr  rt[255];
-                    //
-                    //     if (packet->have_ip6rtdst) {
-                    //         layer_trace("dup ip6rtdst");
-                    //         break;
-                    //     }
-                    //     need8(ext.ip6e_nxt, pkt, len);
-                    //     need8(ext.ip6e_len, pkt, len);
-                    //     need8(rthdr.ip6r_type, pkt, len);
-                    //     need8(rthdr.ip6r_segleft, pkt, len);
-                    //     if (!rthdr.ip6r_type) {
-                    //         if (rthdr.ip6r_segleft > ext.ip6e_len)
-                    //             break;
-                    //         for (rthdr.ip6r_len = 0; rthdr.ip6r_len < ext.ip6e_len; rthdr.ip6r_len++, already_advanced += 2) {
-                    //             needxb(&rt[rthdr.ip6r_len], 16, pkt, len);
-                    //         }
-                    //         if (!rthdr.ip6r_len || rthdr.ip6r_len != ext.ip6e_len) {
-                    //             break;
-                    //         }
-                    //         if (rthdr.ip6r_segleft) {
-                    //             packet->ip6rtdst      = rt[rthdr.ip6r_segleft];
-                    //             packet->have_ip6rtdst = 1;
-                    //         }
-                    //     }
+                    if (ip6->is_frag) {
+                        return 1;
+                    }
+                    need8(ext.ip6e_nxt, pkt, len);
+                    need8(ext.ip6e_len, pkt, len);
+                    if (ext.ip6e_len) {
+                        return 1;
+                    }
+                    need16(ip6->frag_offlg, pkt, len);
+                    need32(ip6->frag_ident, pkt, len);
+                    ip6->is_frag = 1;
+                } else if (ext.ip6e_nxt == IPPROTO_ROUTING) {
+                    struct ip6_rthdr rthdr;
+
+                    if (ip6->have_rtdst) {
+                        return 1;
+                    }
+
+                    need8(ext.ip6e_nxt, pkt, len);
+                    need8(ext.ip6e_len, pkt, len);
+                    need8(rthdr.ip6r_type, pkt, len);
+                    need8(rthdr.ip6r_segleft, pkt, len);
+                    advancexb(4, pkt, len);
+
+                    if (!rthdr.ip6r_type && rthdr.ip6r_segleft) {
+                        if (ext.ip6e_len & 1) {
+                            return 1;
+                        }
+                        if (ext.ip6e_len > 2) {
+                            advancexb(ext.ip6e_len - 2, pkt, len);
+                        }
+                        needxb(ip6->rtdst, 16, pkt, len);
+                        ip6->have_rtdst = 1;
+                    }
                 } else {
                     need8(ext.ip6e_nxt, pkt, len);
                     need8(ext.ip6e_len, pkt, len);
+                    advancexb(6, pkt, len);
                 }
-
-                if (!ext.ip6e_len)
-                    break;
             }
 
-            if (ext.ip6e_nxt == IPPROTO_NONE || ext.ip6e_nxt == IPPROTO_FRAGMENT) {
+            if (ext.ip6e_nxt == IPPROTO_NONE || ip6->is_frag) {
                 ip6->payload   = (uint8_t*)pkt;
                 ip6->len       = len;
                 self->produced = (core_object_t*)ip6;
                 return 0;
             }
 
+            ip6->payload = 0;
+            ip6->len     = 0;
             return _proto(self, ext.ip6e_nxt, (core_object_t*)ip6, pkt, len);
         }
         default:
@@ -453,7 +440,11 @@ static int _ieee802(filter_layer_t* self, uint16_t tpid, const core_object_t* ob
         case 0x9100: /* 802.1 QinQ non-standard */
             self->n_ieee802++;
             if (self->n_ieee802 < N_IEEE802) {
-                return _ieee802(self, ieee802->ether_type, (core_object_t*)ieee802, pkt, len);
+                obj               = (const core_object_t*)ieee802;
+                ieee802           = &self->ieee802[self->n_ieee802];
+                ieee802->obj_prev = obj;
+                tpid              = ieee802->ether_type;
+                continue;
             }
             return 1;
 

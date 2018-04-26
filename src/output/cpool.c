@@ -264,8 +264,8 @@ void _client_read(void* vp, const client_t* client)
         pkt.src_addr = client->query->dst_addr;
         pkt.dst_addr = client->query->src_addr;
 
-        pkt.sport   = client->query->sport;
-        pkt.dport   = client->query->dport;
+        pkt.sport   = client->query->dport;
+        pkt.dport   = client->query->sport;
         pkt.ts.sec  = ts;
         pkt.ts.nsec = (long)(ts * 1000) % 1000;
 

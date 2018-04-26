@@ -160,13 +160,12 @@ local t_name = "core_object_dns_t"
 local core_object_dns_t
 local Dns = {}
 
--- Create a new DNS object ontop of a packet.
-function Dns.new(packet)
-    if not ffi.istype("core_object_packet_t*", packet) then
-        return
+-- Create a new DNS object ontop of a packet or udp object.
+function Dns.new(obj)
+    local self = C.core_object_dns_new(obj)
+    if self ~= nil then
+        ffi.gc(self, C.core_object_dns_free)
     end
-    local self = C.core_object_dns_new(packet)
-    ffi.gc(self, C.core_object_dns_free)
     return self
 end
 
@@ -245,5 +244,7 @@ end
 core_object_dns_t = ffi.metatype(t_name, { __index = Dns })
 
 -- dnsjit.core.object (3),
+-- dnsjit.core.object.packet (3),
+-- dnsjit.core.object.udp (3),
 -- dnsjit.core.tracking (3)
 return Dns

@@ -17,7 +17,7 @@ output:func(function(filter, obj, args)
     local rcode = unpack(args, 0)
     local dns
     if pkt:type() == "packet" then
-        dns = require("dnsjit.core.object.dns").new(pkt)
+        dns = require("dnsjit.core.object.dns").new(obj)
         if dns:parse() ~= 0 then
             return
         end
