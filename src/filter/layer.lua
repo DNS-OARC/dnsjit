@@ -67,6 +67,18 @@ function Layer:receiver(o)
     self._receiver = o
 end
 
+-- Return the C functions and context for producing objects.
+function Layer:produce()
+    return C.filter_layer_producer(), self.obj
+end
+
+-- Set the producer to get objects from.
+function Layer:producer(o)
+    self.obj._log:debug("producer()")
+    self.obj.prod, self.obj.prod_ctx = o:produce()
+    self._producer = o
+end
+
 -- dnsjit.core.object.pcap (3),
 -- dnsjit.core.object.ether (3),
 -- dnsjit.core.object.null (3),

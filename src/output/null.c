@@ -97,9 +97,30 @@ int output_null_run(output_null_t* self, uint64_t num)
 
     p = self->prod;
     c = self->ctx;
-    while (num--) {
-        const core_object_t* obj = p(c);
-        if (obj) {
+    if (num) {
+        while (num--) {
+            const core_object_t* obj = p(c);
+            if (!obj)
+                continue;
+
+            if (obj->obj_type == CORE_OBJECT_PCAP) {
+                const core_object_pcap_t* pkt = (core_object_pcap_t*)obj;
+                if (pkt->is_multiple) {
+                    while (pkt) {
+                        self->pkts++;
+                        pkt = (core_object_pcap_t*)pkt->obj_prev;
+                    }
+                    continue;
+                }
+            }
+            self->pkts++;
+        }
+    } else {
+        for (;;) {
+            const core_object_t* obj = p(c);
+            if (!obj)
+                break;
+
             if (obj->obj_type == CORE_OBJECT_PCAP) {
                 const core_object_pcap_t* pkt = (core_object_pcap_t*)obj;
                 if (pkt->is_multiple) {

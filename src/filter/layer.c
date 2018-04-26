@@ -21,19 +21,6 @@
 #include "config.h"
 
 #include "filter/layer.h"
-#include "core/object/pcap.h"
-#include "core/object/null.h"
-#include "core/object/ether.h"
-#include "core/object/loop.h"
-#include "core/object/linuxsll.h"
-#include "core/object/ieee802.h"
-#include "core/object/ip.h"
-#include "core/object/ip6.h"
-#include "core/object/gre.h"
-#include "core/object/icmp.h"
-#include "core/object/icmp6.h"
-#include "core/object/udp.h"
-#include "core/object/tcp.h"
 
 #include <string.h>
 #include <pcap/pcap.h>
@@ -49,10 +36,26 @@
 #include <net/ethertypes.h>
 #endif
 
+#define N_IEEE802 3
+
 static core_log_t     _log      = LOG_T_INIT("filter.layer");
 static filter_layer_t _defaults = {
     LOG_T_INIT_OBJ("filter.layer"),
-    0, 0
+    0, 0,
+    0, 0, 0,
+    0,
+    CORE_OBJECT_NULL_INIT(0),
+    CORE_OBJECT_ETHER_INIT(0),
+    CORE_OBJECT_LOOP_INIT(0),
+    CORE_OBJECT_LINUXSLL_INIT(0),
+    0, { CORE_OBJECT_IEEE802_INIT(0), CORE_OBJECT_IEEE802_INIT(0), CORE_OBJECT_IEEE802_INIT(0) },
+    CORE_OBJECT_IP_INIT(0),
+    CORE_OBJECT_IP6_INIT(0),
+    CORE_OBJECT_GRE_INIT(0),
+    CORE_OBJECT_ICMP_INIT(0),
+    CORE_OBJECT_ICMP6_INIT(0),
+    CORE_OBJECT_UDP_INIT(0),
+    CORE_OBJECT_TCP_INIT(0)
 };
 
 core_log_t* filter_layer_log()
@@ -154,14 +157,15 @@ static int _proto(filter_layer_t* self, uint8_t proto, const core_object_t* obj,
 {
     switch (proto) {
     case IPPROTO_GRE: {
-        core_object_gre_t gre = CORE_OBJECT_GRE_INIT(obj);
+        core_object_gre_t* gre = &self->gre;
+        gre->obj_prev          = obj;
 
-        need16(gre.gre_flags, pkt, len);
-        need16(gre.ether_type, pkt, len);
+        need16(gre->gre_flags, pkt, len);
+        need16(gre->ether_type, pkt, len);
 
         /* TODO: Incomplete, check RFC 1701 */
 
-        self->recv(self->ctx, (core_object_t*)&gre);
+        self->produced = (core_object_t*)gre;
 
         // if (gre.gre_flags & 0x1) {
         //     need16(gre.checksum, pkt, len);
@@ -184,64 +188,70 @@ static int _proto(filter_layer_t* self, uint8_t proto, const core_object_t* obj,
         break;
     }
     case IPPROTO_ICMP: {
-        core_object_icmp_t icmp = CORE_OBJECT_ICMP_INIT(obj);
+        core_object_icmp_t* icmp = &self->icmp;
+        icmp->obj_prev           = obj;
 
-        need8(icmp.type, pkt, len);
-        need8(icmp.code, pkt, len);
-        need16(icmp.cksum, pkt, len);
+        need8(icmp->type, pkt, len);
+        need8(icmp->code, pkt, len);
+        need16(icmp->cksum, pkt, len);
 
-        self->recv(self->ctx, (core_object_t*)&icmp);
+        self->produced = (core_object_t*)icmp;
         break;
     }
     case IPPROTO_ICMPV6: {
-        core_object_icmp6_t icmp6 = CORE_OBJECT_ICMP_INIT(obj);
+        core_object_icmp6_t* icmp6 = &self->icmp6;
+        icmp6->obj_prev            = obj;
 
-        need8(icmp6.type, pkt, len);
-        need8(icmp6.code, pkt, len);
-        need16(icmp6.cksum, pkt, len);
+        need8(icmp6->type, pkt, len);
+        need8(icmp6->code, pkt, len);
+        need16(icmp6->cksum, pkt, len);
 
-        self->recv(self->ctx, (core_object_t*)&icmp6);
+        self->produced = (core_object_t*)icmp6;
         break;
     }
     case IPPROTO_UDP: {
-        core_object_udp_t udp = CORE_OBJECT_UDP_INIT(obj);
+        core_object_udp_t* udp = &self->udp;
+        udp->obj_prev          = obj;
 
-        need16(udp.sport, pkt, len);
-        need16(udp.dport, pkt, len);
-        need16(udp.ulen, pkt, len);
-        need16(udp.sum, pkt, len);
+        need16(udp->sport, pkt, len);
+        need16(udp->dport, pkt, len);
+        need16(udp->ulen, pkt, len);
+        need16(udp->sum, pkt, len);
 
-        udp.payload = (uint8_t*)pkt;
-        udp.len     = len;
+        udp->payload = (uint8_t*)pkt;
+        udp->len     = len;
 
-        self->recv(self->ctx, (core_object_t*)&udp);
+        self->produced = (core_object_t*)udp;
         break;
     }
     case IPPROTO_TCP: {
-        core_object_tcp_t tcp = CORE_OBJECT_TCP_INIT(obj);
+        core_object_tcp_t* tcp = &self->tcp;
+        tcp->obj_prev          = obj;
 
-        need16(tcp.sport, pkt, len);
-        need16(tcp.dport, pkt, len);
-        need32(tcp.seq, pkt, len);
-        need32(tcp.ack, pkt, len);
-        need4x2(tcp.off, tcp.x2, pkt, len);
-        need8(tcp.flags, pkt, len);
-        need16(tcp.win, pkt, len);
-        need16(tcp.sum, pkt, len);
-        need16(tcp.urp, pkt, len);
-        if (tcp.off > 5) {
-            tcp.opts_len = (tcp.off - 5) * 4;
-            needxb(tcp.opts, tcp.opts_len, pkt, len);
+        need16(tcp->sport, pkt, len);
+        need16(tcp->dport, pkt, len);
+        need32(tcp->seq, pkt, len);
+        need32(tcp->ack, pkt, len);
+        need4x2(tcp->off, tcp->x2, pkt, len);
+        need8(tcp->flags, pkt, len);
+        need16(tcp->win, pkt, len);
+        need16(tcp->sum, pkt, len);
+        need16(tcp->urp, pkt, len);
+        if (tcp->off > 5) {
+            tcp->opts_len = (tcp->off - 5) * 4;
+            needxb(tcp->opts, tcp->opts_len, pkt, len);
+        } else {
+            tcp->opts_len = 0;
         }
 
-        tcp.payload = (uint8_t*)pkt;
-        tcp.len     = len;
+        tcp->payload = (uint8_t*)pkt;
+        tcp->len     = len;
 
-        self->recv(self->ctx, (core_object_t*)&tcp);
+        self->produced = (core_object_t*)tcp;
         break;
     }
     default:
-        self->recv(self->ctx, obj);
+        self->produced = obj;
         break;
     }
 
@@ -253,76 +263,79 @@ static int _ip(filter_layer_t* self, const core_object_t* obj, const unsigned ch
     if (len) {
         switch ((*pkt >> 4)) {
         case 4: {
-            core_object_ip_t ip = CORE_OBJECT_IP_INIT(obj);
+            core_object_ip_t* ip = &self->ip;
+            ip->obj_prev         = obj;
 
-            need4x2(ip.v, ip.hl, pkt, len);
-            need8(ip.tos, pkt, len);
-            need16(ip.len, pkt, len);
-            need16(ip.id, pkt, len);
-            need16(ip.off, pkt, len);
-            need8(ip.ttl, pkt, len);
-            need8(ip.p, pkt, len);
-            need16(ip.sum, pkt, len);
-            needxb(&ip.src, 4, pkt, len);
-            needxb(&ip.dst, 4, pkt, len);
+            need4x2(ip->v, ip->hl, pkt, len);
+            need8(ip->tos, pkt, len);
+            need16(ip->len, pkt, len);
+            need16(ip->id, pkt, len);
+            need16(ip->off, pkt, len);
+            need8(ip->ttl, pkt, len);
+            need8(ip->p, pkt, len);
+            need16(ip->sum, pkt, len);
+            needxb(&ip->src, 4, pkt, len);
+            needxb(&ip->dst, 4, pkt, len);
 
             /* TODO: IPv4 options */
 
-            if (ip.hl < 5)
+            if (ip->hl < 5)
                 break;
-            if (ip.hl > 5) {
-                advancexb((ip.hl - 5) * 4, pkt, len);
+            if (ip->hl > 5) {
+                advancexb((ip->hl - 5) * 4, pkt, len);
             }
 
             /* Check reported length for missing payload or padding */
-            if (ip.len < (ip.hl * 4)) {
+            if (ip->len < (ip->hl * 4)) {
                 break;
             }
-            if (len < (ip.len - (ip.hl * 4))) {
+            if (len < (ip->len - (ip->hl * 4))) {
                 break;
             }
-            if (len > (ip.len - (ip.hl * 4))) {
-                // TODO: Padding
-                // layer_trace("have_ippadding");
-                // packet->ippadding      = len - (ip.len - (ip.hl * 4));
-                // packet->have_ippadding = 1;
-                // len -= packet->ippadding;
-            }
+            // TODO: Padding
+            // if (len > (ip->len - (ip->hl * 4))) {
+            //     layer_trace("have_ippadding");
+            //     packet->ippadding      = len - (ip->len - (ip->hl * 4));
+            //     packet->have_ippadding = 1;
+            //     len -= packet->ippadding;
+            // }
 
-            if (ip.off & 0x2000 || ip.off & 0x1fff) {
-                ip.payload = (uint8_t*)pkt;
-                ip.plen    = len;
-                self->recv(self->ctx, (core_object_t*)&ip);
+            if (ip->off & 0x2000 || ip->off & 0x1fff) {
+                ip->payload    = (uint8_t*)pkt;
+                ip->plen       = len;
+                self->produced = (core_object_t*)ip;
                 return 0;
             }
 
-            return _proto(self, ip.p, (core_object_t*)&ip, pkt, len);
+            return _proto(self, ip->p, (core_object_t*)ip, pkt, len);
         }
         case 6: {
-            core_object_ip6_t ip6 = CORE_OBJECT_IP6_INIT(obj);
-            struct ip6_ext    ext;
-            size_t            already_advanced = 0;
+            core_object_ip6_t* ip6 = &self->ip6;
+            struct ip6_ext     ext;
+            size_t             already_advanced = 0;
 
-            need32(ip6.flow, pkt, len);
-            need16(ip6.plen, pkt, len);
-            need8(ip6.nxt, pkt, len);
-            need8(ip6.hlim, pkt, len);
-            needxb(&ip6.src, 16, pkt, len);
-            needxb(&ip6.dst, 16, pkt, len);
+            ip6->obj_prev = obj;
+
+            need32(ip6->flow, pkt, len);
+            need16(ip6->plen, pkt, len);
+            need8(ip6->nxt, pkt, len);
+            need8(ip6->hlim, pkt, len);
+            needxb(&ip6->src, 16, pkt, len);
+            needxb(&ip6->dst, 16, pkt, len);
 
             /* Check reported length for missing payload or padding */
-            if (len < ip6.plen) {
+            if (len < ip6->plen) {
                 break;
             }
-            if (len > ip6.plen) {
+            if (len > ip6->plen) {
                 // TODO: Padding
                 // layer_trace("have_ip6padding");
-                // packet->ip6padding      = len - ip6.ip6_plen;
+                // packet->ip6padding      = len - ip6->ip6_plen;
                 // packet->have_ip6padding = 1;
                 // len -= packet->ip6padding;
             }
 
-            ext.ip6e_nxt = ip6.nxt;
+            ext.ip6e_nxt = ip6->nxt;
             ext.ip6e_len = 0;
             while (ext.ip6e_nxt != IPPROTO_NONE
                    && ext.ip6e_nxt != IPPROTO_GRE
@@ -402,45 +415,51 @@ static int _ip(filter_layer_t* self, const core_object_t* obj, const unsigned ch
             }
 
             if (ext.ip6e_nxt == IPPROTO_NONE || ext.ip6e_nxt == IPPROTO_FRAGMENT) {
-                ip6.payload = (uint8_t*)pkt;
-                ip6.len     = len;
-                self->recv(self->ctx, (core_object_t*)&ip6);
+                ip6->payload   = (uint8_t*)pkt;
+                ip6->len       = len;
+                self->produced = (core_object_t*)ip6;
                 return 0;
             }
 
-            return _proto(self, ext.ip6e_nxt, (core_object_t*)&ip6, pkt, len);
+            return _proto(self, ext.ip6e_nxt, (core_object_t*)ip6, pkt, len);
         }
         default:
             break;
         }
     }
 
-    self->recv(self->ctx, obj);
+    self->produced = obj;
 
     return 0;
 }
 
 static int _ieee802(filter_layer_t* self, uint16_t tpid, const core_object_t* obj, const unsigned char* pkt, size_t len)
 {
-    core_object_ieee802_t ieee802 = CORE_OBJECT_IEEE802_INIT(obj);
-    uint16_t              tci;
+    core_object_ieee802_t* ieee802 = &self->ieee802[self->n_ieee802];
+    uint16_t               tci;
+
+    ieee802->obj_prev = obj;
 
     for (;;) {
-        ieee802.tpid = tpid;
+        ieee802->tpid = tpid;
         need16(tci, pkt, len);
-        ieee802.pcp = (tci & 0xe000) >> 13;
-        ieee802.dei = (tci & 0x1000) >> 12;
-        ieee802.vid = tci & 0x0fff;
-        need16(ieee802.ether_type, pkt, len);
+        ieee802->pcp = (tci & 0xe000) >> 13;
+        ieee802->dei = (tci & 0x1000) >> 12;
+        ieee802->vid = tci & 0x0fff;
+        need16(ieee802->ether_type, pkt, len);
 
-        switch (ieee802.ether_type) {
+        switch (ieee802->ether_type) {
         case 0x88a8: /* 802.1ad */
         case 0x9100: /* 802.1 QinQ non-standard */
-            return _ieee802(self, ieee802.ether_type, (core_object_t*)&ieee802, pkt, len);
+            self->n_ieee802++;
+            if (self->n_ieee802 < N_IEEE802) {
+                return _ieee802(self, ieee802->ether_type, (core_object_t*)ieee802, pkt, len);
+            }
+            return 1;
 
         case ETHERTYPE_IP:
         case ETHERTYPE_IPV6:
-            return _ip(self, (core_object_t*)&ieee802, pkt, len);
+            return _ip(self, (core_object_t*)ieee802, pkt, len);
 
         default:
             break;
@@ -448,7 +467,7 @@ static int _ieee802(filter_layer_t* self, uint16_t tpid, const core_object_t* ob
         break;
     }
 
-    self->recv(self->ctx, obj);
+    self->produced = obj;
 
     return 0;
 }
@@ -458,25 +477,28 @@ static int _link(filter_layer_t* self, const core_object_pcap_t* pcap)
     const unsigned char* pkt;
     size_t               len;
 
+    self->n_ieee802 = 0;
+
     pkt = pcap->bytes;
     len = pcap->caplen;
 
     switch (pcap->linktype) {
     case DLT_NULL: {
-        core_object_null_t null = CORE_OBJECT_NULL_INIT(pcap);
+        core_object_null_t* null = &self->null;
+        null->obj_prev           = (core_object_t*)pcap;
 
         if (pcap->is_swapped) {
-            needr32(null.family, pkt, len);
+            needr32(null->family, pkt, len);
         } else {
-            need32(null.family, pkt, len);
+            need32(null->family, pkt, len);
         }
 
-        switch (null.family) {
+        switch (null->family) {
         case 2:
         case 24:
         case 28:
         case 30:
-            return _ip(self, (core_object_t*)&null, pkt, len);
+            return _ip(self, (core_object_t*)null, pkt, len);
 
         default:
             break;
@@ -484,21 +506,22 @@ static int _link(filter_layer_t* self, const core_object_pcap_t* pcap)
         break;
     }
     case DLT_EN10MB: {
-        core_object_ether_t ether = CORE_OBJECT_ETHER_INIT(pcap);
+        core_object_ether_t* ether = &self->ether;
+        ether->obj_prev            = (core_object_t*)pcap;
 
-        needxb(ether.dhost, 6, pkt, len);
-        needxb(ether.shost, 6, pkt, len);
-        need16(ether.type, pkt, len);
+        needxb(ether->dhost, 6, pkt, len);
+        needxb(ether->shost, 6, pkt, len);
+        need16(ether->type, pkt, len);
 
-        switch (ether.type) {
+        switch (ether->type) {
         case 0x8100: /* 802.1q */
         case 0x88a8: /* 802.1ad */
         case 0x9100: /* 802.1 QinQ non-standard */
-            return _ieee802(self, ether.type, (core_object_t*)&ether, pkt, len);
+            return _ieee802(self, ether->type, (core_object_t*)ether, pkt, len);
 
         case ETHERTYPE_IP:
         case ETHERTYPE_IPV6:
-            return _ip(self, (core_object_t*)&ether, pkt, len);
+            return _ip(self, (core_object_t*)ether, pkt, len);
 
         default:
             break;
@@ -506,16 +529,17 @@ static int _link(filter_layer_t* self, const core_object_pcap_t* pcap)
         break;
     }
     case DLT_LOOP: {
-        core_object_loop_t loop = CORE_OBJECT_LOOP_INIT(pcap);
+        core_object_loop_t* loop = &self->loop;
+        loop->obj_prev           = (core_object_t*)pcap;
 
-        need32(loop.family, pkt, len);
+        need32(loop->family, pkt, len);
 
-        switch (loop.family) {
+        switch (loop->family) {
         case 2:
         case 24:
         case 28:
         case 30:
-            return _ip(self, (core_object_t*)&loop, pkt, len);
+            return _ip(self, (core_object_t*)loop, pkt, len);
 
         default:
             break;
@@ -531,23 +555,24 @@ static int _link(filter_layer_t* self, const core_object_pcap_t* pcap)
 #endif
         return _ip(self, (core_object_t*)&pcap, pkt, len);
     case DLT_LINUX_SLL: {
-        core_object_linuxsll_t linuxsll = CORE_OBJECT_LINUXSLL_INIT(pcap);
+        core_object_linuxsll_t* linuxsll = &self->linuxsll;
+        linuxsll->obj_prev               = (core_object_t*)pcap;
 
-        need16(linuxsll.packet_type, pkt, len);
-        need16(linuxsll.arp_hardware, pkt, len);
-        need16(linuxsll.link_layer_address_length, pkt, len);
-        needxb(linuxsll.link_layer_address, 8, pkt, len);
-        need16(linuxsll.ether_type, pkt, len);
+        need16(linuxsll->packet_type, pkt, len);
+        need16(linuxsll->arp_hardware, pkt, len);
+        need16(linuxsll->link_layer_address_length, pkt, len);
+        needxb(linuxsll->link_layer_address, 8, pkt, len);
+        need16(linuxsll->ether_type, pkt, len);
 
-        switch (linuxsll.ether_type) {
+        switch (linuxsll->ether_type) {
         case 0x8100: /* 802.1q */
         case 0x88a8: /* 802.1ad */
         case 0x9100: /* 802.1 QinQ non-standard */
-            return _ieee802(self, linuxsll.ether_type, (core_object_t*)&linuxsll, pkt, len);
+            return _ieee802(self, linuxsll->ether_type, (core_object_t*)linuxsll, pkt, len);
 
         case ETHERTYPE_IP:
         case ETHERTYPE_IPV6:
-            return _ip(self, (core_object_t*)&linuxsll, pkt, len);
+            return _ip(self, (core_object_t*)linuxsll, pkt, len);
 
         default:
             break;
@@ -562,7 +587,7 @@ static int _link(filter_layer_t* self, const core_object_pcap_t* pcap)
         break;
     }
 
-    self->recv(self->ctx, (core_object_t*)pcap);
+    self->produced = (core_object_t*)pcap;
 
     return 0;
 }
@@ -571,6 +596,7 @@ static int _receive(void* ctx, const core_object_t* obj)
 {
     filter_layer_t*           self = (filter_layer_t*)ctx;
     const core_object_pcap_t* pcap = (core_object_pcap_t*)obj;
+    int                       ret;
 
     if (!self || !obj || obj->obj_type != CORE_OBJECT_PCAP || !self->recv) {
         return 1;
@@ -578,13 +604,17 @@ static int _receive(void* ctx, const core_object_t* obj)
 
     if (pcap->is_multiple) {
         while (pcap) {
-            int ret = _link(self, pcap);
-            if (ret)
+            if ((ret = _link(self, pcap)))
                 return ret;
+            self->recv(self->ctx, self->produced);
             pcap = (const core_object_pcap_t*)pcap->obj_prev;
+            if (pcap && pcap->obj_type != CORE_OBJECT_PCAP)
+                return 1;
         }
     } else {
-        return _link(self, pcap);
+        if ((ret = _link(self, pcap)))
+            return ret;
+        self->recv(self->ctx, self->produced);
     }
 
     return 0;
@@ -593,4 +623,38 @@ static int _receive(void* ctx, const core_object_t* obj)
 core_receiver_t filter_layer_receiver()
 {
     return _receive;
+}
+
+static const core_object_t* _produce(void* ctx)
+{
+    filter_layer_t* self = (filter_layer_t*)ctx;
+
+    if (!self) {
+        return 0;
+    }
+
+    if (self->prod_obj) {
+        if (self->prod_obj->obj_type != CORE_OBJECT_PCAP || _link(self, self->prod_obj)) {
+            self->prod_obj = 0;
+            return 0;
+        }
+        self->prod_obj = (const core_object_pcap_t*)self->prod_obj->obj_prev;
+    } else {
+        const core_object_pcap_t* obj = (core_object_pcap_t*)self->prod(self->prod_ctx);
+
+        if (!obj || obj->obj_type != CORE_OBJECT_PCAP || _link(self, obj)) {
+            return 0;
+        }
+
+        if (obj->is_multiple) {
+            self->prod_obj = (const core_object_pcap_t*)obj->obj_prev;
+        }
+    }
+
+    return self->produced;
+}
+
+core_producer_t filter_layer_producer()
+{
+    return _produce;
 }

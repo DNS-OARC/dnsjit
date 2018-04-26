@@ -55,7 +55,7 @@ function Null:receive()
     return C.output_null_receiver(), self.obj
 end
 
--- Set the producer to pass objects to.
+-- Set the producer to get objects from.
 function Null:producer(o)
     self.obj._log:debug("producer()")
     self.obj.prod, self.obj.ctx = o:produce()
@@ -64,7 +64,10 @@ end
 
 -- Retrieve
 -- .I num
--- objects from the producer, return 0 if successful.
+-- objects from the producer, if
+-- .I num
+-- is zero or less then retrieve all objects.
+-- Returns 0 if successful.
 function Null:run(num)
     return C.output_null_run(self.obj, num)
 end
