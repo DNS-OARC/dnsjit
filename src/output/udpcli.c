@@ -21,7 +21,9 @@
 #include "config.h"
 
 #include "output/udpcli.h"
+#include "core/object/dns.h"
 #include "core/object/udp.h"
+#include "core/object/tcp.h"
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -30,6 +32,7 @@
 #include <fcntl.h>
 #include <string.h>
 #include <netinet/in.h>
+#include <errno.h>
 
 static core_log_t      _log      = LOG_T_INIT("output.udpcli");
 static output_udpcli_t _defaults = {
@@ -110,23 +113,61 @@ int output_udpcli_destroy(output_udpcli_t* self)
 
 static int _receive(void* ctx, const core_object_t* obj)
 {
-    output_udpcli_t*   self = (output_udpcli_t*)ctx;
-    core_object_udp_t* udp  = (core_object_udp_t*)obj;
+    output_udpcli_t* self = (output_udpcli_t*)ctx;
+    const uint8_t*   payload;
+    size_t           len, sent;
 
-    if (!self || !obj || obj->obj_type != CORE_OBJECT_UDP) {
+    if (!self) {
         return 1;
     }
 
-    if (udp->len < 3 || udp->payload[2] & 0x80) {
-        return 0;
+    for (; obj;) {
+        switch (obj->obj_type) {
+        case CORE_OBJECT_DNS:
+            obj = obj->obj_prev;
+            continue;
+        case CORE_OBJECT_UDP:
+            payload = ((core_object_udp_t*)obj)->payload;
+            len     = ((core_object_udp_t*)obj)->len;
+            break;
+        case CORE_OBJECT_TCP:
+            payload = ((core_object_tcp_t*)obj)->payload;
+            len     = ((core_object_tcp_t*)obj)->len;
+            break;
+        default:
+            return 1;
+        }
+
+        if (len < 3 || payload[2] & 0x80) {
+            return 0;
+        }
+
+        sent = 0;
+        self->pkts++;
+        for (;;) {
+            ssize_t ret = sendto(self->fd, payload + sent, len - sent, 0, (struct sockaddr*)self->addr, self->addr_len);
+            if (ret > -1) {
+                sent += ret;
+                if (sent < len)
+                    continue;
+                return 0;
+            }
+            switch (errno) {
+            case EAGAIN:
+#if EAGAIN != EWOULDBLOCK
+            case EWOULDBLOCK:
+#endif
+                continue;
+            default:
+                break;
+            }
+            self->errs++;
+            break;
+        }
+        break;
     }
 
-    self->pkts++;
-    if (sendto(self->fd, udp->payload, udp->len, 0, (struct sockaddr*)self->addr, self->addr_len) < 0) {
-        self->errs++;
-    }
-
-    return 0;
+    return 1;
 }
 
 core_receiver_t output_udpcli_receiver()
