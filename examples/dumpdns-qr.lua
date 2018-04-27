@@ -13,8 +13,8 @@ c = require("dnsjit.filter.coro").new()
 queries = {}
 responses = {}
 c:func(function(c,o)
+    local dns = require("dnsjit.core.object.dns").new(o)
     local pkt = o:cast()
-    local dns = require("dnsjit.core.object.dns").new(pkt)
     if dns and dns:parse() == 0 then
         if dns.qr == 1 then
             table.insert(responses, {

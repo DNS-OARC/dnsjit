@@ -21,12 +21,13 @@
 #include "config.h"
 
 #include "core/object/dns.h"
+#include "core/object/udp.h"
 #include "omg-dns/omg_dns.h"
 
 #include <string.h>
 
-#define NUM_LABELS 128
-#define NUM_RRS 64
+#define NUM_LABELS 256
+#define NUM_RRS 128
 
 typedef struct _parse {
     size_t          rr_idx;
@@ -85,13 +86,25 @@ static int _rr_callback(int ret, const omg_dns_rr_t* rr, void* self)
     return OMG_DNS_OK;
 }
 
-core_object_dns_t* core_object_dns_new(const core_object_packet_t* pkt)
+core_object_dns_t* core_object_dns_new(const core_object_t* obj)
 {
-    core_object_dns_t* self = malloc(sizeof(_query_t));
+    core_object_dns_t* self;
 
-    if (self) {
+    if (!obj) {
+        return 0;
+    }
+
+    switch (obj->obj_type) {
+    case CORE_OBJECT_PACKET:
+    case CORE_OBJECT_UDP:
+        break;
+    default:
+        return 0;
+    }
+
+    if ((self = malloc(sizeof(_query_t)))) {
         *_self         = _defaults;
-        self->obj_prev = (core_object_t*)pkt;
+        self->obj_prev = obj;
     }
 
     return self;
@@ -107,19 +120,34 @@ void core_object_dns_free(core_object_dns_t* self)
 
 int core_object_dns_parse_header(core_object_dns_t* self)
 {
-    const core_object_packet_t* pkt;
+    const u_char* payload;
+    size_t        len;
 
-    if (!_self || _self->dns.have_header) {
+    if (!_self || !self->obj_prev || _self->dns.have_header) {
         return 1;
     }
 
-    for (pkt = (core_object_packet_t*)self->obj_prev; pkt && pkt->obj_type != CORE_OBJECT_PACKET; pkt = (core_object_packet_t*)pkt->obj_prev)
-        ;
-    if (!pkt) {
+    switch (self->obj_prev->obj_type) {
+    case CORE_OBJECT_PACKET: {
+        const core_object_packet_t* pkt;
+        for (pkt = (core_object_packet_t*)self->obj_prev; pkt && pkt->obj_type != CORE_OBJECT_PACKET; pkt = (core_object_packet_t*)pkt->obj_prev)
+            ;
+        if (!pkt) {
+            return 1;
+        }
+        payload = pkt->payload;
+        len     = pkt->len;
+        break;
+    }
+    case CORE_OBJECT_UDP:
+        payload = ((const core_object_udp_t*)self->obj_prev)->payload;
+        len     = ((const core_object_udp_t*)self->obj_prev)->len;
+        break;
+    default:
         return 1;
     }
 
-    if (omg_dns_parse_header(&_self->dns, (u_char*)pkt->payload, pkt->len)) {
+    if (omg_dns_parse_header(&_self->dns, payload, len)) {
         return 2;
     }
 
@@ -159,19 +187,34 @@ int core_object_dns_parse_header(core_object_dns_t* self)
 
 int core_object_dns_parse(core_object_dns_t* self)
 {
-    const core_object_packet_t* pkt;
+    const u_char* payload;
+    size_t        len;
 
-    if (!_self || _self->parsed || _self->dns.have_body) {
+    if (!_self || !self->obj_prev || _self->parsed || _self->dns.have_body) {
         return 1;
     }
 
-    for (pkt = (core_object_packet_t*)self->obj_prev; pkt && pkt->obj_type != CORE_OBJECT_PACKET; pkt = (core_object_packet_t*)pkt->obj_prev)
-        ;
-    if (!pkt) {
+    switch (self->obj_prev->obj_type) {
+    case CORE_OBJECT_PACKET: {
+        const core_object_packet_t* pkt;
+        for (pkt = (core_object_packet_t*)self->obj_prev; pkt && pkt->obj_type != CORE_OBJECT_PACKET; pkt = (core_object_packet_t*)pkt->obj_prev)
+            ;
+        if (!pkt) {
+            return 1;
+        }
+        payload = pkt->payload;
+        len     = pkt->len;
+        break;
+    }
+    case CORE_OBJECT_UDP:
+        payload = ((const core_object_udp_t*)self->obj_prev)->payload;
+        len     = ((const core_object_udp_t*)self->obj_prev)->len;
+        break;
+    default:
         return 1;
     }
 
-    if (!(_self->parsed = malloc(sizeof(_parse_t)))) {
+    if (!(_self->parsed = calloc(1, sizeof(_parse_t)))) {
         return 1;
     }
 
@@ -182,7 +225,7 @@ int core_object_dns_parse(core_object_dns_t* self)
     omg_dns_set_label_callback(&_self->dns, _label_callback, (void*)_self);
 
     if (!_self->dns.have_header) {
-        if (omg_dns_parse(&_self->dns, (u_char*)pkt->payload, pkt->len)) {
+        if (omg_dns_parse(&_self->dns, payload, len)) {
             return 2;
         }
 
@@ -216,8 +259,8 @@ int core_object_dns_parse(core_object_dns_t* self)
         self->ancount      = _self->dns.ancount;
         self->nscount      = _self->dns.nscount;
         self->arcount      = _self->dns.arcount;
-    } else if (pkt->len > _self->dns.bytes_parsed) {
-        if (omg_dns_parse_body(&_self->dns, (u_char*)pkt->payload + _self->dns.bytes_parsed, pkt->len - _self->dns.bytes_parsed)) {
+    } else if (len > _self->dns.bytes_parsed) {
+        if (omg_dns_parse_body(&_self->dns, payload + _self->dns.bytes_parsed, len - _self->dns.bytes_parsed)) {
             return 2;
         }
     }
@@ -258,17 +301,29 @@ int core_object_dns_rr_ok(core_object_dns_t* self)
 
 const char* core_object_dns_rr_label(core_object_dns_t* self)
 {
-    const core_object_packet_t* pkt;
-    char*                       label;
-    size_t                      left;
+    const u_char* payload;
+    char*         label;
+    size_t        left;
 
     if (!_self || !_self->parsed || _self->parsed->at_rr < 0 || _self->parsed->at_rr >= _self->parsed->rr_idx || _self->parsed->rr_ret[_self->parsed->at_rr] != OMG_DNS_OK) {
         return 0;
     }
 
-    for (pkt = (core_object_packet_t*)self->obj_prev; pkt && pkt->obj_type != CORE_OBJECT_PACKET; pkt = (core_object_packet_t*)pkt->obj_prev)
-        ;
-    if (!pkt) {
+    switch (self->obj_prev->obj_type) {
+    case CORE_OBJECT_PACKET: {
+        const core_object_packet_t* pkt;
+        for (pkt = (core_object_packet_t*)self->obj_prev; pkt && pkt->obj_type != CORE_OBJECT_PACKET; pkt = (core_object_packet_t*)pkt->obj_prev)
+            ;
+        if (!pkt) {
+            return 0;
+        }
+        payload = pkt->payload;
+        break;
+    }
+    case CORE_OBJECT_UDP:
+        payload = ((const core_object_udp_t*)self->obj_prev)->payload;
+        break;
+    default:
         return 0;
     }
 
@@ -310,7 +365,7 @@ const char* core_object_dns_rr_label(core_object_dns_t* self)
                 mldebug("label %lu is an extension", l);
                 return 0;
             } else if (omg_dns_label_have_dn(&(_self->parsed->label[l]))) {
-                const char* dn    = (char*)pkt->payload + omg_dns_label_dn_offset(&(_self->parsed->label[l]));
+                const char* dn    = (char*)payload + omg_dns_label_dn_offset(&(_self->parsed->label[l]));
                 size_t      dnlen = omg_dns_label_length(&(_self->parsed->label[l]));
 
                 if ((dnlen + 1) > left) {

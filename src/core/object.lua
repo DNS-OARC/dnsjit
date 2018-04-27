@@ -96,7 +96,7 @@ _type[Object.CORE_OBJECT_NONE] = "none"
 
 -- Return the textual type of the object.
 function Object:type()
-    return ffi.cast(_type[self.obj_type], self)
+    return _type[self.obj_type]
 end
 
 -- Return the previous object.

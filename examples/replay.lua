@@ -42,7 +42,7 @@ if getopt:val("responses") then
         local pkt = obj:cast()
         local dns
         if pkt:type() == "packet" then
-            dns = require("dnsjit.core.object.dns").new(pkt)
+            dns = require("dnsjit.core.object.dns").new(obj)
             if dns:parse() ~= 0 then
                 return
             end
@@ -66,12 +66,7 @@ if getopt:val("responses") then
             return
         end
 
-        if dns.qr == 0 then
-            print(pkt:src()..":"..pkt.sport.." -> "..pkt:dst()..":"..pkt.dport)
-        else
-            print(pkt:dst()..":"..pkt.dport.." -> "..pkt:src()..":"..pkt.sport)
-        end
-
+        print(pkt:src()..":"..pkt.sport.." -> "..pkt:dst()..":"..pkt.dport)
         print("  id:", dns.id)
         local n = dns.questions
         while n > 0 and dns:rr_next() == 0 do

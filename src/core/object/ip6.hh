@@ -33,6 +33,13 @@ typedef struct core_object_ip6 {
     uint8_t  src[16];
     uint8_t  dst[16];
 
+    unsigned short is_frag : 1;
+    unsigned short have_rtdst : 1;
+    uint16_t       frag_offlg;
+    uint16_t       frag_ident;
+    uint8_t        rtdst[16];
+
     const uint8_t* payload;
     size_t         len;
+    size_t         pad_len;
 } core_object_ip6_t;
