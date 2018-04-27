@@ -41,11 +41,31 @@
 -- dst
 -- Destination address.
 -- .TP
+-- is_frag
+-- 1 bit, set if packet is a fragment.
+-- .TP
+-- have_rtdst
+-- 1 bit, set if
+-- .I rtdst
+-- is set.
+-- .TP
+-- frag_offlg
+-- Offset, reserved, and flag taken from the fragment header.
+-- .TP
+-- frag_ident
+-- Identification taken from the fragment header.
+-- .TP
+-- rtdst
+-- Destination address found in the routing extension header.
+-- .TP
 -- payload
 -- A pointer to the payload.
 -- .TP
 -- len
 -- The length of the payload.
+-- .TP
+-- pad_len
+-- The length of padding found, if any.
 module(...,package.seeall)
 
 require("dnsjit.core.object.ip6_h")

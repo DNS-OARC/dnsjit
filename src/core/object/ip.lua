@@ -61,6 +61,9 @@
 -- .TP
 -- plen
 -- The length of the payload.
+-- .TP
+-- pad_len
+-- The length of padding found, if any.
 module(...,package.seeall)
 
 require("dnsjit.core.object.ip_h")
