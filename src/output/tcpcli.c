@@ -20,7 +20,7 @@
 
 #include "config.h"
 
-#include "output/udpcli.h"
+#include "output/tcpcli.h"
 #include "core/object/dns.h"
 #include "core/object/udp.h"
 #include "core/object/tcp.h"
@@ -32,20 +32,20 @@
 #include <fcntl.h>
 #include <string.h>
 #include <errno.h>
+#include <arpa/inet.h>
 
-static core_log_t      _log      = LOG_T_INIT("output.udpcli");
-static output_udpcli_t _defaults = {
-    LOG_T_INIT_OBJ("output.udpcli"),
+static core_log_t      _log      = LOG_T_INIT("output.tcpcli");
+static output_tcpcli_t _defaults = {
+    LOG_T_INIT_OBJ("output.tcpcli"),
     0, 0, -1,
-    0, 0
 };
 
-core_log_t* output_udpcli_log()
+core_log_t* output_tcpcli_log()
 {
     return &_log;
 }
 
-int output_udpcli_init(output_udpcli_t* self, const char* host, const char* port)
+int output_tcpcli_init(output_tcpcli_t* self, const char* host, const char* port)
 {
     struct addrinfo* addr;
     int              err;
@@ -57,11 +57,6 @@ int output_udpcli_init(output_udpcli_t* self, const char* host, const char* port
     *self = _defaults;
 
     ldebug("init %s %s", host, port);
-
-    if (!(self->addr = malloc(sizeof(struct sockaddr_storage)))) {
-        lcritical("malloc");
-        return 1;
-    }
 
     if ((err = getaddrinfo(host, port, 0, &addr))) {
         lcritical("getaddrinfo() %d", err);
@@ -78,14 +73,21 @@ int output_udpcli_init(output_udpcli_t* self, const char* host, const char* port
         addr->ai_protocol,
         addr->ai_addrlen);
 
-    memcpy(self->addr, addr->ai_addr, addr->ai_addrlen);
-    self->addr_len = addr->ai_addrlen;
-    freeaddrinfo(addr);
-
-    if ((self->fd = socket(((struct sockaddr*)self->addr)->sa_family, SOCK_DGRAM, 0)) < 0) {
+    if ((self->fd = socket(addr->ai_addr->sa_family, SOCK_STREAM, 0)) < 0) {
         lcritical("socket failed");
+        freeaddrinfo(addr);
         return 1;
     }
+
+    if (connect(self->fd, addr->ai_addr, addr->ai_addrlen)) {
+        lcritical("connect failed");
+        freeaddrinfo(addr);
+        close(self->fd);
+        self->fd = -1;
+        return 1;
+    }
+
+    freeaddrinfo(addr);
 
     if ((err = fcntl(self->fd, F_GETFL)) == -1
         || fcntl(self->fd, F_SETFL, err | O_NONBLOCK)) {
@@ -95,7 +97,7 @@ int output_udpcli_init(output_udpcli_t* self, const char* host, const char* port
     return 0;
 }
 
-int output_udpcli_destroy(output_udpcli_t* self)
+int output_tcpcli_destroy(output_tcpcli_t* self)
 {
     if (!self) {
         return 1;
@@ -104,6 +106,7 @@ int output_udpcli_destroy(output_udpcli_t* self)
     ldebug("destroy");
 
     if (self->fd > -1) {
+        shutdown(self->fd, SHUT_RDWR);
         close(self->fd);
     }
 
@@ -112,9 +115,10 @@ int output_udpcli_destroy(output_udpcli_t* self)
 
 static int _receive(void* ctx, const core_object_t* obj)
 {
-    output_udpcli_t* self = (output_udpcli_t*)ctx;
+    output_tcpcli_t* self = (output_tcpcli_t*)ctx;
     const uint8_t*   payload;
     size_t           len, sent;
+    uint16_t         dnslen;
 
     if (!self) {
         return 1;
@@ -143,13 +147,38 @@ static int _receive(void* ctx, const core_object_t* obj)
 
         sent = 0;
         self->pkts++;
+
+        dnslen = htons(len);
+
         for (;;) {
-            ssize_t ret = sendto(self->fd, payload + sent, len - sent, 0, (struct sockaddr*)self->addr, self->addr_len);
+            ssize_t ret = sendto(self->fd, ((uint8_t*)&dnslen) + sent, sizeof(dnslen) - sent, 0, 0, 0);
             if (ret > -1) {
                 sent += ret;
-                if (sent < len)
+                if (sent < sizeof(dnslen))
                     continue;
-                return 0;
+
+                sent = 0;
+                for (;;) {
+                    ssize_t ret = sendto(self->fd, payload + sent, len - sent, 0, 0, 0);
+                    if (ret > -1) {
+                        sent += ret;
+                        if (sent < len)
+                            continue;
+                        return 0;
+                    }
+                    switch (errno) {
+                    case EAGAIN:
+#if EAGAIN != EWOULDBLOCK
+                    case EWOULDBLOCK:
+#endif
+                        continue;
+                    default:
+                        break;
+                    }
+                    self->errs++;
+                    break;
+                }
+                break;
             }
             switch (errno) {
             case EAGAIN:
@@ -169,7 +198,7 @@ static int _receive(void* ctx, const core_object_t* obj)
     return 1;
 }
 
-core_receiver_t output_udpcli_receiver()
+core_receiver_t output_tcpcli_receiver()
 {
     return _receive;
 }
