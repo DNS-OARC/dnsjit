@@ -18,21 +18,8 @@
  * along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-//lua:require("dnsjit.core.log")
-//lua:require("dnsjit.core.receiver_h")
+#include "config.h"
 
-typedef struct output_tcpcli {
-    core_log_t _log;
-    size_t     pkts, errs;
-    int        fd;
-} output_tcpcli_t;
+#include <stdint.h>
 
-core_log_t* output_tcpcli_log();
-
-int output_tcpcli_init(output_tcpcli_t* self);
-int output_tcpcli_destroy(output_tcpcli_t* self);
-int output_tcpcli_connect(output_tcpcli_t* self, const char* host, const char* port);
-int output_tcpcli_nonblocking(output_tcpcli_t* self);
-int output_tcpcli_set_nonblocking(output_tcpcli_t* self, int nonblocking);
-
-core_receiver_t output_tcpcli_receiver();
+#include "core/compat.hh"

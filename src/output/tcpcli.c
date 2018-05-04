@@ -31,13 +31,12 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <string.h>
-#include <errno.h>
 #include <arpa/inet.h>
 
 static core_log_t      _log      = LOG_T_INIT("output.tcpcli");
 static output_tcpcli_t _defaults = {
     LOG_T_INIT_OBJ("output.tcpcli"),
-    0, 0, -1,
+    0, 0, -1
 };
 
 core_log_t* output_tcpcli_log()
@@ -45,18 +44,45 @@ core_log_t* output_tcpcli_log()
     return &_log;
 }
 
-int output_tcpcli_init(output_tcpcli_t* self, const char* host, const char* port)
+int output_tcpcli_init(output_tcpcli_t* self)
 {
-    struct addrinfo* addr;
-    int              err;
-
-    if (!self || !host || !port) {
+    if (!self) {
         return 1;
     }
 
     *self = _defaults;
 
-    ldebug("init %s %s", host, port);
+    ldebug("init");
+
+    return 0;
+}
+
+int output_tcpcli_destroy(output_tcpcli_t* self)
+{
+    if (!self) {
+        return 1;
+    }
+
+    ldebug("destroy");
+
+    if (self->fd > -1) {
+        shutdown(self->fd, SHUT_RDWR);
+        close(self->fd);
+    }
+
+    return 0;
+}
+
+int output_tcpcli_connect(output_tcpcli_t* self, const char* host, const char* port)
+{
+    struct addrinfo* addr;
+    int              err;
+
+    if (!self || self->fd > -1 || !host || !port) {
+        return 1;
+    }
+
+    ldebug("connect %s %s", host, port);
 
     if ((err = getaddrinfo(host, port, 0, &addr))) {
         lcritical("getaddrinfo() %d", err);
@@ -88,26 +114,50 @@ int output_tcpcli_init(output_tcpcli_t* self, const char* host, const char* port
     }
 
     freeaddrinfo(addr);
-
-    if ((err = fcntl(self->fd, F_GETFL)) == -1
-        || fcntl(self->fd, F_SETFL, err | O_NONBLOCK)) {
-        lcritical("fcntl failed");
-    }
-
     return 0;
 }
 
-int output_tcpcli_destroy(output_tcpcli_t* self)
+int output_tcpcli_nonblocking(output_tcpcli_t* self)
 {
-    if (!self) {
+    int flags;
+
+    if (!self || self->fd < 0) {
+        return -1;
+    }
+
+    flags = fcntl(self->fd, F_GETFL);
+    if (flags != -1) {
+        flags = flags & O_NONBLOCK ? 1 : 0;
+    }
+
+    return flags;
+}
+
+int output_tcpcli_set_nonblocking(output_tcpcli_t* self, int nonblocking)
+{
+    int flags;
+
+    if (!self || self->fd < 0) {
         return 1;
     }
 
-    ldebug("destroy");
+    ldebug("set nonblocking %d", nonblocking);
 
-    if (self->fd > -1) {
-        shutdown(self->fd, SHUT_RDWR);
-        close(self->fd);
+    if ((flags = fcntl(self->fd, F_GETFL)) == -1) {
+        lcritical("fcntl(FL_GETFL) failed");
+        return 1;
+    }
+
+    if (nonblocking) {
+        if (fcntl(self->fd, F_SETFL, flags | O_NONBLOCK)) {
+            lcritical("fcntl(FL_SETFL) failed");
+            return 1;
+        }
+    } else {
+        if (fcntl(self->fd, F_SETFL, flags & ~O_NONBLOCK)) {
+            lcritical("fcntl(FL_SETFL) failed");
+            return 1;
+        }
     }
 
     return 0;
@@ -166,27 +216,9 @@ static int _receive(void* ctx, const core_object_t* obj)
                             continue;
                         return 0;
                     }
-                    switch (errno) {
-                    case EAGAIN:
-#if EAGAIN != EWOULDBLOCK
-                    case EWOULDBLOCK:
-#endif
-                        continue;
-                    default:
-                        break;
-                    }
                     self->errs++;
                     break;
                 }
-                break;
-            }
-            switch (errno) {
-            case EAGAIN:
-#if EAGAIN != EWOULDBLOCK
-            case EWOULDBLOCK:
-#endif
-                continue;
-            default:
                 break;
             }
             self->errs++;

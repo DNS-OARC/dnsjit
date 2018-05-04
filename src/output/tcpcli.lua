@@ -33,17 +33,50 @@ local t_name = "output_tcpcli_t"
 local output_tcpcli_t = ffi.typeof(t_name)
 local Tcpcli = {}
 
--- Create a new Tcpcli output to send queries to the
+-- Create a new Tcpcli output. Optinally connect to the
 -- .I host
 -- and
--- .IR port .
+-- .IR port right away or use
+-- .BR connect ()
+-- later on.
 function Tcpcli.new(host, port)
     local self = {
         obj = output_tcpcli_t(),
     }
-    C.output_tcpcli_init(self.obj, host, port)
+    C.output_tcpcli_init(self.obj)
     ffi.gc(self.obj, C.output_tcpcli_destroy)
-    return setmetatable(self, { __index = Tcpcli })
+    self = setmetatable(self, { __index = Tcpcli })
+    if host and port then
+        if self:connect(host, port) ~= 0 then
+            return
+        end
+    end
+    return self
+end
+
+-- Connect to the
+-- .I host
+-- and
+-- .IR port .
+function Tcpcli.connect(host, port)
+    return C.output_tcpcli_connect(self.obj, host, port)
+end
+
+-- Enable (true) or disable (false) nonblocking mode and
+-- return 0 if successful, if
+-- .I bool
+-- is not specified then return if nonblocking mode is on (true) or off (false).
+function Tcpcli.nonblocking(bool)
+    if bool == nil then
+        if C.output_tcpcli_nonblocking(self.obj) == 1 then
+            return true
+        end
+        return false
+    elseif bool == true then
+        return C.output_tcpcli_set_nonblocking(self.obj, 1)
+    else
+        return C.output_tcpcli_set_nonblocking(self.obj, 0)
+    end
 end
 
 -- Return the C functions and context for receiving objects.
