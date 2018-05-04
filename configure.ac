@@ -64,9 +64,11 @@ fi
 
 # Checks for sizes
 AC_CHECK_SIZEOF([void*])
-AC_CHECK_SIZEOF([pthread_t])
-AC_CHECK_SIZEOF([pthread_mutex_t])
-AC_CHECK_SIZEOF([pthread_cond_t])
+AC_CHECK_SIZEOF([pthread_t],,[#include <pthread.h>])
+AC_CHECK_SIZEOF([pthread_mutex_t],,[#include <pthread.h>])
+AC_CHECK_SIZEOF([pthread_cond_t],,[#include <pthread.h>])
+AC_CHECK_SIZEOF([struct sockaddr_storage],,[#include <sys/types.h>
+#include <sys/socket.h>])
 
 # Output Makefiles
 AC_CONFIG_FILES([

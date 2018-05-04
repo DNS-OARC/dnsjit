@@ -25,19 +25,15 @@
 #include "core/object/udp.h"
 #include "core/object/tcp.h"
 
-#include <sys/types.h>
-#include <sys/socket.h>
 #include <netdb.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <string.h>
-#include <errno.h>
 
 static core_log_t      _log      = LOG_T_INIT("output.udpcli");
 static output_udpcli_t _defaults = {
     LOG_T_INIT_OBJ("output.udpcli"),
-    0, 0, -1,
-    0, 0
+    0, 0, -1
 };
 
 core_log_t* output_udpcli_log()
@@ -45,23 +41,45 @@ core_log_t* output_udpcli_log()
     return &_log;
 }
 
-int output_udpcli_init(output_udpcli_t* self, const char* host, const char* port)
+int output_udpcli_init(output_udpcli_t* self)
 {
-    struct addrinfo* addr;
-    int              err;
-
-    if (!self || !host || !port) {
+    if (!self) {
         return 1;
     }
 
     *self = _defaults;
 
-    ldebug("init %s %s", host, port);
+    ldebug("init");
 
-    if (!(self->addr = malloc(sizeof(struct sockaddr_storage)))) {
-        lcritical("malloc");
+    return 0;
+}
+
+int output_udpcli_destroy(output_udpcli_t* self)
+{
+    if (!self) {
         return 1;
     }
+
+    ldebug("destroy");
+
+    if (self->fd > -1) {
+        shutdown(self->fd, SHUT_RDWR);
+        close(self->fd);
+    }
+
+    return 0;
+}
+
+int output_udpcli_connect(output_udpcli_t* self, const char* host, const char* port)
+{
+    struct addrinfo* addr;
+    int              err;
+
+    if (!self || self->fd > -1 || !host || !port) {
+        return 1;
+    }
+
+    ldebug("connect %s %s", host, port);
 
     if ((err = getaddrinfo(host, port, 0, &addr))) {
         lcritical("getaddrinfo() %d", err);
@@ -78,33 +96,59 @@ int output_udpcli_init(output_udpcli_t* self, const char* host, const char* port
         addr->ai_protocol,
         addr->ai_addrlen);
 
-    memcpy(self->addr, addr->ai_addr, addr->ai_addrlen);
+    memcpy(&self->addr, addr->ai_addr, addr->ai_addrlen);
     self->addr_len = addr->ai_addrlen;
     freeaddrinfo(addr);
 
-    if ((self->fd = socket(((struct sockaddr*)self->addr)->sa_family, SOCK_DGRAM, 0)) < 0) {
+    if ((self->fd = socket(((struct sockaddr*)&self->addr)->sa_family, SOCK_DGRAM, 0)) < 0) {
         lcritical("socket failed");
         return 1;
-    }
-
-    if ((err = fcntl(self->fd, F_GETFL)) == -1
-        || fcntl(self->fd, F_SETFL, err | O_NONBLOCK)) {
-        lcritical("fcntl failed");
     }
 
     return 0;
 }
 
-int output_udpcli_destroy(output_udpcli_t* self)
+int output_udpcli_nonblocking(output_udpcli_t* self)
 {
-    if (!self) {
+    int flags;
+
+    if (!self || self->fd < 0) {
+        return -1;
+    }
+
+    flags = fcntl(self->fd, F_GETFL);
+    if (flags != -1) {
+        flags = flags & O_NONBLOCK ? 1 : 0;
+    }
+
+    return flags;
+}
+
+int output_udpcli_set_nonblocking(output_udpcli_t* self, int nonblocking)
+{
+    int flags;
+
+    if (!self || self->fd < 0) {
         return 1;
     }
 
-    ldebug("destroy");
+    ldebug("set nonblocking %d", nonblocking);
 
-    if (self->fd > -1) {
-        close(self->fd);
+    if ((flags = fcntl(self->fd, F_GETFL)) == -1) {
+        lcritical("fcntl(FL_GETFL) failed");
+        return 1;
+    }
+
+    if (nonblocking) {
+        if (fcntl(self->fd, F_SETFL, flags | O_NONBLOCK)) {
+            lcritical("fcntl(FL_SETFL) failed");
+            return 1;
+        }
+    } else {
+        if (fcntl(self->fd, F_SETFL, flags & ~O_NONBLOCK)) {
+            lcritical("fcntl(FL_SETFL) failed");
+            return 1;
+        }
     }
 
     return 0;
@@ -144,21 +188,12 @@ static int _receive(void* ctx, const core_object_t* obj)
         sent = 0;
         self->pkts++;
         for (;;) {
-            ssize_t ret = sendto(self->fd, payload + sent, len - sent, 0, (struct sockaddr*)self->addr, self->addr_len);
+            ssize_t ret = sendto(self->fd, payload + sent, len - sent, 0, (struct sockaddr*)&self->addr, self->addr_len);
             if (ret > -1) {
                 sent += ret;
                 if (sent < len)
                     continue;
                 return 0;
-            }
-            switch (errno) {
-            case EAGAIN:
-#if EAGAIN != EWOULDBLOCK
-            case EWOULDBLOCK:
-#endif
-                continue;
-            default:
-                break;
             }
             self->errs++;
             break;

@@ -24,6 +24,9 @@
 #ifndef __dnsjit_output_udpcli_h
 #define __dnsjit_output_udpcli_h
 
+#include <sys/types.h>
+#include <sys/socket.h>
+
 #include "output/udpcli.hh"
 
 #endif

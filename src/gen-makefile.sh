@@ -30,6 +30,8 @@ AM_CFLAGS = -I$(srcdir) \
 
 EXTRA_DIST = gen-manpage.lua gen-compat.lua dnsjit.1in
 
+BUILT_SOURCES = core/compat.hh
+
 bin_PROGRAMS = dnsjit
 
 dnsjit_SOURCES = dnsjit.c globals.c \

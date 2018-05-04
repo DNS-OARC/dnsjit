@@ -28,6 +28,8 @@ AM_CFLAGS = -I$(srcdir) \
 
 EXTRA_DIST = gen-manpage.lua gen-compat.lua dnsjit.1in
 
+BUILT_SOURCES = core/compat.hh
+
 bin_PROGRAMS = dnsjit
 
 dnsjit_SOURCES = dnsjit.c globals.c \
@@ -43,7 +45,7 @@ lua_objects = core.luao lib.luao input.luao filter.luao output.luao
 dnsjit_LDADD = $(PTHREAD_LIBS) $(luajit_LIBS)
 
 # C source and headers
-dnsjit_SOURCES += core/producer.c core/log.c core/receiver.c core/object.c core/object/ip.c core/object/tcp.c core/object/pcap.c core/object/dns.c core/object/icmp6.c core/object/ieee802.c core/object/udp.c core/object/loop.c core/object/packet.c core/object/ip6.c core/object/gre.c core/object/linuxsll.c core/object/icmp.c core/object/null.c core/object/ether.c core/tracking.c core/mutex.c lib/clock.c input/zero.c input/pcap.c input/fpcap.c input/mmpcap.c input/pcapthread.c filter/lua.c filter/split.c filter/thread.c filter/timing.c filter/coro.c filter/layer.c output/udpcli.c output/cpool.c output/tcpcli.c output/cpool/client_pool.c output/cpool/client.c output/null.c
+dnsjit_SOURCES += core/producer.c core/log.c core/receiver.c core/object.c core/object/ip.c core/object/tcp.c core/object/pcap.c core/object/dns.c core/object/icmp6.c core/object/ieee802.c core/object/udp.c core/object/loop.c core/object/packet.c core/object/ip6.c core/object/gre.c core/object/linuxsll.c core/object/icmp.c core/object/null.c core/object/ether.c core/tracking.c core/mutex.c core/compat.c lib/clock.c input/zero.c input/pcap.c input/fpcap.c input/mmpcap.c input/pcapthread.c filter/lua.c filter/split.c filter/thread.c filter/timing.c filter/coro.c filter/layer.c output/udpcli.c output/cpool.c output/tcpcli.c output/cpool/client_pool.c output/cpool/client.c output/null.c
 dist_dnsjit_SOURCES += core/mutex.h core/receiver.h core/object.h core/log.h core/timespec.h core/producer.h core/tracking.h core/object/icmp.h core/object/ip.h core/object/loop.h core/object/dns.h core/object/ip6.h core/object/null.h core/object/tcp.h core/object/udp.h core/object/packet.h core/object/icmp6.h core/object/ether.h core/object/pcap.h core/object/ieee802.h core/object/linuxsll.h core/object/gre.h lib/clock.h input/zero.h input/fpcap.h input/pcap.h input/mmpcap.h input/pcapthread.h filter/lua.h filter/split.h filter/layer.h filter/timing.h filter/thread.h filter/coro.h output/null.h output/cpool/client_pool.h output/cpool/client.h output/cpool.h output/tcpcli.h output/udpcli.h
 
 # Lua headers
