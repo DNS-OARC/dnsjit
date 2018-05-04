@@ -34,6 +34,7 @@
 #include "core/object/icmp6.h"
 #include "core/object/udp.h"
 #include "core/object/tcp.h"
+#include "core/object/payload.h"
 
 #ifndef __dnsjit_filter_layer_h
 #define __dnsjit_filter_layer_h

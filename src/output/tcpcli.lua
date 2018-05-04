@@ -57,16 +57,21 @@ end
 -- Connect to the
 -- .I host
 -- and
--- .IR port .
-function Tcpcli.connect(host, port)
-    return C.output_tcpcli_connect(self.obj, host, port)
+-- .I port
+-- and return 0 if successful.
+function Tcpcli:connect(host, port)
+    local ret = C.output_tcpcli_connect(self.obj, host, port)
+    if ret == 0 then
+        ret = self:nonblocking(true)
+    end
+    return ret
 end
 
 -- Enable (true) or disable (false) nonblocking mode and
 -- return 0 if successful, if
 -- .I bool
 -- is not specified then return if nonblocking mode is on (true) or off (false).
-function Tcpcli.nonblocking(bool)
+function Tcpcli:nonblocking(bool)
     if bool == nil then
         if C.output_tcpcli_nonblocking(self.obj) == 1 then
             return true
@@ -79,9 +84,16 @@ function Tcpcli.nonblocking(bool)
     end
 end
 
--- Return the C functions and context for receiving objects.
+-- Return the C functions and context for receiving objects, these objects
+-- will be sent.
 function Tcpcli:receive()
     return C.output_tcpcli_receiver(), self.obj
+end
+
+-- Return the C functions and context for producing objects, these objects
+-- are received.
+function Tcpcli:produce()
+    return C.output_tcpcli_producer(), self.obj
 end
 
 -- Return the number of queries we sent.

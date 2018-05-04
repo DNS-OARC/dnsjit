@@ -22,8 +22,7 @@
 
 #include "output/tcpcli.h"
 #include "core/object/dns.h"
-#include "core/object/udp.h"
-#include "core/object/tcp.h"
+#include "core/object/payload.h"
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -32,11 +31,14 @@
 #include <fcntl.h>
 #include <string.h>
 #include <arpa/inet.h>
+#include <errno.h>
 
 static core_log_t      _log      = LOG_T_INIT("output.tcpcli");
 static output_tcpcli_t _defaults = {
     LOG_T_INIT_OBJ("output.tcpcli"),
-    0, 0, -1
+    0, 0, -1,
+    { 0 }, CORE_OBJECT_PACKET_INIT(0),
+    0, 0, 0
 };
 
 core_log_t* output_tcpcli_log()
@@ -50,7 +52,8 @@ int output_tcpcli_init(output_tcpcli_t* self)
         return 1;
     }
 
-    *self = _defaults;
+    *self             = _defaults;
+    self->pkt.payload = self->recvbuf;
 
     ldebug("init");
 
@@ -179,13 +182,9 @@ static int _receive(void* ctx, const core_object_t* obj)
         case CORE_OBJECT_DNS:
             obj = obj->obj_prev;
             continue;
-        case CORE_OBJECT_UDP:
-            payload = ((core_object_udp_t*)obj)->payload;
-            len     = ((core_object_udp_t*)obj)->len;
-            break;
-        case CORE_OBJECT_TCP:
-            payload = ((core_object_tcp_t*)obj)->payload;
-            len     = ((core_object_tcp_t*)obj)->len;
+        case CORE_OBJECT_PAYLOAD:
+            payload = ((core_object_payload_t*)obj)->payload;
+            len     = ((core_object_payload_t*)obj)->len;
             break;
         default:
             return 1;
@@ -216,9 +215,27 @@ static int _receive(void* ctx, const core_object_t* obj)
                             continue;
                         return 0;
                     }
+                    switch (errno) {
+                    case EAGAIN:
+#if EAGAIN != EWOULDBLOCK
+                    case EWOULDBLOCK:
+#endif
+                        continue;
+                    default:
+                        break;
+                    }
                     self->errs++;
                     break;
                 }
+                break;
+            }
+            switch (errno) {
+            case EAGAIN:
+#if EAGAIN != EWOULDBLOCK
+            case EWOULDBLOCK:
+#endif
+                continue;
+            default:
                 break;
             }
             self->errs++;
@@ -233,4 +250,83 @@ static int _receive(void* ctx, const core_object_t* obj)
 core_receiver_t output_tcpcli_receiver()
 {
     return _receive;
+}
+
+static const core_object_t* _produce(void* ctx)
+{
+    output_tcpcli_t* self = (output_tcpcli_t*)ctx;
+    ssize_t          n, recv;
+    uint16_t         dnslen;
+
+    if (!self || self->fd < 0) {
+        return 0;
+    }
+
+    if (!self->have_dnslen) {
+        recv = 0;
+        for (;;) {
+            n = recvfrom(self->fd, ((uint8_t*)&dnslen) + recv, sizeof(dnslen) - recv, 0, 0, 0);
+            if (n > -1) {
+                recv += n;
+                if (recv < sizeof(dnslen))
+                    continue;
+                break;
+            }
+            switch (errno) {
+            case EAGAIN:
+#if EAGAIN != EWOULDBLOCK
+            case EWOULDBLOCK:
+#endif
+                n = 0;
+                break;
+            default:
+                break;
+            }
+            break;
+        }
+
+        if (n < 1) {
+            return 0;
+        }
+
+        self->dnslen      = ntohs(dnslen);
+        self->have_dnslen = 1;
+        self->recv        = 0;
+    }
+
+    for (;;) {
+        n = recvfrom(self->fd, self->recvbuf, sizeof(self->recvbuf), 0, 0, 0);
+        if (n > -1) {
+            self->recv += n;
+            if (self->recv < self->dnslen)
+                continue;
+            break;
+        }
+        switch (errno) {
+        case EAGAIN:
+#if EAGAIN != EWOULDBLOCK
+        case EWOULDBLOCK:
+#endif
+            n = 0;
+            break;
+        default:
+            break;
+        }
+        break;
+    }
+
+    if (n < 1) {
+        return 0;
+    }
+
+    // TODO: recv more then dnslen
+
+    self->pkt.len     = self->dnslen;
+    self->have_dnslen = 0;
+    return (core_object_t*)&self->pkt;
+}
+
+core_producer_t output_tcpcli_producer()
+{
+    return _produce;
 }

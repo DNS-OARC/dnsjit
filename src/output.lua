@@ -25,5 +25,6 @@ module(...,package.seeall)
 
 -- dnsjit.output.cpool (3),
 -- dnsjit.output.null (3),
+-- dnsjit.output.tcpcli (3),
 -- dnsjit.output.udpcli (3)
 return

@@ -55,7 +55,8 @@ static filter_layer_t _defaults = {
     CORE_OBJECT_ICMP_INIT(0),
     CORE_OBJECT_ICMP6_INIT(0),
     CORE_OBJECT_UDP_INIT(0),
-    CORE_OBJECT_TCP_INIT(0)
+    CORE_OBJECT_TCP_INIT(0),
+    CORE_OBJECT_PAYLOAD_INIT(0)
 };
 
 core_log_t* filter_layer_log()
@@ -210,23 +211,34 @@ static int _proto(filter_layer_t* self, uint8_t proto, const core_object_t* obj,
         break;
     }
     case IPPROTO_UDP: {
-        core_object_udp_t* udp = &self->udp;
-        udp->obj_prev          = obj;
+        core_object_udp_t*     udp     = &self->udp;
+        core_object_payload_t* payload = &self->payload;
+        udp->obj_prev                  = obj;
 
         need16(udp->sport, pkt, len);
         need16(udp->dport, pkt, len);
         need16(udp->ulen, pkt, len);
         need16(udp->sum, pkt, len);
 
-        udp->payload = (uint8_t*)pkt;
-        udp->len     = len;
+        payload->obj_prev = (core_object_t*)udp;
 
-        self->produced = (core_object_t*)udp;
+        /* Check for padding */
+        if (len > udp->ulen) {
+            payload->padding = len - udp->ulen;
+            payload->len     = len - payload->padding;
+        } else {
+            payload->padding = 0;
+            payload->len     = len;
+        }
+        payload->payload = (uint8_t*)pkt;
+
+        self->produced = (core_object_t*)payload;
         break;
     }
     case IPPROTO_TCP: {
-        core_object_tcp_t* tcp = &self->tcp;
-        tcp->obj_prev          = obj;
+        core_object_tcp_t*     tcp     = &self->tcp;
+        core_object_payload_t* payload = &self->payload;
+        tcp->obj_prev                  = obj;
 
         need16(tcp->sport, pkt, len);
         need16(tcp->dport, pkt, len);
@@ -244,10 +256,23 @@ static int _proto(filter_layer_t* self, uint8_t proto, const core_object_t* obj,
             tcp->opts_len = 0;
         }
 
-        tcp->payload = (uint8_t*)pkt;
-        tcp->len     = len;
+        payload->obj_prev = (core_object_t*)tcp;
 
-        self->produced = (core_object_t*)tcp;
+        /* Check for padding */
+        if (obj->obj_type == CORE_OBJECT_IP && len > (((const core_object_ip_t*)obj)->len - (((const core_object_ip_t*)obj)->hl * 4))) {
+            payload->padding = len - (((const core_object_ip_t*)obj)->len - (((const core_object_ip_t*)obj)->hl * 4));
+            payload->len     = len - payload->padding;
+        } else if (obj->obj_type == CORE_OBJECT_IP6 && len > ((const core_object_ip6_t*)obj)->plen) {
+            payload->padding = len - ((const core_object_ip6_t*)obj)->plen;
+            payload->len     = len - payload->padding;
+        } else {
+            payload->padding = 0;
+            payload->len     = len;
+        }
+
+        payload->payload = (uint8_t*)pkt;
+
+        self->produced = (core_object_t*)payload;
         break;
     }
     default:
@@ -293,23 +318,26 @@ static int _ip(filter_layer_t* self, const core_object_t* obj, const unsigned ch
             if (len < (ip->len - (ip->hl * 4))) {
                 break;
             }
-            /* Check for padding */
-            if (len > (ip->len - (ip->hl * 4))) {
-                ip->pad_len = len - (ip->len - (ip->hl * 4));
-                len -= ip->pad_len;
-            } else {
-                ip->pad_len = 0;
-            }
 
             if (ip->off & 0x2000 || ip->off & 0x1fff) {
-                ip->payload    = (uint8_t*)pkt;
-                ip->plen       = len;
-                self->produced = (core_object_t*)ip;
+                core_object_payload_t* payload = &self->payload;
+
+                payload->obj_prev = (core_object_t*)ip;
+
+                /* Check for padding */
+                if (len > (ip->len - (ip->hl * 4))) {
+                    payload->padding = len - (ip->len - (ip->hl * 4));
+                    payload->len     = len - payload->padding;
+                } else {
+                    payload->padding = 0;
+                    payload->len     = len;
+                }
+                payload->payload = (uint8_t*)pkt;
+
+                self->produced = (core_object_t*)payload;
                 return 0;
             }
 
-            ip->payload = 0;
-            ip->plen    = 0;
             return _proto(self, ip->p, (core_object_t*)ip, pkt, len);
         }
         case 6: {
@@ -329,13 +357,6 @@ static int _ip(filter_layer_t* self, const core_object_t* obj, const unsigned ch
             /* Check reported length for missing payload */
             if (len < ip6->plen) {
                 break;
-            }
-            /* Check for padding */
-            if (len > ip6->plen) {
-                ip6->pad_len = len - ip6->plen;
-                len -= ip6->pad_len;
-            } else {
-                ip6->pad_len = 0;
             }
 
             ext.ip6e_nxt = ip6->nxt;
@@ -400,14 +421,24 @@ static int _ip(filter_layer_t* self, const core_object_t* obj, const unsigned ch
             }
 
             if (ext.ip6e_nxt == IPPROTO_NONE || ip6->is_frag) {
-                ip6->payload   = (uint8_t*)pkt;
-                ip6->len       = len;
-                self->produced = (core_object_t*)ip6;
+                core_object_payload_t* payload = &self->payload;
+
+                payload->obj_prev = (core_object_t*)ip6;
+
+                /* Check for padding */
+                if (len > ip6->plen) {
+                    payload->padding = len - ip6->plen;
+                    payload->len     = len - payload->padding;
+                } else {
+                    payload->padding = 0;
+                    payload->len     = len;
+                }
+                payload->payload = (uint8_t*)pkt;
+
+                self->produced = (core_object_t*)payload;
                 return 0;
             }
 
-            ip6->payload = 0;
-            ip6->len     = 0;
             return _proto(self, ext.ip6e_nxt, (core_object_t*)ip6, pkt, len);
         }
         default:

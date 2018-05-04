@@ -16,30 +16,22 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
 
--- dnsjit.core
--- Core modules for dnsjit
+-- dnsjit.core.compat
+-- Cross platform compatibility support
+--   require("dnsjit.core.compat_h")
 --
--- Core modules for handling things like logging, DNS messages and
--- receiver/receive functionality.
--- .SS Global Variables
--- The following global variables exists in
--- .IR dnsjit .
+-- This module defines various system structures so they can be exposed into
+-- Lua but not really used. The size is generated at compile time to match
+-- that of the structures on the platform.
+-- .SS Structures
 -- .TP
--- .B arg
--- A table with the arguments given on the command line, the first will be
--- the path to the
--- .I dnsjit
--- binary, second will be the path to the
--- .IR script .
+-- pthread_t
+-- .TP
+-- pthread_cond_t
+-- .TP
+-- pthread_mutex_t
+-- .TP
+-- struct sockaddr_storage
 module(...,package.seeall)
 
--- dnsjit.core.compat (3),
--- dnsjit.core.log (3),
--- dnsjit.core.mutex (3),
--- dnsjit.core.object (3),
--- dnsjit.core.objects (3),
--- dnsjit.core.producer (3),
--- dnsjit.core.receiver (3),
--- dnsjit.core.timespec (3),
--- dnsjit.core.tracking (3)
-return
+require("dnsjit.core.compat_h")

@@ -39,7 +39,4 @@ typedef struct core_object_tcp {
 
     uint8_t opts[64];
     size_t  opts_len;
-
-    const uint8_t* payload;
-    size_t         len;
 } core_object_tcp_t;

@@ -18,9 +18,11 @@
  * along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+//lua:require("dnsjit.core.compat_h")
 //lua:require("dnsjit.core.log")
 //lua:require("dnsjit.core.receiver_h")
-//lua:require("dnsjit.core.compat_h")
+//lua:require("dnsjit.core.producer_h")
+//lua:require("dnsjit.core.object.packet_h")
 
 typedef struct output_udpcli {
     core_log_t _log;
@@ -29,6 +31,9 @@ typedef struct output_udpcli {
 
     struct sockaddr_storage addr;
     size_t                  addr_len;
+
+    uint8_t              recvbuf[4 * 1024];
+    core_object_packet_t pkt;
 } output_udpcli_t;
 
 core_log_t* output_udpcli_log();
@@ -40,3 +45,4 @@ int output_udpcli_nonblocking(output_udpcli_t* self);
 int output_udpcli_set_nonblocking(output_udpcli_t* self, int nonblocking);
 
 core_receiver_t output_udpcli_receiver();
+core_producer_t output_udpcli_producer();

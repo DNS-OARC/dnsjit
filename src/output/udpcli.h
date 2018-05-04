@@ -20,6 +20,8 @@
 
 #include "core/log.h"
 #include "core/receiver.h"
+#include "core/producer.h"
+#include "core/object/packet.h"
 
 #ifndef __dnsjit_output_udpcli_h
 #define __dnsjit_output_udpcli_h

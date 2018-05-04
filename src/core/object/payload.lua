@@ -16,85 +16,51 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
 
--- dnsjit.core.object.ip
--- An IP packet
+-- dnsjit.core.object.payload
+-- An UDP packet
 --
--- An IP packet that usually can be found in the object chain
+-- An UDP packet which is usually at the top of the object chain
 -- after parsing with, for example, Layer filter.
 -- .SS Attributes
 -- .TP
--- v
--- Version.
+-- sport
+-- Source port.
 -- .TP
--- hl
--- Header length.
+-- dport
+-- Destination port.
 -- .TP
--- tos
--- Type of service.
--- .TP
--- len
--- Total length.
--- .TP
--- id
--- Identification.
--- .TP
--- off
--- Fragment offset field.
--- .TP
--- ttl
--- Time to live.
--- .TP
--- p
--- Protocol.
+-- ulen
+-- UDP length (as described in the UDP header).
 -- .TP
 -- sum
 -- Checksum.
 -- .TP
--- src
--- Source address.
--- .TP
--- dst
--- Destination address.
--- .TP
 -- payload
 -- A pointer to the payload.
 -- .TP
--- plen
+-- len
 -- The length of the payload.
--- .TP
--- pad_len
--- The length of padding found, if any.
 module(...,package.seeall)
 
-require("dnsjit.core.object.ip_h")
+require("dnsjit.core.object.payload_h")
 local ffi = require("ffi")
 
-local t_name = "core_object_ip_t"
-local core_object_ip_t
-local Ip = {}
+local t_name = "core_object_payload_t"
+local core_object_payload_t
+local Payload = {}
 
 -- Return the textual type of the object.
-function Ip:type()
-    return "ip"
+function Payload:type()
+    return "payload"
 end
 
 -- Return the previous object.
-function Ip:prev()
+function Payload:prev()
     return self.obj_prev
 end
 
--- Return the IP source as a string.
-function Ip:source()
-    return self.src[0] ..".".. self.src[1] ..".".. self.src[2] ..".".. self.src[3]
-end
-
--- Return the IP destination as a string.
-function Ip:destination()
-    return self.dst[0] ..".".. self.dst[1] ..".".. self.dst[2] ..".".. self.dst[3]
-end
-
-core_object_ip_t = ffi.metatype(t_name, { __index = Ip })
+core_object_payload_t = ffi.metatype(t_name, { __index = Payload })
 
 -- dnsjit.core.object (3),
 -- dnsjit.filter.layer (3)
-return Ip
+return Payload

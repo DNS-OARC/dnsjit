@@ -34,6 +34,7 @@
 //lua:require("dnsjit.core.object.icmp6_h")
 //lua:require("dnsjit.core.object.udp_h")
 //lua:require("dnsjit.core.object.tcp_h")
+//lua:require("dnsjit.core.object.payload_h")
 
 typedef struct filter_layer {
     core_log_t      _log;
@@ -58,6 +59,7 @@ typedef struct filter_layer {
     core_object_icmp6_t    icmp6;
     core_object_udp_t      udp;
     core_object_tcp_t      tcp;
+    core_object_payload_t  payload;
 } filter_layer_t;
 
 core_log_t* filter_layer_log();

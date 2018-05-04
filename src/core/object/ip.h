@@ -33,7 +33,6 @@
         CORE_OBJECT_INIT(CORE_OBJECT_IP, prev)                         \
         ,                                                              \
             0, 0, 0, 0, 0, 0, 0, 0, 0, { 0, 0, 0, 0 }, { 0, 0, 0, 0 }, \
-            0, 0, 0                                                    \
     }
 
 #endif

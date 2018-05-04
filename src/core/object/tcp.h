@@ -28,17 +28,12 @@
 
 #include "core/object/tcp.hh"
 
-#define CORE_OBJECT_TCP_INIT(prev)                              \
-    {                                                           \
-        CORE_OBJECT_INIT(CORE_OBJECT_TCP, prev)                 \
-        ,                                                       \
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0,                       \
-            { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   \
-              0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   \
-              0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   \
-              0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, \
-            0,                                                  \
-            0, 0                                                \
+#define CORE_OBJECT_TCP_INIT(prev)              \
+    {                                           \
+        CORE_OBJECT_INIT(CORE_OBJECT_TCP, prev) \
+        ,                                       \
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0,       \
+            { 0 }, 0                            \
     }
 
 #endif
