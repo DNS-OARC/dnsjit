@@ -104,13 +104,16 @@ const core_object_t* filter_coro_get(filter_coro_t* self)
 static int _receive(void* ctx, const core_object_t* obj)
 {
     filter_coro_t* self = (filter_coro_t*)ctx;
+    int            ret;
 
     if (!self || !obj) {
         return 1;
     }
 
     self->obj = obj;
-    lua_resume(self->T, 0);
+    if ((ret = lua_resume(self->T, 0)) && ret != LUA_YIELD) {
+        lfatal("%s", lua_tostring(self->T, -1));
+    }
     self->obj = 0;
 
     return 1;

@@ -50,6 +50,7 @@ require("dnsjit.core.object.icmp6_h")
 require("dnsjit.core.object.udp_h")
 require("dnsjit.core.object.tcp_h")
 require("dnsjit.core.object.packet_h")
+require("dnsjit.core.object.payload_h")
 require("dnsjit.core.object.dns_h")
 local ffi = require("ffi")
 local C = ffi.C
@@ -72,6 +73,7 @@ local Object = {
     CORE_OBJECT_UDP = 30,
     CORE_OBJECT_TCP = 31,
     CORE_OBJECT_PACKET = 32,
+    CORE_OBJECT_PAYLOAD = 33,
     CORE_OBJECT_DNS = 40
 }
 
@@ -90,6 +92,7 @@ _type[Object.CORE_OBJECT_ICMP6] = "icmp6"
 _type[Object.CORE_OBJECT_UDP] = "udp"
 _type[Object.CORE_OBJECT_TCP] = "tcp"
 _type[Object.CORE_OBJECT_PACKET] = "packet"
+_type[Object.CORE_OBJECT_PAYLOAD] = "payload"
 _type[Object.CORE_OBJECT_DNS] = "dns"
 
 _type[Object.CORE_OBJECT_NONE] = "none"
@@ -119,6 +122,7 @@ _cast[Object.CORE_OBJECT_ICMP6] = "core_object_icmp6_t*"
 _cast[Object.CORE_OBJECT_UDP] = "core_object_udp_t*"
 _cast[Object.CORE_OBJECT_TCP] = "core_object_tcp_t*"
 _cast[Object.CORE_OBJECT_PACKET] = "core_object_packet_t*"
+_cast[Object.CORE_OBJECT_PAYLOAD] = "core_object_payload_t*"
 _cast[Object.CORE_OBJECT_DNS] = "core_object_dns_t*"
 
 -- Cast the object to the underlining object module and return it.
@@ -142,5 +146,6 @@ core_object_t = ffi.metatype(t_name, { __index = Object })
 -- dnsjit.core.object.udp (3),
 -- dnsjit.core.object.tcp (3),
 -- dnsjit.core.object.packet (3),
+-- dnsjit.core.object.payload (3),
 -- dnsjit.core.object.dns (3)
 return Object

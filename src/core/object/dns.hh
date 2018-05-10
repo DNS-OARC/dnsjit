@@ -73,6 +73,7 @@ void core_object_dns_free(core_object_dns_t* self);
 int core_object_dns_parse_header(core_object_dns_t* self);
 int core_object_dns_parse(core_object_dns_t* self);
 
+int core_object_dns_rr_reset(core_object_dns_t* self);
 int core_object_dns_rr_next(core_object_dns_t* self);
 int core_object_dns_rr_ok(core_object_dns_t* self);
 const char* core_object_dns_rr_label(core_object_dns_t* self);

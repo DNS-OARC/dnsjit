@@ -39,6 +39,7 @@
 #define CORE_OBJECT_UDP 30
 #define CORE_OBJECT_TCP 31
 #define CORE_OBJECT_PACKET 32
+#define CORE_OBJECT_PAYLOAD 33
 /* DNS object(s) */
 #define CORE_OBJECT_DNS 40
 

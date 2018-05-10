@@ -20,7 +20,6 @@
 
 #include "core/log.h"
 #include "core/object.h"
-#include "core/object/packet.h"
 
 #ifndef __dnsjit_core_object_dns_h
 #define __dnsjit_core_object_dns_h

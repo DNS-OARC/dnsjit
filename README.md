@@ -94,13 +94,13 @@ Shebang-style:
 Following example display the DNS ID found in queries.
 
 ```lua
+require("dnsjit.core.objects")
 local input = require("dnsjit.input.pcapthread").new()
-local output = require("dnsjit.filter.lua").new()
+local output = require("dnsjit.filter.coro").new()
 
 output:func(function(filter, object)
-    local packet = object:cast()
-    local dns = require("dnsjit.core.object.dns").new(packet)
-    if dns:parse() == 0 then
+    local dns = require("dnsjit.core.object.dns").new(object)
+    if dns and dns:parse() == 0 then
         print(dns.id)
     end
 end)

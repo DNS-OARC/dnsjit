@@ -30,7 +30,4 @@ typedef struct core_object_udp {
     uint16_t dport;
     uint16_t ulen;
     uint16_t sum;
-
-    const uint8_t* payload;
-    size_t         len;
 } core_object_udp_t;

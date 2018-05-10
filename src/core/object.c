@@ -52,18 +52,18 @@ core_object_t* core_object_copy(const core_object_t* obj)
 
         return (core_object_t*)copy;
     }
-    case CORE_OBJECT_UDP: {
-        core_object_udp_t* udp  = (core_object_udp_t*)obj;
-        core_object_udp_t* copy = malloc(sizeof(core_object_udp_t) + udp->len);
-
-        memcpy(copy, udp, sizeof(core_object_udp_t));
-        copy->obj_prev = 0;
-
-        memcpy((void*)copy + sizeof(core_object_udp_t), udp->payload, udp->len);
-        copy->payload = (unsigned char*)copy + sizeof(core_object_udp_t);
-
-        return (core_object_t*)copy;
-    }
+    // case CORE_OBJECT_UDP: {
+    //     core_object_udp_t* udp  = (core_object_udp_t*)obj;
+    //     core_object_udp_t* copy = malloc(sizeof(core_object_udp_t) + udp->len);
+    //
+    //     memcpy(copy, udp, sizeof(core_object_udp_t));
+    //     copy->obj_prev = 0;
+    //
+    //     memcpy((void*)copy + sizeof(core_object_udp_t), udp->payload, udp->len);
+    //     copy->payload = (unsigned char*)copy + sizeof(core_object_udp_t);
+    //
+    //     return (core_object_t*)copy;
+    // }
     default:
         break;
     }

@@ -22,18 +22,20 @@
 
 #include "output/udpcli.h"
 #include "core/object/dns.h"
-#include "core/object/udp.h"
-#include "core/object/tcp.h"
+#include "core/object/payload.h"
 
 #include <netdb.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <string.h>
+#include <errno.h>
 
 static core_log_t      _log      = LOG_T_INIT("output.udpcli");
 static output_udpcli_t _defaults = {
     LOG_T_INIT_OBJ("output.udpcli"),
-    0, 0, -1
+    0, 0, -1,
+    { 0 }, 0,
+    { 0 }, CORE_OBJECT_PACKET_INIT(0)
 };
 
 core_log_t* output_udpcli_log()
@@ -47,7 +49,8 @@ int output_udpcli_init(output_udpcli_t* self)
         return 1;
     }
 
-    *self = _defaults;
+    *self             = _defaults;
+    self->pkt.payload = self->recvbuf;
 
     ldebug("init");
 
@@ -169,13 +172,9 @@ static int _receive(void* ctx, const core_object_t* obj)
         case CORE_OBJECT_DNS:
             obj = obj->obj_prev;
             continue;
-        case CORE_OBJECT_UDP:
-            payload = ((core_object_udp_t*)obj)->payload;
-            len     = ((core_object_udp_t*)obj)->len;
-            break;
-        case CORE_OBJECT_TCP:
-            payload = ((core_object_tcp_t*)obj)->payload;
-            len     = ((core_object_tcp_t*)obj)->len;
+        case CORE_OBJECT_PAYLOAD:
+            payload = ((core_object_payload_t*)obj)->payload;
+            len     = ((core_object_payload_t*)obj)->len;
             break;
         default:
             return 1;
@@ -195,6 +194,15 @@ static int _receive(void* ctx, const core_object_t* obj)
                     continue;
                 return 0;
             }
+            switch (errno) {
+            case EAGAIN:
+#if EAGAIN != EWOULDBLOCK
+            case EWOULDBLOCK:
+#endif
+                continue;
+            default:
+                break;
+            }
             self->errs++;
             break;
         }
@@ -207,4 +215,44 @@ static int _receive(void* ctx, const core_object_t* obj)
 core_receiver_t output_udpcli_receiver()
 {
     return _receive;
+}
+
+static const core_object_t* _produce(void* ctx)
+{
+    output_udpcli_t* self = (output_udpcli_t*)ctx;
+    ssize_t          n;
+
+    if (!self || self->fd < 0) {
+        return 0;
+    }
+
+    for (;;) {
+        n = recvfrom(self->fd, self->recvbuf, sizeof(self->recvbuf), 0, 0, 0);
+        if (n > -1) {
+            break;
+        }
+        switch (errno) {
+        case EAGAIN:
+#if EAGAIN != EWOULDBLOCK
+        case EWOULDBLOCK:
+#endif
+            n = 0;
+            break;
+        default:
+            break;
+        }
+        break;
+    }
+
+    if (n < 1) {
+        return 0;
+    }
+
+    self->pkt.len = n;
+    return (core_object_t*)&self->pkt;
+}
+
+core_producer_t output_udpcli_producer()
+{
+    return _produce;
 }

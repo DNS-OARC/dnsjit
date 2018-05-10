@@ -160,7 +160,7 @@ local t_name = "core_object_dns_t"
 local core_object_dns_t
 local Dns = {}
 
--- Create a new DNS object ontop of a packet or udp object.
+-- Create a new DNS object ontop of a packet or payload object.
 function Dns.new(obj)
     local self = C.core_object_dns_new(obj)
     if self ~= nil then
@@ -205,6 +205,11 @@ function Dns:dst()
     return ffi.string(C.core_object_dns_dst(self))
 end
 
+-- Reset the walking of resource record(s), returns 0 on success.
+function Dns:rr_reset()
+    return C.core_object_dns_rr_reset(self)
+end
+
 -- Start walking the resource record(s) (RR) found or continue with the next.
 -- Returns 0 on success, < 0 on end of RRs and > 0 on error.
 function Dns:rr_next()
@@ -241,10 +246,83 @@ function Dns:rr_ttl()
     return C.core_object_dns_rr_ttl(self)
 end
 
+-- Print the content of this DNS message if previously parsed, returns 0 on
+-- success.
+function Dns:print()
+    if self:rr_reset() ~= 0 then
+        return
+    end
+
+    local flags = {}
+    if self.have_aa and self.aa == 1 then
+        table.insert(flags, "AA")
+    end
+    if self.have_tc and self.tc == 1 then
+        table.insert(flags, "TC")
+    end
+    if self.have_rd and self.rd == 1 then
+        table.insert(flags, "RD")
+    end
+    if self.have_ra and self.ra == 1 then
+        table.insert(flags, "RA")
+    end
+    if self.have_z and self.z == 1 then
+        table.insert(flags, "Z")
+    end
+    if self.have_ad and self.ad == 1 then
+        table.insert(flags, "AD")
+    end
+    if self.have_cd and self.cd == 1 then
+        table.insert(flags, "CD")
+    end
+
+    print("id:", self.id)
+    print("", "qr:", self.qr)
+    print("", "opcode:", self.opcode)
+    print("", "flags:", table.concat(flags, " "))
+    print("", "rcode:", self.opcode)
+    print("", "qdcount:", self.qdcount)
+    print("", "ancount:", self.ancount)
+    print("", "nscount:", self.nscount)
+    print("", "arcount:", self.arcount)
+    local n = self.questions
+    print("", "questions:")
+    while n > 0 and self:rr_next() == 0 do
+        if self:rr_ok() == 1 then
+            print("", "", self:rr_class(), self:rr_type(), self:rr_label())
+        end
+        n = n - 1
+    end
+    n = self.answers
+    print("", "answers:")
+    while n > 0 and self:rr_next() == 0 do
+        if self:rr_ok() == 1 then
+            print("", "", self:rr_class(), self:rr_type(), self:rr_ttl(), self:rr_label())
+        end
+        n = n - 1
+    end
+    n = self.authorities
+    print("", "authorities:")
+    while n > 0 and self:rr_next() == 0 do
+        if self:rr_ok() == 1 then
+            print("", "", self:rr_class(), self:rr_type(), self:rr_ttl(), self:rr_label())
+        end
+        n = n - 1
+    end
+    n = self.additionals
+    print("", "additionals:")
+    while n > 0 and self:rr_next() == 0 do
+        if self:rr_ok() == 1 then
+            print("", "", self:rr_class(), self:rr_type(), self:rr_ttl(), self:rr_label())
+        end
+        n = n - 1
+    end
+end
+
 core_object_dns_t = ffi.metatype(t_name, { __index = Dns })
 
 -- dnsjit.core.object (3),
 -- dnsjit.core.object.packet (3),
--- dnsjit.core.object.udp (3),
+-- dnsjit.core.object.payload (3),
 -- dnsjit.core.tracking (3)
 return Dns

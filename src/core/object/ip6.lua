@@ -85,6 +85,88 @@ function Ip6:prev()
     return self.obj_prev
 end
 
+function _pretty(ip)
+    local src = {}
+
+    local n, nn
+    nn = 1
+    for n = 0, 15, 2 do
+        if ip[n] ~= 0 then
+            src[nn] = string.format("%x%02x", ip[n], ip[n + 1])
+        elseif ip[n + 1] ~= 0 then
+            src[nn] = string.format("%x", ip[n + 1])
+        else
+            src[nn] = "0"
+        end
+        nn = nn + 1
+    end
+
+    local best_n, best_at, at = 0, 0, 0
+    n = 0
+    for nn = 1, 8 do
+        if src[nn] == "0" then
+            if n == 0 then
+                at = nn
+            end
+            n = n + 1
+        else
+            if n > 0 then
+                if n > best_n then
+                    best_n = n
+                    best_at = at
+                end
+                n = 0
+            end
+        end
+    end
+    if n > 0 then
+        if n > best_n then
+            best_n = n
+            best_at = at
+        end
+    end
+    if best_n > 1 then
+        for n = 2, best_n do
+            table.remove(src, best_at)
+        end
+        if best_at == 1 or best_at + best_n > 8 then
+            src[best_at] = ":"
+        else
+            src[best_at] = ""
+        end
+    end
+
+    return table.concat(src,":")
+end
+
+-- Return the IP source as a string. If
+-- .I pretty
+-- is true then return a easier to read IPv6 address.
+function Ip6:source(pretty)
+    if pretty == true then
+        return _pretty(self.src)
+    end
+    return string.format("%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x",
+        self.src[0], self.src[1], self.src[2], self.src[3],
+        self.src[4], self.src[5], self.src[6], self.src[7],
+        self.src[8], self.src[9], self.src[10], self.src[11],
+        self.src[12], self.src[13], self.src[14], self.src[15])
+end
+
+-- Return the IP destination as a string. If
+-- .I pretty
+-- is true then return a easier to read IPv6 address.
+function Ip6:destination(pretty)
+    if pretty == true then
+        return _pretty(self.dst)
+    end
+    return string.format("%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x",
+        self.dst[0], self.dst[1], self.dst[2], self.dst[3],
+        self.dst[4], self.dst[5], self.dst[6], self.dst[7],
+        self.dst[8], self.dst[9], self.dst[10], self.dst[11],
+        self.dst[12], self.dst[13], self.dst[14], self.dst[15])
+end
+
 core_object_ip6_t = ffi.metatype(t_name, { __index = Ip6 })
 
 -- dnsjit.core.object (3),

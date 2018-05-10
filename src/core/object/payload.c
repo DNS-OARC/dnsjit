@@ -18,22 +18,6 @@
  * along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-//lua:require("dnsjit.core.object_h")
+#include "config.h"
 
-typedef struct core_object_ip {
-    unsigned short        obj_type;
-    const core_object_t*  obj_prev;
-    core_object_refcall_t obj_ref;
-    void*                 obj_refctx;
-
-    unsigned int v : 4;
-    unsigned int hl : 4;
-    uint8_t      tos;
-    uint16_t     len;
-    uint16_t     id;
-    uint16_t     off;
-    uint8_t      ttl;
-    uint8_t      p;
-    uint16_t     sum;
-    uint8_t      src[4], dst[4];
-} core_object_ip_t;
+#include "core/object/payload.h"

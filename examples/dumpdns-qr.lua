@@ -6,12 +6,11 @@ if pcap == nil then
     return
 end
 
-require("dnsjit.core.object")
-require("dnsjit.core.object.packet")
+require("dnsjit.core.objects")
 
-c = require("dnsjit.filter.coro").new()
-queries = {}
-responses = {}
+local c = require("dnsjit.filter.coro").new()
+local queries = {}
+local responses = {}
 c:func(function(c,o)
     local dns = require("dnsjit.core.object.dns").new(o)
     local pkt = o:cast()
@@ -41,12 +40,13 @@ c:func(function(c,o)
     end
 end)
 
-i = require("dnsjit.input.pcapthread").new()
+local i = require("dnsjit.input.pcapthread").new()
 i:receiver(c)
 i:open_offline(pcap)
 i:run()
 
 print("src", "dst", "id", "rcode", "qname", "qtype")
+local q, r
 for _, q in pairs(queries) do
     for _, r in pairs(responses) do
         if q.id == r.id and q.sport == r.dport and q.dport == r.sport and q.src == r.dst and q.dst == r.src then

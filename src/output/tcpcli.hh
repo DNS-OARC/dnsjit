@@ -20,11 +20,19 @@
 
 //lua:require("dnsjit.core.log")
 //lua:require("dnsjit.core.receiver_h")
+//lua:require("dnsjit.core.producer_h")
+//lua:require("dnsjit.core.object.packet_h")
 
 typedef struct output_tcpcli {
     core_log_t _log;
     size_t     pkts, errs;
     int        fd;
+
+    uint8_t              recvbuf[4 * 1024];
+    core_object_packet_t pkt;
+    uint16_t             dnslen;
+    unsigned short       have_dnslen;
+    size_t               recv;
 } output_tcpcli_t;
 
 core_log_t* output_tcpcli_log();
@@ -36,3 +44,4 @@ int output_tcpcli_nonblocking(output_tcpcli_t* self);
 int output_tcpcli_set_nonblocking(output_tcpcli_t* self, int nonblocking);
 
 core_receiver_t output_tcpcli_receiver();
+core_producer_t output_tcpcli_producer();

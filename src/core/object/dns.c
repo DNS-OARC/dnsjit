@@ -21,7 +21,8 @@
 #include "config.h"
 
 #include "core/object/dns.h"
-#include "core/object/udp.h"
+#include "core/object/packet.h"
+#include "core/object/payload.h"
 #include "omg-dns/omg_dns.h"
 
 #include <string.h>
@@ -96,7 +97,7 @@ core_object_dns_t* core_object_dns_new(const core_object_t* obj)
 
     switch (obj->obj_type) {
     case CORE_OBJECT_PACKET:
-    case CORE_OBJECT_UDP:
+    case CORE_OBJECT_PAYLOAD:
         break;
     default:
         return 0;
@@ -139,9 +140,9 @@ int core_object_dns_parse_header(core_object_dns_t* self)
         len     = pkt->len;
         break;
     }
-    case CORE_OBJECT_UDP:
-        payload = ((const core_object_udp_t*)self->obj_prev)->payload;
-        len     = ((const core_object_udp_t*)self->obj_prev)->len;
+    case CORE_OBJECT_PAYLOAD:
+        payload = ((const core_object_payload_t*)self->obj_prev)->payload;
+        len     = ((const core_object_payload_t*)self->obj_prev)->len;
         break;
     default:
         return 1;
@@ -206,9 +207,9 @@ int core_object_dns_parse(core_object_dns_t* self)
         len     = pkt->len;
         break;
     }
-    case CORE_OBJECT_UDP:
-        payload = ((const core_object_udp_t*)self->obj_prev)->payload;
-        len     = ((const core_object_udp_t*)self->obj_prev)->len;
+    case CORE_OBJECT_PAYLOAD:
+        payload = ((const core_object_payload_t*)self->obj_prev)->payload;
+        len     = ((const core_object_payload_t*)self->obj_prev)->len;
         break;
     default:
         return 1;
@@ -275,6 +276,18 @@ int core_object_dns_parse(core_object_dns_t* self)
     return 0;
 }
 
+int core_object_dns_rr_reset(core_object_dns_t* self)
+{
+    if (!_self || !_self->parsed) {
+        return 1;
+    }
+
+    _self->parsed->at_rr        = -1;
+    _self->parsed->label_buf[0] = 0;
+
+    return 0;
+}
+
 int core_object_dns_rr_next(core_object_dns_t* self)
 {
     if (!_self || !_self->parsed) {
@@ -320,8 +333,8 @@ const char* core_object_dns_rr_label(core_object_dns_t* self)
         payload = pkt->payload;
         break;
     }
-    case CORE_OBJECT_UDP:
-        payload = ((const core_object_udp_t*)self->obj_prev)->payload;
+    case CORE_OBJECT_PAYLOAD:
+        payload = ((const core_object_payload_t*)self->obj_prev)->payload;
         break;
     default:
         return 0;
