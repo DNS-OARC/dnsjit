@@ -61,6 +61,8 @@ AC_PATH_PROGS([LUAJIT], [luajit luajit51])
 if test "x$ac_cv_path_LUAJIT" = "x"; then
   AC_MSG_ERROR([luajit not found])
 fi
+AC_CHECK_HEADERS([lmdb.h])
+AC_CHECK_LIB([lmdb], [mdb_env_create])
 
 # Checks for sizes
 AC_CHECK_SIZEOF([void*])
