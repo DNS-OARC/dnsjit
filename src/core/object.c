@@ -44,6 +44,10 @@ core_object_t* core_object_copy(const core_object_t* obj)
         core_object_pcap_t* pcap = (core_object_pcap_t*)obj;
         core_object_pcap_t* copy = malloc(sizeof(core_object_pcap_t) + pcap->caplen);
 
+        if (!copy) {
+            return 0;
+        }
+
         memcpy(copy, pcap, sizeof(core_object_pcap_t));
         copy->obj_prev = 0;
 
