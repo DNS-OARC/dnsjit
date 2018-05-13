@@ -143,7 +143,7 @@ int filter_thread_init(filter_thread_t* self, size_t queue_size)
     for (n = 0; n < self->works; n++) {
         self->work[n] = defwork;
     }
-    self->work[n].writers = 1;
+    self->work[0].writers = 1;
 
     return 0;
 }

@@ -92,6 +92,7 @@ int input_mmpcap_init(input_mmpcap_t* self)
     struct _prod_ctx* ctx = malloc(sizeof(struct _prod_ctx));
 
     if (!self || !ctx) {
+        free(ctx);
         return 1;
     }
 

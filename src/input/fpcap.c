@@ -26,6 +26,8 @@
 #include <stdio.h>
 #include <pthread.h>
 
+#define MAX_SNAPLEN 0x1ffff
+
 static core_log_t    _log      = LOG_T_INIT("input.fpcap");
 static input_fpcap_t _defaults = {
     LOG_T_INIT_OBJ("input.fpcap"),
@@ -88,6 +90,7 @@ int input_fpcap_init(input_fpcap_t* self)
     struct _prod_ctx* ctx = malloc(sizeof(struct _prod_ctx));
 
     if (!self || !ctx) {
+        free(ctx);
         return 1;
     }
 
@@ -172,6 +175,11 @@ int input_fpcap_open(input_fpcap_t* self, const char* file)
     default:
         fclose(self->file);
         self->file = 0;
+        return 2;
+    }
+
+    if (self->snaplen > MAX_SNAPLEN) {
+        lcritical("too large snaplen (%u)", self->snaplen);
         return 2;
     }
 
@@ -305,6 +313,9 @@ static int _run_shared(input_fpcap_t* self)
             hdr.ts_usec  = _flip32(hdr.ts_usec);
             hdr.incl_len = _flip32(hdr.incl_len);
             hdr.orig_len = _flip32(hdr.orig_len);
+        }
+        if (hdr.incl_len > self->snaplen) {
+            return 2;
         }
         if (hdr.incl_len > buf_left || n == self->num_shared_pkts) {
             if (m) {
@@ -457,6 +468,9 @@ static const core_object_t* _produce_shared(void* self_ctx)
             ctx->hdr.ts_usec  = _flip32(ctx->hdr.ts_usec);
             ctx->hdr.incl_len = _flip32(ctx->hdr.incl_len);
             ctx->hdr.orig_len = _flip32(ctx->hdr.orig_len);
+        }
+        if (ctx->hdr.incl_len > self->snaplen) {
+            return 0;
         }
         if (ctx->hdr.incl_len > ctx->buf_left || ctx->n == self->num_shared_pkts) {
             ctx->wait    = 1;
