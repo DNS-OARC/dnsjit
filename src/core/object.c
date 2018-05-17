@@ -74,3 +74,12 @@ core_object_t* core_object_copy(const core_object_t* obj)
 
     return 0;
 }
+
+void core_object_free(core_object_t* obj)
+{
+    if (obj->obj_ref) {
+        obj->obj_ref(obj, CORE_OBJECT_DECREF);
+    } else {
+        free(obj);
+    }
+}

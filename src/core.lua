@@ -33,6 +33,7 @@
 -- .IR script .
 module(...,package.seeall)
 
+-- dnsjit.core.channel (3),
 -- dnsjit.core.compat (3),
 -- dnsjit.core.log (3),
 -- dnsjit.core.mutex (3),
@@ -40,6 +41,7 @@ module(...,package.seeall)
 -- dnsjit.core.objects (3),
 -- dnsjit.core.producer (3),
 -- dnsjit.core.receiver (3),
+-- dnsjit.core.thread (3),
 -- dnsjit.core.timespec (3),
 -- dnsjit.core.tracking (3)
 return

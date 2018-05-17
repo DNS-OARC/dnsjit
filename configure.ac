@@ -63,6 +63,8 @@ if test "x$ac_cv_path_LUAJIT" = "x"; then
 fi
 AC_CHECK_HEADERS([lmdb.h])
 AC_CHECK_LIB([lmdb], [mdb_env_create])
+AC_CHECK_HEADERS([ck_ring.h])
+AC_CHECK_LIB([ck], [ck_array_init])
 
 # Checks for sizes
 AC_CHECK_SIZEOF([void*])

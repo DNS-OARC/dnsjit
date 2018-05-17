@@ -1,4 +1,6 @@
 #!/usr/bin/env dnsjit
+local ffi = require("ffi")
+local object = require("dnsjit.core.objects")
 local clock = require("dnsjit.lib.clock")
 local getopt = require("dnsjit.lib.getopt").new({
     { "t", "thread", false, "Test also with dnsjit.filter.thread", "?" },
@@ -34,6 +36,31 @@ for run = 1, runs do
     i:receiver(o)
     local start_sec, start_nsec = clock:monotonic()
     i:run(num)
+    local end_sec, end_nsec = clock:monotonic()
+
+    local runtime = 0
+    if end_sec > start_sec then
+        runtime = ((end_sec - start_sec) - 1) + ((1000000000 - start_nsec + end_nsec)/1000000000)
+    elseif end_sec == start_sec and end_nsec > start_nsec then
+        runtime = (end_nsec - start_nsec) / 1000000000
+    end
+
+    print(run, "runtime", runtime, num/runtime, "/sec", o:packets())
+end
+
+print("lua -> null:receive()")
+local run
+for run = 1, runs do
+    local o = require("dnsjit.output.null").new()
+    local recv, rctx = o:receive()
+    local pkt = ffi.new("core_object_packet_t")
+    pkt.obj_type = object.CORE_OBJECT_PACKET
+    local obj = ffi.cast("core_object_t*", pkt)
+
+    local start_sec, start_nsec = clock:monotonic()
+    for n = 1, num do
+        recv(rctx, obj)
+    end
     local end_sec, end_nsec = clock:monotonic()
 
     local runtime = 0
@@ -316,6 +343,28 @@ for run = 1, runs do
     print(run, "runtime", runtime, num/runtime, "/sec", o:packets())
 end
 
+print("zero:produce() <- lua")
+local run
+for run = 1, runs do
+    local i = require("dnsjit.input.zero").new()
+    local prod, pctx = i:produce()
+
+    local start_sec, start_nsec = clock:monotonic()
+    for n = 1, num do
+        prod(pctx)
+    end
+    local end_sec, end_nsec = clock:monotonic()
+
+    local runtime = 0
+    if end_sec > start_sec then
+        runtime = ((end_sec - start_sec) - 1) + ((1000000000 - start_nsec + end_nsec)/1000000000)
+    elseif end_sec == start_sec and end_nsec > start_nsec then
+        runtime = (end_nsec - start_nsec) / 1000000000
+    end
+
+    print(run, "runtime", runtime, num/runtime, "/sec", num)
+end
+
 print("zero:produce() <- lua -> null:receive()")
 local run
 for run = 1, runs do
@@ -326,7 +375,7 @@ for run = 1, runs do
 
     local start_sec, start_nsec = clock:monotonic()
     for n = 1, num do
-       recv(rctx, prod(pctx))
+        recv(rctx, prod(pctx))
     end
     local end_sec, end_nsec = clock:monotonic()
 

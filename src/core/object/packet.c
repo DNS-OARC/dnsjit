@@ -26,7 +26,7 @@
 #include <arpa/inet.h>
 #include <sys/socket.h>
 
-char* _ntop(core_object_packet_t* self, const void* addr)
+static char* _ntop(core_object_packet_t* self, const void* addr)
 {
     char* buf;
 

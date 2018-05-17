@@ -36,19 +36,21 @@ architectures because of LuaJIT.
 
 ## Dependencies
 
-- libluajit 2+
-- libpcap
+- [libluajit](http://luajit.org/) 2.0+
+- [libpcap](http://www.tcpdump.org/)
 - libev
-- luajit (for building)
+- [liblmdb](https://github.com/LMDB/lmdb)
+- [libck](https://github.com/concurrencykit/ck)
+- [luajit](http://luajit.org/) (for building)
 - automake/autoconf/libtool/pkg-config (for building)
 
-Debian/Ubuntu: `apt-get install libluajit-5.1-dev libpcap-dev libev-dev luajit`
+Debian/Ubuntu: `apt-get install libluajit-5.1-dev libpcap-dev libev-dev luajit liblmdb-dev libck-dev`
 
-CentOS: `yum install luajit-devel libpcap-devel libev-devel`
+CentOS: `yum install luajit-devel libpcap-devel libev-devel lmdb-devel ck-devel`
 
-FreeBSD: `pkg install luajit libpcap libev`
+FreeBSD: `pkg install luajit libpcap libev lmdb` + manual install of libck
 
-OpenBSD: `pkg_add luajit libev` + manual install of libpcap
+OpenBSD: `pkg_add luajit libev` + manual install of libpcap, liblmdb and libck
 
 ## Build
 

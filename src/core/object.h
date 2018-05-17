@@ -47,12 +47,4 @@
 
 #define CORE_OBJECT_INIT(type, prev) type, (core_object_t*)prev, 0, 0
 
-/* TODO: document */
-#define core_object_free(obj)                  \
-    if (obj->obj_ref) {                        \
-        obj->obj_ref(obj, CORE_OBJECT_DECREF); \
-    } else {                                   \
-        free(obj);                             \
-    }
-
 #endif
