@@ -26,7 +26,7 @@
 #include <stdio.h>
 #include <pthread.h>
 
-#define MAX_SNAPLEN 0x1ffff
+#define MAX_SNAPLEN 0x40000
 
 static core_log_t    _log      = LOG_T_INIT("input.fpcap");
 static input_fpcap_t _defaults = {

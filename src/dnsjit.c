@@ -20,6 +20,7 @@
 
 #include "config.h"
 
+#include "globals.h"
 #include "core/log.h"
 
 #include <lua.h>
@@ -30,8 +31,6 @@
 #include <signal.h>
 #include <string.h>
 #include <stdio.h>
-
-void dnsjit_globals(lua_State* L);
 
 static void* _sighthr(void* arg)
 {

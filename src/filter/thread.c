@@ -35,7 +35,7 @@ core_log_t* filter_thread_log()
     return &_log;
 }
 
-void* _thread_writers(void* user)
+static void* _thread_writers(void* user)
 {
     filter_thread_recv_t* recv = (filter_thread_recv_t*)user;
     filter_thread_t*      self = (filter_thread_t*)recv->self;
@@ -83,7 +83,7 @@ void* _thread_writers(void* user)
     return 0;
 }
 
-void* _thread(void* user)
+static void* _thread(void* user)
 {
     filter_thread_recv_t* recv = (filter_thread_recv_t*)user;
     filter_thread_t*      self = (filter_thread_t*)recv->self;

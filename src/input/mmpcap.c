@@ -116,7 +116,7 @@ int input_mmpcap_destroy(input_mmpcap_t* self)
     if (self->buf) {
         munmap(self->buf, self->len);
     }
-    if (self->fd) {
+    if (self->fd > -1) {
         close(self->fd);
     }
     free(self->shared_pkts);
@@ -147,7 +147,7 @@ int input_mmpcap_open(input_mmpcap_t* self, const char* file)
         munmap(self->buf, self->len);
         self->buf = 0;
     }
-    if (self->fd) {
+    if (self->fd > -1) {
         close(self->fd);
     }
     free(self->shared_pkts);

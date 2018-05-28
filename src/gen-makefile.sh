@@ -38,7 +38,7 @@ dnsjit_SOURCES = dnsjit.c globals.c \
   omg-dns/omg_dns.c \
   pcap-thread/pcap_thread.c \
   sllq/sllq.c
-dist_dnsjit_SOURCES = core.lua lib.lua input.lua filter.lua output.lua \
+dist_dnsjit_SOURCES = core.lua lib.lua input.lua filter.lua globals.h output.lua \
   omg-dns/omg_dns.h \
   pcap-thread/pcap_thread.h \
   sllq/sllq.h

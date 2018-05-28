@@ -20,6 +20,7 @@
 
 #include "config.h"
 
+#include "globals.h"
 #include "filter/coro.h"
 
 #include <lua.h>

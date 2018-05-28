@@ -130,6 +130,11 @@ function Object:cast()
     return ffi.cast(_cast[self.obj_type], self)
 end
 
+-- TODO
+function Object:free()
+    C.core_object_free(self)
+end
+
 core_object_t = ffi.metatype(t_name, { __index = Object })
 
 -- dnsjit.core.object.pcap (3),

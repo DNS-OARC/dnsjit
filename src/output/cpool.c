@@ -236,7 +236,7 @@ int output_cpool_set_dry_run(output_cpool_t* self, int dry_run)
     return 0;
 }
 
-void _client_read(void* vp, const client_t* client)
+static void _client_read(void* vp, const client_t* client)
 {
     output_cpool_t* self = (output_cpool_t*)vp;
 
