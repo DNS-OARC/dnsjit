@@ -29,6 +29,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <errno.h>
+#include <string.h>
 
 static core_log_t        _log      = LOG_T_INIT("output.respdiff");
 static output_respdiff_t _defaults = {
@@ -64,7 +65,7 @@ int output_respdiff_init(output_respdiff_t* self, const char* path)
     }
     ldebug("mdb_env_create");
 
-    if (mdb_env_set_maxdbs((MDB_env*)self->env, 2)) {
+    if (mdb_env_set_maxdbs((MDB_env*)self->env, 3)) {
         lwarning("mdb_env_set_maxdbs failed");
         return 1;
     }
@@ -90,8 +91,15 @@ int output_respdiff_init(output_respdiff_t* self, const char* path)
     ldebug("mdb_dbi_open");
 
     if (!(self->rdb = calloc(1, sizeof(MDB_dbi)))
-        || mdb_dbi_open((MDB_txn*)self->txn, "dnsjit", MDB_CREATE, (MDB_dbi*)self->rdb)) {
+        || mdb_dbi_open((MDB_txn*)self->txn, "answers", MDB_CREATE, (MDB_dbi*)self->rdb)) {
         lwarning("mdb_dbi_open failed for responses");
+        return 1;
+    }
+    ldebug("mdb_dbi_open");
+
+    if (!(self->meta = calloc(1, sizeof(MDB_dbi)))
+        || mdb_dbi_open((MDB_txn*)self->txn, "meta", MDB_CREATE, (MDB_dbi*)self->meta)) {
+        lwarning("mdb_dbi_open failed for meta");
         return 1;
     }
     ldebug("mdb_dbi_open");
@@ -116,15 +124,86 @@ int output_respdiff_destroy(output_respdiff_t* self)
     }
     free(self->qdb);
     free(self->rdb);
+    free(self->meta);
 #endif
 
     return 0;
 }
 
-int output_respdiff_commit(output_respdiff_t* self)
+#ifdef HAVE_LMDB_H
+static const char* _meta_version     = "version";
+static const char* _meta_version_val = "2018-05-21";
+static const char* _meta_servers     = "servers";
+static const char* _meta_name0       = "name0";
+static const char* _meta_name1       = "name1";
+static const char* _meta_start_time  = "start_time";
+static const char* _meta_end_time    = "end_time";
+#endif
+
+int output_respdiff_commit(output_respdiff_t* self, const char* origname, const char* recvname, uint64_t start_time, uint64_t end_time)
 {
 #ifdef HAVE_LMDB_H
-    if (!self) {
+    MDB_val  k, v;
+    uint32_t i;
+
+    if (!self || !origname || !recvname) {
+        return 1;
+    }
+
+    k.mv_size = strlen(_meta_version);
+    k.mv_data = (void*)_meta_version;
+    v.mv_size = strlen(_meta_version_val);
+    v.mv_data = (void*)_meta_version_val;
+    if (mdb_put((MDB_txn*)self->txn, (MDB_dbi) * ((MDB_dbi*)self->meta), &k, &v, 0)) {
+        lwarning("mdb_put meta.version failed");
+        return 1;
+    }
+
+    k.mv_size = strlen(_meta_servers);
+    k.mv_data = (void*)_meta_servers;
+    i         = 2;
+    v.mv_size = 4;
+    v.mv_data = (void*)&i;
+    if (mdb_put((MDB_txn*)self->txn, (MDB_dbi) * ((MDB_dbi*)self->meta), &k, &v, 0)) {
+        lwarning("mdb_put meta.servers failed");
+        return 1;
+    }
+
+    k.mv_size = strlen(_meta_name0);
+    k.mv_data = (void*)_meta_name0;
+    v.mv_size = strlen(origname);
+    v.mv_data = (void*)origname;
+    if (mdb_put((MDB_txn*)self->txn, (MDB_dbi) * ((MDB_dbi*)self->meta), &k, &v, 0)) {
+        lwarning("mdb_put meta.name0 failed");
+        return 1;
+    }
+
+    k.mv_size = strlen(_meta_name1);
+    k.mv_data = (void*)_meta_name1;
+    v.mv_size = strlen(recvname);
+    v.mv_data = (void*)recvname;
+    if (mdb_put((MDB_txn*)self->txn, (MDB_dbi) * ((MDB_dbi*)self->meta), &k, &v, 0)) {
+        lwarning("mdb_put meta.name1 failed");
+        return 1;
+    }
+
+    k.mv_size = strlen(_meta_start_time);
+    k.mv_data = (void*)_meta_start_time;
+    i         = start_time;
+    v.mv_size = 4;
+    v.mv_data = (void*)&i;
+    if (mdb_put((MDB_txn*)self->txn, (MDB_dbi) * ((MDB_dbi*)self->meta), &k, &v, 0)) {
+        lwarning("mdb_put meta.start_time failed");
+        return 1;
+    }
+
+    k.mv_size = strlen(_meta_end_time);
+    k.mv_data = (void*)_meta_end_time;
+    i         = end_time;
+    v.mv_size = 4;
+    v.mv_data = (void*)&i;
+    if (mdb_put((MDB_txn*)self->txn, (MDB_dbi) * ((MDB_dbi*)self->meta), &k, &v, 0)) {
+        lwarning("mdb_put meta.end_time failed");
         return 1;
     }
 
@@ -148,6 +227,9 @@ static int _receive(void* ctx, const core_object_t* obj)
     output_respdiff_t*           self = (output_respdiff_t*)ctx;
     const core_object_payload_t *query, *original, *response;
     MDB_val                      k, v;
+    uint8_t                      responses[132096];
+    uint32_t                     msec;
+    uint16_t                     dnslen;
 
     if (!self || !self->txn) {
         return 1;
@@ -170,6 +252,11 @@ static int _receive(void* ctx, const core_object_t* obj)
     ldebug("original %p %u", original->payload, original->len);
     ldebug("response %p %u", response->payload, response->len);
 
+    if (12 + original->len + response->len > sizeof(responses)) {
+        lcritical("mdb_put failed, not enough space");
+        return 1;
+    }
+
     self->count++;
 
     k.mv_size = sizeof(self->id);
@@ -178,23 +265,27 @@ static int _receive(void* ctx, const core_object_t* obj)
     v.mv_data = (void*)query->payload;
     if (mdb_put((MDB_txn*)self->txn, (MDB_dbi) * ((MDB_dbi*)self->qdb), &k, &v, 0)) {
         lwarning("mdb_put query failed");
+        return 1;
+    }
+
+    msec = 1; // TODO
+    memcpy(responses, &msec, 4);
+    dnslen = original->len;
+    memcpy(&responses[4], &dnslen, 2);
+    memcpy(&responses[6], original->payload, original->len);
+    memcpy(&responses[6 + original->len], &msec, 4);
+    dnslen = response->len;
+    memcpy(&responses[10 + original->len], &dnslen, 2);
+    memcpy(&responses[12 + original->len], response->payload, response->len);
+
+    v.mv_size = 12 + original->len + response->len;
+    v.mv_data = (void*)responses;
+    if (mdb_put((MDB_txn*)self->txn, (MDB_dbi) * ((MDB_dbi*)self->rdb), &k, &v, 0)) {
+        lwarning("mdb_put answers failed");
+        return 1;
     }
 
     self->id++;
-    v.mv_size = original->len;
-    v.mv_data = (void*)original->payload;
-    if (mdb_put((MDB_txn*)self->txn, (MDB_dbi) * ((MDB_dbi*)self->rdb), &k, &v, 0)) {
-        lwarning("mdb_put original failed");
-    }
-
-    self->id++;
-    v.mv_size = response->len;
-    v.mv_data = (void*)response->payload;
-    if (mdb_put((MDB_txn*)self->txn, (MDB_dbi) * ((MDB_dbi*)self->rdb), &k, &v, 0)) {
-        lwarning("mdb_put response failed");
-    }
-
-    self->id += (0x100 - 2);
 
     return 0;
 }

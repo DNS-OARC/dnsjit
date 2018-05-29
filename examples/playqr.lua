@@ -1,10 +1,13 @@
 #!/usr/bin/env dnsjit
 local ffi = require("ffi")
 local clock = require("dnsjit.lib.clock")
+local log = require("dnsjit.core.log")
 local getopt = require("dnsjit.lib.getopt").new({
     { "v", "verbose", 0, "Enable and increase verbosity for each time given", "?+" },
     { "m", "match", false, "Group query with response from the PCAP and match it against the received response", "?" },
-    { nil, "respdiff", "", "Use output.respdiff to write out query, original and received response to the specified LMDB path", "?" }
+    { nil, "respdiff", "", "Use output.respdiff to write out query, original and received response to the specified LMDB path", "?" },
+    { nil, "respdiff-origname", "", "The name of the server in respdiff.cfg for the original responses", "?" },
+    { nil, "respdiff-recvname", "", "The name of the server in respdiff.cfg for the received responses", "?" },
 })
 local pcap, host, port = unpack(getopt:parse())
 if getopt:val("help") then
@@ -329,7 +332,12 @@ local cliobject = ffi.cast("core_object_t*", clipayload)
 
 local respdiff, resprecv, respctx, query_payload, original_payload, response_payload, query_payload_obj
 if getopt:val("respdiff") > "" then
-    respdiff = require("dnsjit.output.respdiff").new(getopt:val("respdiff"))
+    if getopt:val("respdiff-origname") == "" or getopt:val("respdiff-recvname") == "" then
+        print("To use respdiff both server names for original (--respdiff-origname) and")
+        print("received responses (--respdiff-recvname) must be specified!")
+        os.exit(1)
+    end
+    respdiff = require("dnsjit.output.respdiff").new(getopt:val("respdiff"), getopt:val("respdiff-origname"), getopt:val("respdiff-recvname"))
     resprecv, respctx = respdiff:receive()
     query_payload, original_payload, response_payload = ffi.new("core_object_payload_t"), ffi.new("core_object_payload_t"), ffi.new("core_object_payload_t")
     query_payload.obj_type = object.CORE_OBJECT_PAYLOAD
@@ -467,6 +475,5 @@ while true do
 end
 local end_sec, end_nsec = clock:realtime()
 if respdiff then
-    respdiff:commit()
-    respdiff:report(start_sec, end_sec)
+    respdiff:commit(start_sec, end_sec)
 end
