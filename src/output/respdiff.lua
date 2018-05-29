@@ -36,11 +36,21 @@ local t_name = "output_respdiff_t"
 local output_respdiff_t = ffi.typeof(t_name)
 local Respdiff = {}
 
--- Create a new Respdiff output.
-function Respdiff.new(path)
+-- Create a new Respdiff output and created the LMDB database in the directory
+-- .IR path .
+-- The
+-- .I origname
+-- and
+-- .I recvname
+-- are used to populate the meta table, these names should be the same as
+-- what is configured in
+-- .IR respdiff.cfg .
+function Respdiff.new(path, origname, recvname)
     local self = {
         obj = output_respdiff_t(),
         path = path,
+        origname = origname,
+        recvname = recvname,
     }
     C.output_respdiff_init(self.obj, path)
     ffi.gc(self.obj, C.output_respdiff_destroy)
@@ -62,28 +72,15 @@ end
 
 -- Commit the LMDB transactions, can not store any more objects after this
 -- call.
--- Returns 0 on success.
-function Respdiff:commit()
-    return C.output_respdiff_commit(self.obj)
-end
-
--- Write out the JSON report that
--- .I respdiff
--- needs to continue processing.
 -- The given
 -- .I start_time
 -- and
 -- .I end_time
--- are used to fill the report.
-function Respdiff:report(start_time, end_time)
-    local report = io.open(self.path.."/report.json", "w+")
-    report:write(string.format([[{
-    "start_time": %d,
-    "end_time": %d,
-    "total_queries": %d,
-    "total_answers": %d
-}]], start_time, end_time, tonumber(self.obj.count), tonumber(self.obj.count)))
-    report:close()
+-- are used to fill the meta table.
+-- Returns 0 on success.
+function Respdiff:commit(start_time, end_time)
+    return C.output_respdiff_commit(self.obj, self.origname, self.recvname, start_time, end_time)
 end
 
+-- respdiff " https://gitlab.labs.nic.cz/knot/respdiff"
 return Respdiff

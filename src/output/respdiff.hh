@@ -23,7 +23,7 @@
 
 typedef struct output_respdiff {
     core_log_t _log;
-    void *     env, *txn, *qdb, *rdb;
+    void *     env, *txn, *qdb, *rdb, *meta;
     uint32_t   id;
     size_t     count;
 } output_respdiff_t;
@@ -32,6 +32,6 @@ core_log_t* output_respdiff_log();
 int output_respdiff_init(output_respdiff_t* self, const char* path);
 int output_respdiff_destroy(output_respdiff_t* self);
 
-int output_respdiff_commit(output_respdiff_t* self);
+int output_respdiff_commit(output_respdiff_t* self, const char* origname, const char* recvname, uint64_t start_time, uint64_t end_time);
 
 core_receiver_t output_respdiff_receiver();
