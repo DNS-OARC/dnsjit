@@ -23,8 +23,17 @@
 #include "core/channel.h"
 
 #ifdef HAVE_CK_RING_H
+#define __my_USE_CK 1
 #include <ck_ring.h>
 #include <ck_pr.h>
+#else
+#ifdef HAVE_CK_CK_RING_H
+#define __my_USE_CK 1
+#include <ck/ck_ring.h>
+#include <ck/ck_pr.h>
+#endif
+#endif
+#ifdef __my_USE_CK
 #include <sched.h>
 #endif
 
@@ -36,7 +45,7 @@ static core_channel_t _defaults = {
     0, 0,
     0, 0, 0
 };
-#ifndef HAVE_CK_RING_H
+#ifndef __my_USE_CK
 static core_channel_item_t _item_defaults = {
     0,
     PTHREAD_MUTEX_INITIALIZER,
@@ -60,7 +69,7 @@ int core_channel_init(core_channel_t* self, size_t size)
 
     ldebug("init");
 
-#ifdef HAVE_CK_RING_H
+#ifdef __my_USE_CK
     size = (size >> 2) << 2;
     if (!size) {
         return 1;
@@ -97,7 +106,7 @@ int core_channel_destroy(core_channel_t* self)
 
     ldebug("destroy");
 
-#ifdef HAVE_CK_RING_H
+#ifdef __my_USE_CK
     free(self->ring);
     free(self->ring_buf);
 #else
@@ -113,7 +122,7 @@ int core_channel_put(core_channel_t* self, core_object_t* obj)
         return 1;
     }
 
-#ifdef HAVE_CK_RING_H
+#ifdef __my_USE_CK
     if (!self->ring_buf || !self->ring) {
         return 1;
     }
@@ -161,7 +170,7 @@ core_object_t* core_channel_get(core_channel_t* self)
         return 0;
     }
 
-#ifdef HAVE_CK_RING_H
+#ifdef __my_USE_CK
     if (!self->ring_buf || !self->ring) {
         return 0;
     }
@@ -233,7 +242,7 @@ int core_channel_close(core_channel_t* self)
         return 1;
     }
 
-#ifdef HAVE_CK_RING_H
+#ifdef __my_USE_CK
     ck_pr_store_int(&self->ring_closed, 1);
 #else
     if (!self->item) {
@@ -286,7 +295,7 @@ static int _receive(void* ctx, const core_object_t* obj)
         return 1;
     }
 
-#ifdef HAVE_CK_RING_H
+#ifdef __my_USE_CK
     if (!self->ring_buf || !self->ring) {
         return 1;
     }
