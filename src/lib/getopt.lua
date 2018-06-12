@@ -173,7 +173,18 @@ end
 -- Print the usage.
 function Getopt:usage()
     print("Usage:")
-    for k, v in pairs(self.opt) do
+
+    local opts = {}
+    for k, _ in pairs(self.opt) do
+        if k ~= "help" then
+            table.insert(opts, k)
+        end
+    end
+    table.sort(opts)
+    table.insert(opts, "help")
+
+    for _, k in pairs(opts) do
+        local v = self.opt[k]
         local arg
         if v.type == "string" then
             arg = " \""..v.default.."\""

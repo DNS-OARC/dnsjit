@@ -134,6 +134,24 @@ int core_thread_stop(core_thread_t* self)
     return 0;
 }
 
+inline void _push(core_thread_t* self, core_thread_item_t* item)
+{
+    if (pthread_mutex_lock(&self->lock)) {
+        lfatal("mutex lock failed");
+    }
+    if (!self->last) {
+        self->stack = self->last = item;
+    } else {
+        self->last->next = item;
+    }
+    if (pthread_cond_signal(&self->cond)) {
+        lfatal("cond signal failed");
+    }
+    if (pthread_mutex_unlock(&self->lock)) {
+        lfatal("mutex unlock failed");
+    }
+}
+
 int core_thread_push(core_thread_t* self, void* ptr, const char* type, size_t type_len, const char* module, size_t module_len)
 {
     core_thread_item_t* item;
@@ -154,20 +172,50 @@ int core_thread_push(core_thread_t* self, void* ptr, const char* type, size_t ty
     memcpy(item->module, module, module_len);
     item->module[module_len] = 0;
 
-    if (pthread_mutex_lock(&self->lock)) {
-        lfatal("mutex lock failed");
+    _push(self, item);
+
+    return 0;
+}
+
+int core_thread_push_string(core_thread_t* self, const char* str, size_t len)
+{
+    core_thread_item_t* item;
+
+    if (!self || !str || !len) {
+        return 1;
     }
-    if (!self->last) {
-        self->stack = self->last = item;
-    } else {
-        self->last->next = item;
+
+    if (!(item = malloc(sizeof(core_thread_item_t) + len + 1))) {
+        return 1;
     }
-    if (pthread_cond_signal(&self->cond)) {
-        lfatal("cond signal failed");
+    item->next = 0;
+    item->ptr  = 0;
+    item->str  = ((void*)item) + sizeof(core_thread_item_t);
+    memcpy(item->str, str, len);
+    item->str[len] = 0;
+
+    _push(self, item);
+
+    return 0;
+}
+
+int core_thread_push_int64(core_thread_t* self, int64_t i64)
+{
+    core_thread_item_t* item;
+
+    if (!self) {
+        return 1;
     }
-    if (pthread_mutex_unlock(&self->lock)) {
-        lfatal("mutex unlock failed");
+
+    if (!(item = malloc(sizeof(core_thread_item_t)))) {
+        return 1;
     }
+    item->next = 0;
+    item->ptr  = 0;
+    item->str  = 0;
+    item->i64  = i64;
+
+    _push(self, item);
 
     return 0;
 }

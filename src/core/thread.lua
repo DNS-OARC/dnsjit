@@ -74,22 +74,36 @@ function Thread:stop()
     return C.core_thread_stop(self)
 end
 
--- Push a sharable object onto the thread stack so it can be retrieved inside
--- the thread using
+-- Push a string, number or sharable object onto the thread stack so it can
+-- be retrieved inside the thread using
 -- .IR pop() .
--- The object needs to be kept alive as long as the thread is running.
+-- The object needs to be kept alive as long as the thread is running, strings
+-- and numbers are copied.
 -- Returns 0 on success.
 function Thread:push(obj)
+    local t = type(obj)
+    if t == "string" then
+        return C.core_thread_push_string(self, obj, #obj)
+    elseif t == "number" then
+        return C.core_thread_push_int64(self, obj)
+    end
     local ptr, type, module = obj:share()
     return C.core_thread_push(self, ptr, type, #type, module, #module)
 end
 
--- Pop an object off the thread stack, should only be called within the thread.
--- Returns nil on failure or if no objects are left on the stack.
+-- Pop a shared value off the thread stack, should only be called within the
+-- thread.
+-- Returns nil on failure or if no shared values are left on the stack.
 function Thread:pop()
     local item = C.core_thread_pop(self)
     if item == nil then
         return
+    end
+    if item.ptr == nil then
+        if item.str == nil then
+            return tonumber(item.i64)
+        end
+        return ffi.string(item.str)
     end
     require(ffi.string(item.module))
     return ffi.cast(ffi.string(item.type), item.ptr)
