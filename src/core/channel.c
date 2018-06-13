@@ -127,7 +127,7 @@ int core_channel_put(core_channel_t* self, core_object_t* obj)
         return 1;
     }
 
-    while (!ck_ring_enqueue_spsc((ck_ring_t*)self->ring, (ck_ring_buffer_t*)self->ring_buf, &obj)) {
+    while (!ck_ring_enqueue_spsc((ck_ring_t*)self->ring, (ck_ring_buffer_t*)self->ring_buf, (void*)obj)) {
         sched_yield();
     }
 #else

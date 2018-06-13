@@ -46,8 +46,8 @@ AC_ARG_WITH([extra-ldflags], [AS_HELP_STRING([--with-extra-ldflags=CFLAGS], [Add
 ])
 
 # Checks for support.
-AC_CHECK_LIB([dl], [dlopen])
-AC_CHECK_LIB([m], [sqrt])
+AX_EXT
+AC_HEADER_TIME
 AX_PTHREAD
 AX_PCAP_THREAD_PCAP
 AC_CHECK_LIB([ev], [ev_now], [], AC_MSG_ERROR([libev not found]))
