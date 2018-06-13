@@ -134,7 +134,7 @@ int core_thread_stop(core_thread_t* self)
     return 0;
 }
 
-inline void _push(core_thread_t* self, core_thread_item_t* item)
+inline static void _push(core_thread_t* self, core_thread_item_t* item)
 {
     if (pthread_mutex_lock(&self->lock)) {
         lfatal("mutex lock failed");

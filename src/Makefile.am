@@ -23,6 +23,7 @@ CLEANFILES =
 
 AM_CFLAGS = -I$(srcdir) \
   -I$(top_srcdir) \
+  $(SIMD_FLAGS) $(CPUEXT_FLAGS) \
   $(PTHREAD_CFLAGS) \
   $(luajit_CFLAGS)
 

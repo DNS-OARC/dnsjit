@@ -1,3 +1,4 @@
+#!/bin/sh -e
 # Copyright (c) 2018, OARC, Inc.
 # All rights reserved.
 #
@@ -16,5 +17,11 @@
 # You should have received a copy of the GNU General Public License
 # along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
 
-dist_doc_DATA = dumpdns.lua dumpdns-qr.lua filter_rcode.lua playqr.lua \
-  readme.lua replay.lua test_pcap_read.lua test_throughput.lua
+m4_files="ax_append_flag.m4 ax_cflags_warn_all.m4 ax_ext.m4 ax_pthread.m4
+ ax_require_defined.m4 ax_gcc_x86_avx_xgetbv.m4 ax_gcc_x86_cpuid.m4
+ ax_check_compile_flag.m4"
+
+for ax in $m4_files; do
+  rm -f "$ax"
+  wget -O "$ax" "http://git.savannah.gnu.org/gitweb/?p=autoconf-archive.git;a=blob_plain;f=m4/$ax"
+done
