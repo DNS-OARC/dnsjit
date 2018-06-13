@@ -21,10 +21,8 @@
 //lua:require("dnsjit.core.object_h")
 
 typedef struct core_object_tcp {
-    unsigned short        obj_type;
-    const core_object_t*  obj_prev;
-    core_object_refcall_t obj_ref;
-    void*                 obj_refctx;
+    const core_object_t* obj_prev;
+    int32_t              obj_type;
 
     uint16_t sport;
     uint16_t dport;
@@ -40,3 +38,6 @@ typedef struct core_object_tcp {
     uint8_t opts[64];
     size_t  opts_len;
 } core_object_tcp_t;
+
+core_object_tcp_t* core_object_tcp_copy(const core_object_tcp_t* self);
+void core_object_tcp_free(core_object_tcp_t* self);

@@ -19,20 +19,10 @@
  */
 
 typedef struct core_object core_object_t;
-
-typedef enum core_object_reference {
-    CORE_OBJECT_INCREF,
-    CORE_OBJECT_DECREF
-} core_object_reference_t;
-
-typedef void (*core_object_refcall_t)(core_object_t* obj, core_object_reference_t ref);
-
 struct core_object {
-    unsigned short        obj_type;
-    const core_object_t*  obj_prev;
-    core_object_refcall_t obj_ref;
-    void*                 obj_refctx;
+    const core_object_t* obj_prev;
+    int32_t              obj_type;
 };
 
-core_object_t* core_object_copy(const core_object_t* obj);
-void core_object_free(core_object_t* obj);
+core_object_t* core_object_copy(const core_object_t* self);
+void core_object_free(core_object_t* self);

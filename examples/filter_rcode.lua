@@ -7,19 +7,30 @@ if pcap == nil or rcode == nil then
     return
 end
 
-require("dnsjit.core.objects")
-
-local input = require("dnsjit.input.pcapthread").new()
-local output = require("dnsjit.filter.coro").new()
-
-output:func(function(filter, obj)
-    local pkt = obj:cast()
-    local dns = require("dnsjit.core.object.dns").new(obj)
-    if pkt and dns and dns:parse() == 0 and dns.have_rcode == 1 and dns.rcode == rcode then
-        print(dns.id, pkt:src().." -> "..pkt:dst())
-    end
-end)
+local object = require("dnsjit.core.objects")
+local input = require("dnsjit.input.pcap").new()
+local layer = require("dnsjit.filter.layer").new()
 
 input:open_offline(pcap)
-input:receiver(output)
-input:run()
+layer:producer(input)
+local producer, ctx = layer:produce()
+
+while true do
+    local obj = producer(ctx)
+    if obj == nil then break end
+    if obj:type() == "payload" then
+        local transport = obj.obj_prev
+        while transport do
+            if transport.obj_type == object.CORE_OBJECT_IP or transport.obj_type == object.CORE_OBJECT_IP6 then
+                break
+            end
+            transport = transport.obj_prev
+        end
+
+        local dns = require("dnsjit.core.object.dns").new(obj)
+        if transport and dns and dns:parse() == 0 and dns.have_rcode == 1 and dns.rcode == rcode then
+            transport = transport:cast()
+            print(dns.id, transport:source().." -> "..transport:destination())
+        end
+    end
+end

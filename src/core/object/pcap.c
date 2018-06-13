@@ -21,3 +21,31 @@
 #include "config.h"
 
 #include "core/object/pcap.h"
+#include "core/assert.h"
+
+#include <stdlib.h>
+#include <string.h>
+
+core_object_pcap_t* core_object_pcap_copy(const core_object_pcap_t* self)
+{
+    core_object_pcap_t* copy;
+    glassert_self();
+
+    glfatal_oom(copy = malloc(sizeof(core_object_pcap_t) + self->caplen));
+    memcpy(copy, self, sizeof(core_object_pcap_t));
+    copy->obj_prev = 0;
+
+    if (copy->bytes) {
+        copy->bytes = (void*)copy + sizeof(core_object_pcap_t);
+        memcpy((void*)copy->bytes, self->bytes, self->caplen);
+    }
+
+    return copy;
+}
+
+void core_object_pcap_free(core_object_pcap_t* self)
+{
+    glassert_self();
+    free((void*)self->bytes);
+    free(self);
+}

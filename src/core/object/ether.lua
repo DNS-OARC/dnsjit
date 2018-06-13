@@ -50,6 +50,26 @@ function Ether:prev()
     return self.obj_prev
 end
 
+-- Cast the object to the underlining object module and return it.
+function Ether:cast()
+    return self
+end
+
+-- Cast the object to the generic object module and return it.
+function Ether:uncast()
+    return ffi.cast("core_object_t*", self)
+end
+
+-- Make a copy of the object and return it.
+function Ether:copy()
+    return C.core_object_ether_copy(self)
+end
+
+-- Free the object, should only be used on copies or otherwise allocated.
+function Ether:free()
+    C.core_object_ether_free(self)
+end
+
 core_object_ether_t = ffi.metatype(t_name, { __index = Ether })
 
 -- dnsjit.core.object (3),

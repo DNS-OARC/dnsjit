@@ -83,6 +83,26 @@ function Tcp:prev()
     return self.obj_prev
 end
 
+-- Cast the object to the underlining object module and return it.
+function Tcp:cast()
+    return self
+end
+
+-- Cast the object to the generic object module and return it.
+function Tcp:uncast()
+    return ffi.cast("core_object_t*", self)
+end
+
+-- Make a copy of the object and return it.
+function Tcp:copy()
+    return C.core_object_tcp_copy(self)
+end
+
+-- Free the object, should only be used on copies or otherwise allocated.
+function Tcp:free()
+    C.core_object_tcp_free(self)
+end
+
 core_object_tcp_t = ffi.metatype(t_name, { __index = Tcp })
 
 -- dnsjit.core.object (3),

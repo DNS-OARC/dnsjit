@@ -30,8 +30,8 @@ typedef struct output_null {
 } output_null_t;
 
 core_log_t* output_null_log();
-int output_null_init(output_null_t* self);
-int output_null_destroy(output_null_t* self);
-int output_null_run(output_null_t* self, uint64_t num);
+void output_null_init(output_null_t* self);
+void output_null_destroy(output_null_t* self);
+void output_null_run(output_null_t* self, int64_t num);
 
 core_receiver_t output_null_receiver();

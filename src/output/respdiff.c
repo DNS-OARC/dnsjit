@@ -21,6 +21,7 @@
 #include "config.h"
 
 #include "output/respdiff.h"
+#include "core/assert.h"
 #include "core/object/payload.h"
 
 #ifdef HAVE_LMDB_H
@@ -28,7 +29,6 @@
 #endif
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <errno.h>
 #include <string.h>
 
 static core_log_t        _log      = LOG_T_INIT("output.respdiff");
@@ -42,81 +42,50 @@ core_log_t* output_respdiff_log()
     return &_log;
 }
 
-int output_respdiff_init(output_respdiff_t* self, const char* path)
+void output_respdiff_init(output_respdiff_t* self, const char* path)
 {
-    if (!self || !path) {
-        return 1;
+    mlassert_self();
+
+    if (!path) {
+        lfatal("path is nil");
     }
 
     *self = _defaults;
 
-    ldebug("init");
-
 #ifdef HAVE_LMDB_H
     if (mkdir(path, 0775) && errno != EEXIST) {
-        lwarning("mkdir(%s) failed (%d)", path, errno);
-        return 1;
+        lfatal("mkdir(%s) error %s", path, core_log_errstr(errno));
     }
-    ldebug("mkdir");
-
     if (mdb_env_create((MDB_env**)&self->env)) {
-        lwarning("mdb_env_create failed");
-        return 1;
+        lfatal("mdb_env_create failed");
     }
-    ldebug("mdb_env_create");
-
     if (mdb_env_set_maxdbs((MDB_env*)self->env, 3)) {
-        lwarning("mdb_env_set_maxdbs failed");
-        return 1;
+        lfatal("mdb_env_set_maxdbs failed");
     }
-    ldebug("mdb_env_set_maxdbs");
-
     if (mdb_env_open((MDB_env*)self->env, path, 0, 0664)) {
-        lwarning("mdb_env_open(%s) failed", path);
-        return 1;
+        lfatal("mdb_env_open(%s) failed", path);
     }
-    ldebug("mdb_env_open");
-
     if (mdb_txn_begin((MDB_env*)self->env, 0, 0, (MDB_txn**)&self->txn)) {
-        lwarning("mdb_txn_begin failed for queries");
-        return 1;
+        lfatal("mdb_txn_begin failed for queries");
     }
-    ldebug("mdb_txn_begin");
-
-    if (!(self->qdb = calloc(1, sizeof(MDB_dbi)))
-        || mdb_dbi_open((MDB_txn*)self->txn, "queries", MDB_CREATE, (MDB_dbi*)self->qdb)) {
-        lwarning("mdb_dbi_open failed for queries");
-        return 1;
+    lfatal_oom(self->qdb = calloc(1, sizeof(MDB_dbi)));
+    if (mdb_dbi_open((MDB_txn*)self->txn, "queries", MDB_CREATE, (MDB_dbi*)self->qdb)) {
+        lfatal("mdb_dbi_open failed for queries");
     }
-    ldebug("mdb_dbi_open");
-
-    if (!(self->rdb = calloc(1, sizeof(MDB_dbi)))
-        || mdb_dbi_open((MDB_txn*)self->txn, "answers", MDB_CREATE, (MDB_dbi*)self->rdb)) {
-        lwarning("mdb_dbi_open failed for responses");
-        return 1;
+    lfatal_oom(self->rdb = calloc(1, sizeof(MDB_dbi)));
+    if (mdb_dbi_open((MDB_txn*)self->txn, "answers", MDB_CREATE, (MDB_dbi*)self->rdb)) {
+        lfatal("mdb_dbi_open failed for responses");
     }
-    ldebug("mdb_dbi_open");
-
-    if (!(self->meta = calloc(1, sizeof(MDB_dbi)))
-        || mdb_dbi_open((MDB_txn*)self->txn, "meta", MDB_CREATE, (MDB_dbi*)self->meta)) {
-        lwarning("mdb_dbi_open failed for meta");
-        return 1;
+    lfatal_oom(self->meta = calloc(1, sizeof(MDB_dbi)));
+    if (mdb_dbi_open((MDB_txn*)self->txn, "meta", MDB_CREATE, (MDB_dbi*)self->meta)) {
+        lfatal("mdb_dbi_open failed for meta");
     }
-    ldebug("mdb_dbi_open");
-
-    return 0;
-#else
-    return 1;
 #endif
 }
 
-int output_respdiff_destroy(output_respdiff_t* self)
+void output_respdiff_destroy(output_respdiff_t* self)
 {
-    if (!self) {
-        return 1;
-    }
-
-    ldebug("destroy");
+    mlassert_self();
 
 #ifdef HAVE_LMDB_H
     if (self->env) {
@@ -126,8 +95,6 @@ int output_respdiff_destroy(output_respdiff_t* self)
     free(self->rdb);
     free(self->meta);
 #endif
-
-    return 0;
 }
 
 #ifdef HAVE_LMDB_H
@@ -140,23 +107,21 @@ static const char* _meta_start_time  = "start_time";
 static const char* _meta_end_time    = "end_time";
 #endif
 
-int output_respdiff_commit(output_respdiff_t* self, const char* origname, const char* recvname, uint64_t start_time, uint64_t end_time)
+void output_respdiff_commit(output_respdiff_t* self, const char* origname, const char* recvname, uint64_t start_time, uint64_t end_time)
 {
 #ifdef HAVE_LMDB_H
     MDB_val  k, v;
     uint32_t i;
-
-    if (!self || !origname || !recvname) {
-        return 1;
-    }
+    mlassert_self();
+    lassert(origname, "origname is nil");
+    lassert(recvname, "recvname is nil");
 
     k.mv_size = strlen(_meta_version);
     k.mv_data = (void*)_meta_version;
     v.mv_size = strlen(_meta_version_val);
     v.mv_data = (void*)_meta_version_val;
     if (mdb_put((MDB_txn*)self->txn, (MDB_dbi) * ((MDB_dbi*)self->meta), &k, &v, 0)) {
-        lwarning("mdb_put meta.version failed");
-        return 1;
+        lfatal("mdb_put meta.version failed");
     }
 
     k.mv_size = strlen(_meta_servers);
@@ -165,8 +130,7 @@ int output_respdiff_commit(output_respdiff_t* self, const char* origname, const 
     v.mv_size = 4;
     v.mv_data = (void*)&i;
     if (mdb_put((MDB_txn*)self->txn, (MDB_dbi) * ((MDB_dbi*)self->meta), &k, &v, 0)) {
-        lwarning("mdb_put meta.servers failed");
-        return 1;
+        lfatal("mdb_put meta.servers failed");
     }
 
     k.mv_size = strlen(_meta_name0);
@@ -174,8 +138,7 @@ int output_respdiff_commit(output_respdiff_t* self, const char* origname, const 
     v.mv_size = strlen(origname);
     v.mv_data = (void*)origname;
     if (mdb_put((MDB_txn*)self->txn, (MDB_dbi) * ((MDB_dbi*)self->meta), &k, &v, 0)) {
-        lwarning("mdb_put meta.name0 failed");
-        return 1;
+        lfatal("mdb_put meta.name0 failed");
     }
 
     k.mv_size = strlen(_meta_name1);
@@ -183,8 +146,7 @@ int output_respdiff_commit(output_respdiff_t* self, const char* origname, const 
     v.mv_size = strlen(recvname);
     v.mv_data = (void*)recvname;
     if (mdb_put((MDB_txn*)self->txn, (MDB_dbi) * ((MDB_dbi*)self->meta), &k, &v, 0)) {
-        lwarning("mdb_put meta.name1 failed");
-        return 1;
+        lfatal("mdb_put meta.name1 failed");
     }
 
     k.mv_size = strlen(_meta_start_time);
@@ -193,8 +155,7 @@ int output_respdiff_commit(output_respdiff_t* self, const char* origname, const 
     v.mv_size = 4;
     v.mv_data = (void*)&i;
     if (mdb_put((MDB_txn*)self->txn, (MDB_dbi) * ((MDB_dbi*)self->meta), &k, &v, 0)) {
-        lwarning("mdb_put meta.start_time failed");
-        return 1;
+        lfatal("mdb_put meta.start_time failed");
     }
 
     k.mv_size = strlen(_meta_end_time);
@@ -203,26 +164,20 @@ int output_respdiff_commit(output_respdiff_t* self, const char* origname, const 
     v.mv_size = 4;
     v.mv_data = (void*)&i;
     if (mdb_put((MDB_txn*)self->txn, (MDB_dbi) * ((MDB_dbi*)self->meta), &k, &v, 0)) {
-        lwarning("mdb_put meta.end_time failed");
-        return 1;
+        lfatal("mdb_put meta.end_time failed");
     }
 
     if (self->txn) {
         if (mdb_txn_commit((MDB_txn*)self->txn)) {
-            return 1;
+            lfatal("mdb_txn_commit failed");
         }
-        ldebug("commit ok");
         self->txn = 0;
     }
-
-    return 0;
-#else
-    return 1;
 #endif
 }
 
 #ifdef HAVE_LMDB_H
-static int _receive(void* ctx, const core_object_t* obj)
+static void _receive(void* ctx, const core_object_t* obj)
 {
     output_respdiff_t*           self = (output_respdiff_t*)ctx;
     const core_object_payload_t *query, *original, *response;
@@ -230,31 +185,23 @@ static int _receive(void* ctx, const core_object_t* obj)
     uint8_t                      responses[132096];
     uint32_t                     msec;
     uint16_t                     dnslen;
-
-    if (!self || !self->txn) {
-        return 1;
-    }
+    mlassert_self();
 
     if (!obj || obj->obj_type != CORE_OBJECT_PAYLOAD) {
-        return 1;
+        lfatal("invalid first object");
     }
     query = (core_object_payload_t*)obj;
     if (!query->obj_prev || query->obj_prev->obj_type != CORE_OBJECT_PAYLOAD) {
-        return 1;
+        lfatal("invalid second object");
     }
     original = (core_object_payload_t*)query->obj_prev;
     if (!original->obj_prev || original->obj_prev->obj_type != CORE_OBJECT_PAYLOAD) {
-        return 1;
+        lfatal("invalid third object");
     }
     response = (core_object_payload_t*)original->obj_prev;
 
-    ldebug("query %p %u", query->payload, query->len);
-    ldebug("original %p %u", original->payload, original->len);
-    ldebug("response %p %u", response->payload, response->len);
-
     if (12 + original->len + response->len > sizeof(responses)) {
-        lcritical("mdb_put failed, not enough space");
-        return 1;
+        lfatal("mdb_put failed, not enough space");
     }
 
     self->count++;
@@ -264,8 +211,7 @@ static int _receive(void* ctx, const core_object_t* obj)
     v.mv_size = query->len;
     v.mv_data = (void*)query->payload;
     if (mdb_put((MDB_txn*)self->txn, (MDB_dbi) * ((MDB_dbi*)self->qdb), &k, &v, 0)) {
-        lwarning("mdb_put query failed");
-        return 1;
+        lfatal("mdb_put query failed");
     }
 
     msec = 1; // TODO
@@ -281,22 +227,27 @@ static int _receive(void* ctx, const core_object_t* obj)
     v.mv_size = 12 + original->len + response->len;
     v.mv_data = (void*)responses;
     if (mdb_put((MDB_txn*)self->txn, (MDB_dbi) * ((MDB_dbi*)self->rdb), &k, &v, 0)) {
-        lwarning("mdb_put answers failed");
-        return 1;
+        lfatal("mdb_put answers failed");
     }
 
     self->id++;
-
-    return 0;
 }
 
-core_receiver_t output_respdiff_receiver()
+core_receiver_t output_respdiff_receiver(output_respdiff_t* self)
 {
+    mlassert_self();
+
+    if (!self->txn) {
+        lfatal("no LMDB opened");
+    }
+
     return _receive;
 }
 #else
-core_receiver_t output_respdiff_receiver()
+core_receiver_t output_respdiff_receiver(output_respdiff_t* self)
 {
+    mlassert_self();
+    lfatal("no LMDB support");
     return 0;
 }
 #endif

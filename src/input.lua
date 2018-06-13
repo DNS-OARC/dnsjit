@@ -25,6 +25,5 @@ module(...,package.seeall)
 -- dnsjit.input.fpcap (3),
 -- dnsjit.input.mmpcap (3),
 -- dnsjit.input.pcap (3),
--- dnsjit.input.pcapthread (3),
 -- dnsjit.input.zero (3)
 return

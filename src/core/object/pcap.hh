@@ -22,10 +22,8 @@
 //lua:require("dnsjit.core.timespec_h")
 
 typedef struct core_object_pcap {
-    unsigned short        obj_type;
-    const core_object_t*  obj_prev;
-    core_object_refcall_t obj_ref;
-    void*                 obj_refctx;
+    const core_object_t* obj_prev;
+    int32_t              obj_type;
 
     uint32_t snaplen, linktype;
 
@@ -34,5 +32,7 @@ typedef struct core_object_pcap {
     const unsigned char* bytes;
 
     unsigned short is_swapped : 1;
-    unsigned short is_multiple : 1;
 } core_object_pcap_t;
+
+core_object_pcap_t* core_object_pcap_copy(const core_object_pcap_t* self);
+void core_object_pcap_free(core_object_pcap_t* self);

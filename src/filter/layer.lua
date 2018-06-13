@@ -56,25 +56,22 @@ end
 
 -- Return the C functions and context for receiving objects.
 function Layer:receive()
-    self.obj._log:debug("receive()")
     return C.filter_layer_receiver(), self.obj
 end
 
 -- Set the receiver to pass objects to.
 function Layer:receiver(o)
-    self.obj._log:debug("receiver()")
     self.obj.recv, self.obj.ctx = o:receive()
     self._receiver = o
 end
 
 -- Return the C functions and context for producing objects.
 function Layer:produce()
-    return C.filter_layer_producer(), self.obj
+    return C.filter_layer_producer(self.obj), self.obj
 end
 
 -- Set the producer to get objects from.
 function Layer:producer(o)
-    self.obj._log:debug("producer()")
     self.obj.prod, self.obj.prod_ctx = o:produce()
     self._producer = o
 end

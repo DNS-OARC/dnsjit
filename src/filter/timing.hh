@@ -41,4 +41,4 @@ core_log_t* filter_timing_log();
 filter_timing_t* filter_timing_new();
 void filter_timing_free(filter_timing_t* self);
 
-core_receiver_t filter_timing_receiver();
+core_receiver_t filter_timing_receiver(filter_timing_t* self);

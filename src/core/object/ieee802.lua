@@ -56,6 +56,26 @@ function Ieee802:prev()
     return self.obj_prev
 end
 
+-- Cast the object to the underlining object module and return it.
+function Ieee802:cast()
+    return self
+end
+
+-- Cast the object to the generic object module and return it.
+function Ieee802:uncast()
+    return ffi.cast("core_object_t*", self)
+end
+
+-- Make a copy of the object and return it.
+function Ieee802:copy()
+    return C.core_object_ieee802_copy(self)
+end
+
+-- Free the object, should only be used on copies or otherwise allocated.
+function Ieee802:free()
+    C.core_object_ieee802_free(self)
+end
+
 core_object_ieee802_t = ffi.metatype(t_name, { __index = Ieee802 })
 
 -- dnsjit.core.object (3),

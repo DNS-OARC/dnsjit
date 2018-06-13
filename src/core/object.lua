@@ -49,7 +49,6 @@ require("dnsjit.core.object.icmp_h")
 require("dnsjit.core.object.icmp6_h")
 require("dnsjit.core.object.udp_h")
 require("dnsjit.core.object.tcp_h")
-require("dnsjit.core.object.packet_h")
 require("dnsjit.core.object.payload_h")
 require("dnsjit.core.object.dns_h")
 local ffi = require("ffi")
@@ -72,9 +71,8 @@ local Object = {
     CORE_OBJECT_ICMP6 = 23,
     CORE_OBJECT_UDP = 30,
     CORE_OBJECT_TCP = 31,
-    CORE_OBJECT_PACKET = 32,
-    CORE_OBJECT_PAYLOAD = 33,
-    CORE_OBJECT_DNS = 40
+    CORE_OBJECT_PAYLOAD = 40,
+    CORE_OBJECT_DNS = 50
 }
 
 local _type = {}
@@ -91,7 +89,6 @@ _type[Object.CORE_OBJECT_ICMP] = "icmp"
 _type[Object.CORE_OBJECT_ICMP6] = "icmp6"
 _type[Object.CORE_OBJECT_UDP] = "udp"
 _type[Object.CORE_OBJECT_TCP] = "tcp"
-_type[Object.CORE_OBJECT_PACKET] = "packet"
 _type[Object.CORE_OBJECT_PAYLOAD] = "payload"
 _type[Object.CORE_OBJECT_DNS] = "dns"
 
@@ -121,7 +118,6 @@ _cast[Object.CORE_OBJECT_ICMP] = "core_object_icmp_t*"
 _cast[Object.CORE_OBJECT_ICMP6] = "core_object_icmp6_t*"
 _cast[Object.CORE_OBJECT_UDP] = "core_object_udp_t*"
 _cast[Object.CORE_OBJECT_TCP] = "core_object_tcp_t*"
-_cast[Object.CORE_OBJECT_PACKET] = "core_object_packet_t*"
 _cast[Object.CORE_OBJECT_PAYLOAD] = "core_object_payload_t*"
 _cast[Object.CORE_OBJECT_DNS] = "core_object_dns_t*"
 
@@ -130,7 +126,17 @@ function Object:cast()
     return ffi.cast(_cast[self.obj_type], self)
 end
 
--- TODO
+-- Cast the object to the generic object module and return it.
+function Object:uncast()
+    return self
+end
+
+-- Make a copy of the object and return it.
+function Object:copy()
+    return C.core_object_copy(self)
+end
+
+-- Free the object, should only be used on copies or otherwise allocated.
 function Object:free()
     C.core_object_free(self)
 end
@@ -150,7 +156,6 @@ core_object_t = ffi.metatype(t_name, { __index = Object })
 -- dnsjit.core.object.icmp6 (3),
 -- dnsjit.core.object.udp (3),
 -- dnsjit.core.object.tcp (3),
--- dnsjit.core.object.packet (3),
 -- dnsjit.core.object.payload (3),
 -- dnsjit.core.object.dns (3)
 return Object

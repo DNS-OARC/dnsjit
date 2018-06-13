@@ -1,7 +1,7 @@
 for line in io.lines("config.h") do
     local n, s = line:match("define SIZEOF_(%S*) (%d+)")
     if n and s then
-        if n:match("^PTHREAD") then
+        if n:match("^PTHREAD") or n:match("^CK_") then
             s = math.ceil(s / 8)
             print("#if !defined(SIZEOF_"..n..") || SIZEOF_"..n.." == 0")
             print("#error \""..n.." is undefined or zero\"")

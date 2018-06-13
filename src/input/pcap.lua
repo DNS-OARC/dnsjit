@@ -55,14 +55,13 @@ end
 
 -- Set the receiver to pass objects to.
 function Pcap:receiver(o)
-    self.obj._log:debug("receiver()")
     self.obj.recv, self.obj.ctx = o:receive()
     self._receiver = o
 end
 
 -- Return the C functions and context for producing objects.
 function Pcap:produce()
-    return C.input_pcap_producer(), self.obj
+    return C.input_pcap_producer(self.obj), self.obj
 end
 
 -- Open a PCAP file for processing.
@@ -75,7 +74,7 @@ end
 -- .I cnt
 -- packets are processed, see
 -- .BR pcap_loop (3pcap)
--- for more information.
+-- for more information and possible return values.
 function Pcap:loop(cnt)
     if cnt == nil then
         cnt = -1
@@ -87,7 +86,7 @@ end
 -- .I cnt
 -- packets are processed, see
 -- .BR pcap_dispatch (3pcap)
--- for more information.
+-- for more information and possible return values.
 function Pcap:dispatch(cnt)
     if cnt == nil then
         cnt = -1

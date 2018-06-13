@@ -21,3 +21,25 @@
 #include "config.h"
 
 #include "core/object/udp.h"
+#include "core/assert.h"
+
+#include <stdlib.h>
+#include <string.h>
+
+core_object_udp_t* core_object_udp_copy(const core_object_udp_t* self)
+{
+    core_object_udp_t* copy;
+    glassert_self();
+
+    glfatal_oom(copy = malloc(sizeof(core_object_udp_t)));
+    memcpy(copy, self, sizeof(core_object_udp_t));
+    copy->obj_prev = 0;
+
+    return copy;
+}
+
+void core_object_udp_free(core_object_udp_t* self)
+{
+    glassert_self();
+    free(self);
+}

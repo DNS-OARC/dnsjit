@@ -22,10 +22,7 @@
 -- Filter modules to process or manipulate DNS messages.
 module(...,package.seeall)
 
--- dnsjit.filter.coro (3),
 -- dnsjit.filter.layer (3),
--- dnsjit.filter.lua (3),
 -- dnsjit.filter.split (3),
--- dnsjit.filter.thread (3),
 -- dnsjit.filter.timing (3)
 return

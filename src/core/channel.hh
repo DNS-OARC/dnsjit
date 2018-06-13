@@ -20,38 +20,19 @@
 
 //lua:require("dnsjit.core.compat_h")
 //lua:require("dnsjit.core.log")
-//lua:require("dnsjit.core.object")
 //lua:require("dnsjit.core.receiver_h")
 
-typedef struct core_channel_item {
-    core_object_t*  obj;
-    pthread_mutex_t mutex;
-    pthread_cond_t  read, write;
-    uint8_t         end;
-} core_channel_item_t;
-
 typedef struct core_channel {
-    core_log_t           _log;
-    core_channel_item_t* item;
-    size_t               items, at;
-
-    size_t read, read_ends; // TODO move to reader sub module
-
-    core_receiver_t recv;
-    void*           ctx;
-
-    void* ring_buf;
-    void* ring;
-    int   ring_closed;
+    core_log_t        _log;
+    ck_ring_buffer_t* ring_buf;
+    ck_ring_t         ring;
+    int               closed;
 } core_channel_t;
 
 core_log_t* core_channel_log();
 
-int core_channel_init(core_channel_t* self, size_t size);
-int core_channel_destroy(core_channel_t* self);
-int core_channel_put(core_channel_t* self, core_object_t* obj);
-core_object_t* core_channel_get(core_channel_t* self);
-int core_channel_close(core_channel_t* self);
-int core_channel_run(core_channel_t* self);
-
-core_receiver_t core_channel_receiver();
+void core_channel_init(core_channel_t* self, size_t size);
+void core_channel_destroy(core_channel_t* self);
+void core_channel_put(core_channel_t* self, void* obj);
+void* core_channel_get(core_channel_t* self);
+void core_channel_close(core_channel_t* self);

@@ -39,7 +39,6 @@ require("dnsjit.core.object.icmp")
 require("dnsjit.core.object.icmp6")
 require("dnsjit.core.object.udp")
 require("dnsjit.core.object.tcp")
-require("dnsjit.core.object.packet")
 require("dnsjit.core.object.payload")
 require("dnsjit.core.object.dns")
 
@@ -57,7 +56,6 @@ require("dnsjit.core.object.dns")
 -- dnsjit.core.object.icmp6 (3),
 -- dnsjit.core.object.udp (3),
 -- dnsjit.core.object.tcp (3),
--- dnsjit.core.object.packet (3),
 -- dnsjit.core.object.payload (3),
 -- dnsjit.core.object.dns (3)
 return object

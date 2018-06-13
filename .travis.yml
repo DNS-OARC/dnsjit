@@ -1,11 +1,23 @@
+addons:
+  apt:
+    sources:
+    - ubuntu-toolchain-r-test
+    - sourceline: 'ppa:dns-oarc/ck'
+    update: true
+    packages:
+    - gcc-5
+    - libluajit-5.1-dev
+    - libpcap-dev
+    - luajit
+    - liblmdb-dev
+    - libck-dev
 language: c
 compiler:
   - clang
   - gcc
-before_install:
-  - sudo apt-get -qq update
-  - sudo apt-get install -y libluajit-5.1-dev libpcap-dev libev-dev luajit
-install: ./autogen.sh
+install:
+  - if [ "$CC" = "gcc" ]; then export CC="gcc-5"; fi
+  - ./autogen.sh
 script:
   - ./configure --enable-warn-all
   - make dist

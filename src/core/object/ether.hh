@@ -21,12 +21,13 @@
 //lua:require("dnsjit.core.object_h")
 
 typedef struct core_object_ether {
-    unsigned short        obj_type;
-    const core_object_t*  obj_prev;
-    core_object_refcall_t obj_ref;
-    void*                 obj_refctx;
+    const core_object_t* obj_prev;
+    int32_t              obj_type;
 
     uint8_t  dhost[6];
     uint8_t  shost[6];
     uint16_t type;
 } core_object_ether_t;
+
+core_object_ether_t* core_object_ether_copy(const core_object_ether_t* self);
+void core_object_ether_free(core_object_ether_t* self);

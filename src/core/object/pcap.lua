@@ -66,6 +66,26 @@ function Pcap:prev()
     return self.obj_prev
 end
 
+-- Cast the object to the underlining object module and return it.
+function Pcap:cast()
+    return self
+end
+
+-- Cast the object to the generic object module and return it.
+function Pcap:uncast()
+    return ffi.cast("core_object_t*", self)
+end
+
+-- Make a copy of the object and return it.
+function Pcap:copy()
+    return C.core_object_pcap_copy(self)
+end
+
+-- Free the object, should only be used on copies or otherwise allocated.
+function Pcap:free()
+    C.core_object_pcap_free(self)
+end
+
 core_object_pcap_t = ffi.metatype(t_name, { __index = Pcap })
 
 -- dnsjit.core.object (3),

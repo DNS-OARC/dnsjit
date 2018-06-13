@@ -21,10 +21,8 @@
 //lua:require("dnsjit.core.object_h")
 
 typedef struct core_object_ip6 {
-    unsigned short        obj_type;
-    const core_object_t*  obj_prev;
-    core_object_refcall_t obj_ref;
-    void*                 obj_refctx;
+    const core_object_t* obj_prev;
+    int32_t              obj_type;
 
     uint32_t flow;
     uint16_t plen;
@@ -39,3 +37,6 @@ typedef struct core_object_ip6 {
     uint16_t       frag_ident;
     uint8_t        rtdst[16];
 } core_object_ip6_t;
+
+core_object_ip6_t* core_object_ip6_copy(const core_object_ip6_t* self);
+void core_object_ip6_free(core_object_ip6_t* self);

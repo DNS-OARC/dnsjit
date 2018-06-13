@@ -21,3 +21,25 @@
 #include "config.h"
 
 #include "core/object/ip.h"
+#include "core/assert.h"
+
+#include <stdlib.h>
+#include <string.h>
+
+core_object_ip_t* core_object_ip_copy(const core_object_ip_t* self)
+{
+    core_object_ip_t* copy;
+    glassert_self();
+
+    glfatal_oom(copy = malloc(sizeof(core_object_ip_t)));
+    memcpy(copy, self, sizeof(core_object_ip_t));
+    copy->obj_prev = 0;
+
+    return copy;
+}
+
+void core_object_ip_free(core_object_ip_t* self)
+{
+    glassert_self();
+    free(self);
+}

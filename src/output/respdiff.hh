@@ -29,9 +29,8 @@ typedef struct output_respdiff {
 } output_respdiff_t;
 
 core_log_t* output_respdiff_log();
-int output_respdiff_init(output_respdiff_t* self, const char* path);
-int output_respdiff_destroy(output_respdiff_t* self);
+void output_respdiff_init(output_respdiff_t* self, const char* path);
+void output_respdiff_destroy(output_respdiff_t* self);
+void output_respdiff_commit(output_respdiff_t* self, const char* origname, const char* recvname, uint64_t start_time, uint64_t end_time);
 
-int output_respdiff_commit(output_respdiff_t* self, const char* origname, const char* recvname, uint64_t start_time, uint64_t end_time);
-
-core_receiver_t output_respdiff_receiver();
+core_receiver_t output_respdiff_receiver(output_respdiff_t* self);

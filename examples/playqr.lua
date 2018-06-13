@@ -2,6 +2,7 @@
 local ffi = require("ffi")
 local clock = require("dnsjit.lib.clock")
 local log = require("dnsjit.core.log")
+log.display_file_line(true)
 local getopt = require("dnsjit.lib.getopt").new({
     { "v", "verbose", 0, "Enable and increase verbosity for each time given", "?+" },
     { "m", "match", false, "Group query with response from the PCAP and match it against the received response", "?" },
@@ -358,114 +359,116 @@ while true do
     if obj == nil then
         break
     end
-    local dns = require("dnsjit.core.object.dns").new(obj)
-    if dns and dns:parse() == 0 then
-        local ip, proto, payload = obj, obj, obj:cast()
-        while ip ~= nil and ip:type() ~= "ip" and ip:type() ~= "ip6" do
-            ip = ip.obj_prev
-        end
-        while proto ~= nil and proto:type() ~= "udp" and proto:type() ~= "tcp" do
-            proto = proto.obj_prev
-        end
-        if ip ~= nil and proto ~= nil then
-            ip = ip:cast()
-            proto = proto:cast()
-            if dns.qr == 0 then
-                local k = string.format("%s %d %s %d", ip:source(), proto.sport, ip:destination(), proto.dport)
-                local qname, qtype, qclass
-                local n = dns.questions
-                if n > 0 and dns:rr_next() == 0 then
-                    if dns:rr_ok() == 1 then
-                        qname = dns:rr_label()
-                        qtype = dns:rr_type()
-                        qclass = dns:rr_class()
-                    end
-                end
-                if qname and qtype and qclass then
-                    local q = {
-                        id = dns.id,
-                        qname = qname,
-                        qtype = qtype,
-                        qclass = qclass,
-                        proto = proto:type(),
-                        payload = ffi.new("uint8_t[?]", payload.len),
-                        len = tonumber(payload.len)
-                    }
-                    ffi.copy(q.payload, payload.payload, payload.len)
-                    queries[k] = q
-                end
-            else
-                local k = string.format("%s %d %s %d", ip:destination(), proto.dport, ip:source(), proto.sport)
-                local q = queries[k]
-                if q then
-                    queries[k] = nil
-                    clipayload.payload = q.payload
-                    clipayload.len = q.len
-
-                    local responses, response = {}, nil
-                    if q.proto == "udp" then
-                        if not udpcli then
-                            udpcli = require("dnsjit.output.udpcli").new()
-                            udpcli:connect(host, port)
-                            udprecv, udpctx = udpcli:receive()
-                            udpprod, _ = udpcli:produce()
-                        end
-                        udprecv(udpctx, cliobject)
-                        while response == nil do
-                            response = udpprod(udpctx)
-                        end
-                        while response ~= nil do
-                            table.insert(responses, response)
-                            response = udpprod(udpctx)
-                        end
-                    elseif q.proto == "tcp" then
-                        if not tcpcli then
-                            tcpcli = require("dnsjit.output.tcpcli").new()
-                            tcpcli:connect(host, port)
-                            tcprecv, tcpctx = tcpcli:receive()
-                            tcpprod, _ = tcpcli:produce()
-                        end
-                        tcprecv(tcpctx, cliobject)
-                        while response == nil do
-                            response = tcpprod(tcpctx)
-                        end
-                        while response ~= nil do
-                            table.insert(responses, response)
-                            response = tcpprod(tcpctx)
+    if obj:type() == "payload" then
+        local dns = require("dnsjit.core.object.dns").new(obj)
+        if dns and dns:parse() == 0 then
+            local ip, proto, payload = obj, obj, obj:cast()
+            while ip ~= nil and ip:type() ~= "ip" and ip:type() ~= "ip6" do
+                ip = ip.obj_prev
+            end
+            while proto ~= nil and proto:type() ~= "udp" and proto:type() ~= "tcp" do
+                proto = proto.obj_prev
+            end
+            if ip ~= nil and proto ~= nil then
+                ip = ip:cast()
+                proto = proto:cast()
+                if dns.qr == 0 then
+                    local k = string.format("%s %d %s %d", ip:source(), proto.sport, ip:destination(), proto.dport)
+                    local qname, qtype, qclass
+                    local n = dns.questions
+                    if n > 0 and dns:rr_next() == 0 then
+                        if dns:rr_ok() == 1 then
+                            qname = dns:rr_label()
+                            qtype = dns:rr_type()
+                            qclass = dns:rr_class()
                         end
                     end
-
-                    local results, dns_response
-                    for _, response in pairs(responses) do
-                        dns_response = require("dnsjit.core.object.dns").new(response)
-                        if dns_response and dns_response:parse() == 0 and dns_response.id == q.id then
-                            if getopt:val("m") then
-                                results = match(dns, dns_response)
-                            end
-
-                            if respdiff then
-                                query_payload.payload = q.payload
-                                query_payload.len = q.len
-                                original_payload.payload = payload.payload
-                                original_payload.len = payload.len
-                                response = response:cast()
-                                response_payload.payload = response.payload
-                                response_payload.len = response.len
-
-                                resprecv(respctx, query_payload_obj)
-                            end
-
-                            break
-                        end
+                    if qname and qtype and qclass then
+                        local q = {
+                            id = dns.id,
+                            qname = qname,
+                            qtype = qtype,
+                            qclass = qclass,
+                            proto = proto:type(),
+                            payload = ffi.new("uint8_t[?]", payload.len),
+                            len = tonumber(payload.len)
+                        }
+                        ffi.copy(q.payload, payload.payload, payload.len)
+                        queries[k] = q
                     end
-                    if getopt:val("m") then
-                        if results[1] then
-                            print(dns.id, q.qname, q.qclass, q.qtype, "failed")
-                            for _, v in pairs(results) do
-                                print("", v)
+                else
+                    local k = string.format("%s %d %s %d", ip:destination(), proto.dport, ip:source(), proto.sport)
+                    local q = queries[k]
+                    if q then
+                        queries[k] = nil
+                        clipayload.payload = q.payload
+                        clipayload.len = q.len
+
+                        local responses, response = {}, nil
+                        if q.proto == "udp" then
+                            if not udpcli then
+                                udpcli = require("dnsjit.output.udpcli").new()
+                                udpcli:connect(host, port)
+                                udprecv, udpctx = udpcli:receive()
+                                udpprod, _ = udpcli:produce()
                             end
-                        else
-                            print(dns.id, q.qname, q.qclass, q.qtype, "ok")
+                            udprecv(udpctx, cliobject)
+                            while response == nil do
+                                response = udpprod(udpctx)
+                            end
+                            while response ~= nil do
+                                table.insert(responses, response)
+                                response = udpprod(udpctx)
+                            end
+                        elseif q.proto == "tcp" then
+                            if not tcpcli then
+                                tcpcli = require("dnsjit.output.tcpcli").new()
+                                tcpcli:connect(host, port)
+                                tcprecv, tcpctx = tcpcli:receive()
+                                tcpprod, _ = tcpcli:produce()
+                            end
+                            tcprecv(tcpctx, cliobject)
+                            while response == nil do
+                                response = tcpprod(tcpctx)
+                            end
+                            while response ~= nil do
+                                table.insert(responses, response)
+                                response = tcpprod(tcpctx)
+                            end
+                        end
+
+                        local results, dns_response
+                        for _, response in pairs(responses) do
+                            dns_response = require("dnsjit.core.object.dns").new(response)
+                            if dns_response and dns_response:parse() == 0 and dns_response.id == q.id then
+                                if getopt:val("m") then
+                                    results = match(dns, dns_response)
+                                end
+
+                                if respdiff then
+                                    query_payload.payload = q.payload
+                                    query_payload.len = q.len
+                                    original_payload.payload = payload.payload
+                                    original_payload.len = payload.len
+                                    response = response:cast()
+                                    response_payload.payload = response.payload
+                                    response_payload.len = response.len
+
+                                    resprecv(respctx, query_payload_obj)
+                                end
+
+                                break
+                            end
+                        end
+                        if getopt:val("m") then
+                            if results[1] then
+                                print(dns.id, q.qname, q.qclass, q.qtype, "failed")
+                                for _, v in pairs(results) do
+                                    print("", v)
+                                end
+                            else
+                                print(dns.id, q.qname, q.qclass, q.qtype, "ok")
+                            end
                         end
                     end
                 end

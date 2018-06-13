@@ -21,3 +21,25 @@
 #include "config.h"
 
 #include "core/object/ieee802.h"
+#include "core/assert.h"
+
+#include <stdlib.h>
+#include <string.h>
+
+core_object_ieee802_t* core_object_ieee802_copy(const core_object_ieee802_t* self)
+{
+    core_object_ieee802_t* copy;
+    glassert_self();
+
+    glfatal_oom(copy = malloc(sizeof(core_object_ieee802_t)));
+    memcpy(copy, self, sizeof(core_object_ieee802_t));
+    copy->obj_prev = 0;
+
+    return copy;
+}
+
+void core_object_ieee802_free(core_object_ieee802_t* self)
+{
+    glassert_self();
+    free(self);
+}

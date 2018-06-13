@@ -21,7 +21,8 @@
 #include "config.h"
 
 #include "input/zero.h"
-#include "core/object/packet.h"
+#include "core/assert.h"
+#include "core/object/null.h"
 
 #include <time.h>
 
@@ -29,87 +30,45 @@ static core_log_t   _log      = LOG_T_INIT("input.zero");
 static input_zero_t _defaults = {
     LOG_T_INIT_OBJ("input.zero"),
     0, 0,
-    0
 };
 
-static core_object_packet_t _pkt        = CORE_OBJECT_PACKET_INIT(0);
-static core_object_packet_t _shared_pkt = CORE_OBJECT_PACKET_INIT(0);
-
-static void _ref(core_object_t* obj, core_object_reference_t ref)
-{
-}
+static core_object_null_t _null = CORE_OBJECT_NULL_INIT(0);
 
 core_log_t* input_zero_log()
 {
     return &_log;
 }
 
-int input_zero_init(input_zero_t* self)
+void input_zero_init(input_zero_t* self)
 {
-    if (!self) {
-        return 1;
-    }
+    mlassert_self();
 
-    *self               = _defaults;
-    _shared_pkt.obj_ref = _ref;
-
-    ldebug("init");
-
-    return 0;
+    *self = _defaults;
 }
 
-int input_zero_destroy(input_zero_t* self)
+void input_zero_destroy(input_zero_t* self)
 {
-    if (!self) {
-        return 1;
-    }
-
-    ldebug("destroy");
-
-    return 0;
+    mlassert_self();
 }
 
-int input_zero_run(input_zero_t* self, uint64_t num)
+void input_zero_run(input_zero_t* self, uint64_t num)
 {
-    core_object_t*  obj;
-    core_receiver_t r;
-    void*           c;
-
-    if (!self || !self->recv) {
-        return 1;
+    mlassert_self();
+    if (!self->recv) {
+        lfatal("no receiver set");
     }
 
-    ldebug("run");
-
-    if (self->use_shared) {
-        obj = (core_object_t*)&_shared_pkt;
-    } else {
-        obj = (core_object_t*)&_pkt;
-    }
-
-    r = self->recv;
-    c = self->ctx;
     while (num--) {
-        r(c, obj);
+        self->recv(self->ctx, (core_object_t*)&_null);
     }
-
-    return 0;
 }
 
 static const core_object_t* _produce(void* ctx)
 {
-    return (core_object_t*)&_pkt;
+    return (core_object_t*)&_null;
 }
 
-static const core_object_t* _produce_shared(void* ctx)
+core_producer_t input_zero_producer()
 {
-    return (core_object_t*)&_shared_pkt;
-}
-
-core_producer_t input_zero_producer(input_zero_t* self)
-{
-    if (self && self->use_shared) {
-        return _produce_shared;
-    }
     return _produce;
 }

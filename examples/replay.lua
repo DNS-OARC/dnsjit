@@ -4,8 +4,7 @@ local log = require("dnsjit.core.log")
 local getopt = require("dnsjit.lib.getopt").new({
     { "v", "verbose", 0, "Enable and increase verbosity for each time given", "?+" },
     { "R", "responses", false, "Wait for responses to the queries and print both", "?" },
-    { "u", "udpcli", false, "Use output.udpcli for sending", "?"},
-    { "t", "tcpcli", false, "Use output.tcpcli for sending", "?"},
+    { "t", "tcp", false, "Use TCP instead of UDP", "?"},
 })
 local pcap, host, port = unpack(getopt:parse())
 if getopt:val("help") then
@@ -33,116 +32,75 @@ end
 
 local ffi = require("ffi")
 
-if getopt:val("u") or getopt:val("t") then
-    local input = require("dnsjit.input.mmpcap").new()
-    input:open(pcap)
-    local layer = require("dnsjit.filter.layer").new()
-    layer:producer(input)
+local input = require("dnsjit.input.mmpcap").new()
+local layer = require("dnsjit.filter.layer").new()
+local output = require("dnsjit.output.udpcli").new()
+if getopt:val("t") then
+    output = require("dnsjit.output.tcpcli").new()
+end
 
-    local output
-    if getopt:val("u") then
-        output = require("dnsjit.output.udpcli").new()
-    else
-        output = require("dnsjit.output.tcpcli").new()
-    end
-    output:connect(host, port)
+input:open(pcap)
+layer:producer(input)
+output:connect(host, port)
 
-    local printdns = false
-    if getopt:val("responses") then
-        printdns = true
-    end
+local printdns = false
+if getopt:val("responses") then
+    printdns = true
+end
 
-    local prod, pctx = layer:produce()
-    local recv, rctx = output:receive()
-    local oprod, opctx = output:produce()
-
-    local start_sec, start_nsec = clock:monotonic()
+local prod, pctx = layer:produce()
+local recv, rctx = output:receive()
+local oprod, opctx = output:produce()
+local start_sec, start_nsec = clock:monotonic()
+if printdns then
     while true do
         local obj = prod(pctx)
-        if obj == nil then
-            break
-        end
-        local dns = require("dnsjit.core.object.dns").new(obj)
-        if dns and dns:parse() == 0 then
-            if dns.qr == 0 then
-                if printdns then
-                    print("query:")
-                    dns:print()
-                    if recv(rctx, obj) == 0 then
-                        local resp = nil
-                        while resp == nil do
-                            resp = oprod(opctx)
-                        end
-                        while resp ~= nil do
-                            local dns = require("dnsjit.core.object.dns").new(resp)
-                            if dns and dns:parse() == 0 then
-                                print("response:")
-                                dns:print()
-                            end
-                            resp = oprod(opctx)
-                        end
+        if obj == nil then break end
+        if obj:type() == "payload" then
+            local dns = require("dnsjit.core.object.dns").new(obj)
+            if dns and dns:parse_header() == 0 and dns.qr == 0 and dns:parse() == 0 then
+                print("query:")
+                dns:print()
+
+                recv(rctx, obj)
+
+                local resp = nil
+                while resp == nil do
+                    resp = oprod(opctx)
+                end
+                while resp ~= nil do
+                    local dns = require("dnsjit.core.object.dns").new(resp)
+                    if dns and dns:parse() == 0 then
+                        print("response:")
+                        dns:print()
                     end
-                else
-                    recv(rctx, obj)
+                    resp = oprod(opctx)
                 end
             end
         end
     end
-    local end_sec, end_nsec = clock:monotonic()
-
-    local runtime = 0
-    if end_sec > start_sec then
-        runtime = ((end_sec - start_sec) - 1) + ((1000000000 - start_nsec + end_nsec)/1000000000)
-    elseif end_sec == start_sec and end_nsec > start_nsec then
-        runtime = (end_nsec - start_nsec) / 1000000000
-    end
-
-    print("runtime", runtime)
-    print("packets", input:packets(), input:packets()/runtime, "/pps")
-    print("queries", output:packets(), output:packets()/runtime, "/qps")
-    print("errors", output:errors())
 else
-    local input = require("dnsjit.input.pcapthread").new()
-    local output = require("dnsjit.output.cpool").new(host, port)
-
-    input:only_queries(true)
-    input:open_offline(pcap)
-
-    if getopt:val("responses") then
-        local lua = require("dnsjit.filter.lua").new()
-        lua:func(function(f, obj)
-            require("dnsjit.core.objects")
-            local pkt = obj:cast()
+    while true do
+        local obj = prod(pctx)
+        if obj == nil then break end
+        if obj:type() == "payload" then
             local dns = require("dnsjit.core.object.dns").new(obj)
-            if pkt and dns and dns:parse() == 0 then
-                print(pkt:src()..":"..pkt.sport.." -> "..pkt:dst()..":"..pkt.dport)
-                dns:print()
+            if dns and dns:parse_header() == 0 and dns.qr == 0 then
+                recv(rctx, obj)
             end
-        end)
-        output:receiver(lua)
-    else
-        output:skip_reply(true)
+        end
     end
-
-    input:receiver(output)
-
-    output:start()
-    local start_sec, start_nsec = clock:monotonic()
-    input:run()
-    output:stop()
-    local end_sec, end_nsec = clock:monotonic()
-
-    local runtime = 0
-    if end_sec > start_sec then
-        runtime = ((end_sec - start_sec) - 1) + ((1000000000 - start_nsec + end_nsec)/1000000000)
-    elseif end_sec == start_sec and end_nsec > start_nsec then
-        runtime = (end_nsec - start_nsec) / 1000000000
-    end
-
-    print("runtime", runtime)
-    print("packets", input:packets(), input:packets()/runtime, "/pps")
-    print("queries", input:queries(), input:queries()/runtime, "/qps")
-    print("dropped", input:dropped())
-    print("ignored", input:ignored())
-    print("total", input:queries() + input:dropped() + input:ignored())
 end
+local end_sec, end_nsec = clock:monotonic()
+
+local runtime = 0
+if end_sec > start_sec then
+    runtime = ((end_sec - start_sec) - 1) + ((1000000000 - start_nsec + end_nsec)/1000000000)
+elseif end_sec == start_sec and end_nsec > start_nsec then
+    runtime = (end_nsec - start_nsec) / 1000000000
+end
+
+print("runtime", runtime)
+print("packets", input:packets(), input:packets()/runtime, "/pps")
+print("queries", output:packets(), output:packets()/runtime, "/qps")
+print("errors", output:errors())

@@ -21,6 +21,7 @@
 #include "config.h"
 
 #include "filter/split.h"
+#include "core/assert.h"
 
 static core_log_t     _log      = LOG_T_INIT("filter.split");
 static filter_split_t _defaults = {
@@ -33,52 +34,33 @@ core_log_t* filter_split_log()
     return &_log;
 }
 
-int filter_split_init(filter_split_t* self)
+void filter_split_init(filter_split_t* self)
 {
-    if (!self) {
-        return 1;
-    }
+    mlassert_self();
 
     *self = _defaults;
-
-    ldebug("init");
-
-    return 0;
 }
 
-int filter_split_destroy(filter_split_t* self)
+void filter_split_destroy(filter_split_t* self)
 {
     filter_split_recv_t* r;
-    if (!self) {
-        return 1;
-    }
+    mlassert_self();
 
-    ldebug("destroy");
-
-    while ((r = self->recv_first) && r != self->recv_last) {
+    if (self->recv_last)
+        self->recv_last->next = 0;
+    while ((r = self->recv_first)) {
         self->recv_first = r->next;
         free(r);
     }
-    if (r) {
-        free(r);
-    }
-
-    return 0;
 }
 
-int filter_split_add(filter_split_t* self, core_receiver_t recv, void* ctx)
+void filter_split_add(filter_split_t* self, core_receiver_t recv, void* ctx)
 {
     filter_split_recv_t* r;
-    if (!self) {
-        return 1;
-    }
+    mlassert_self();
+    lassert(recv, "recv is nil");
 
-    ldebug("add recv %p obj %p", recv, ctx);
-
-    if (!(r = malloc(sizeof(filter_split_recv_t)))) {
-        return 1;
-    }
-
+    lfatal_oom(r = malloc(sizeof(filter_split_recv_t)));
     r->recv = recv;
     r->ctx  = ctx;
 
@@ -88,76 +70,47 @@ int filter_split_add(filter_split_t* self, core_receiver_t recv, void* ctx)
         self->recv_first      = r;
     } else {
         self->recv_first = self->recv = self->recv_last = r;
+        r->next                                         = r;
     }
-
-    return 0;
 }
 
-static int _receive(void* ctx, const core_object_t* obj)
-{
-    (void)ctx;
-    (void)obj;
-    return 1;
-}
-
-static int _roundrobin(void* ctx, const core_object_t* obj)
+static void _roundrobin(void* ctx, const core_object_t* obj)
 {
     filter_split_t* self = (filter_split_t*)ctx;
-
-    if (!self || !obj || !self->recv) {
-        return 1;
-    }
+    mlassert_self();
 
     self->recv->recv(self->recv->ctx, obj);
     self->recv = self->recv->next;
-
-    return 0;
 }
 
-static int _sendall(void* ctx, const core_object_t* obj)
+static void _sendall(void* ctx, const core_object_t* obj)
 {
     filter_split_t*      self = (filter_split_t*)ctx;
     filter_split_recv_t* r;
+    mlassert_self();
 
-    if (!self || !obj || !self->recv) {
-        return 1;
-    }
-
-    for (r = self->recv_first; r && r != self->recv_last; r = r->next) {
+    for (r = self->recv_first; r; r = r->next) {
         r->recv(r->ctx, obj);
+        if (r == self->recv_last)
+            break;
     }
-    if (r) {
-        r->recv(r->ctx, obj);
-    }
-
-    return 0;
-}
-
-static int _any(void* ctx, const core_object_t* obj)
-{
-    filter_split_t* self = (filter_split_t*)ctx;
-
-    if (!self || !obj || !self->recv) {
-        return 1;
-    }
-
-    while (self->recv->recv(self->recv->ctx, obj)) {
-        self->recv = self->recv->next;
-    }
-    self->recv = self->recv->next;
-
-    return 0;
 }
 
 core_receiver_t filter_split_receiver(filter_split_t* self)
 {
+    mlassert_self();
+
+    if (!self->recv) {
+        lfatal("no receiver(s) set");
+    }
+
     switch (self->mode) {
     case FILTER_SPLIT_MODE_ROUNDROBIN:
         return _roundrobin;
     case FILTER_SPLIT_MODE_SENDALL:
         return _sendall;
-    case FILTER_SPLIT_MODE_ANY:
-        return _any;
+    default:
+        lfatal("invalid split mode");
     }
-    return _receive;
+    return 0;
 }

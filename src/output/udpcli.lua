@@ -87,13 +87,13 @@ end
 -- Return the C functions and context for receiving objects, these objects
 -- will be sent.
 function Udpcli:receive()
-    return C.output_udpcli_receiver(), self.obj
+    return C.output_udpcli_receiver(self.obj), self.obj
 end
 
 -- Return the C functions and context for producing objects, these objects
 -- are received.
 function Udpcli:produce()
-    return C.output_udpcli_producer(), self.obj
+    return C.output_udpcli_producer(self.obj), self.obj
 end
 
 -- Return the number of queries we sent.

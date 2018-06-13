@@ -23,8 +23,7 @@
 
 typedef enum filter_split_mode {
     FILTER_SPLIT_MODE_ROUNDROBIN,
-    FILTER_SPLIT_MODE_SENDALL,
-    FILTER_SPLIT_MODE_ANY
+    FILTER_SPLIT_MODE_SENDALL
 } filter_split_mode_t;
 
 typedef struct filter_split_recv filter_split_recv_t;
@@ -44,8 +43,8 @@ typedef struct filter_split {
 
 core_log_t* filter_split_log();
 
-int filter_split_init(filter_split_t* self);
-int filter_split_destroy(filter_split_t* self);
-int filter_split_add(filter_split_t* self, core_receiver_t recv, void* ctx);
+void filter_split_init(filter_split_t* self);
+void filter_split_destroy(filter_split_t* self);
+void filter_split_add(filter_split_t* self, core_receiver_t recv, void* ctx);
 
 core_receiver_t filter_split_receiver(filter_split_t* self);

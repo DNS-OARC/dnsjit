@@ -45,10 +45,10 @@ typedef struct input_pcap {
 
 core_log_t* input_pcap_log();
 
-int input_pcap_init(input_pcap_t* self);
-int input_pcap_destroy(input_pcap_t* self);
+void input_pcap_init(input_pcap_t* self);
+void input_pcap_destroy(input_pcap_t* self);
 int input_pcap_open_offline(input_pcap_t* self, const char* file);
 int input_pcap_loop(input_pcap_t* self, int cnt);
 int input_pcap_dispatch(input_pcap_t* self, int cnt);
 
-core_producer_t input_pcap_producer();
+core_producer_t input_pcap_producer(input_pcap_t* self);

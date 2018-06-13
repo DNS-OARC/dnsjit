@@ -78,13 +78,11 @@ end
 
 -- Return the C functions and context for receiving objects.
 function Timing:receive()
-    self.obj._log:debug("receive()")
     return C.filter_timing_receiver(), self.obj
 end
 
 -- Set the receiver to pass objects to.
 function Timing:receiver(o)
-    self.obj._log:debug("receiver()")
     self.obj.recv, self.obj.ctx = o:receive()
     self._receiver = o
 end

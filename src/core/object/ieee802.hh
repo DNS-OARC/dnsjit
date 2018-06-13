@@ -21,10 +21,8 @@
 //lua:require("dnsjit.core.object_h")
 
 typedef struct core_object_ieee802 {
-    unsigned short        obj_type;
-    const core_object_t*  obj_prev;
-    core_object_refcall_t obj_ref;
-    void*                 obj_refctx;
+    const core_object_t* obj_prev;
+    int32_t              obj_type;
 
     uint16_t       tpid;
     unsigned short pcp : 3;
@@ -32,3 +30,6 @@ typedef struct core_object_ieee802 {
     unsigned short vid : 12;
     uint16_t       ether_type;
 } core_object_ieee802_t;
+
+core_object_ieee802_t* core_object_ieee802_copy(const core_object_ieee802_t* self);
+void core_object_ieee802_free(core_object_ieee802_t* self);

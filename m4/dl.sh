@@ -19,7 +19,7 @@
 
 m4_files="ax_append_flag.m4 ax_cflags_warn_all.m4 ax_ext.m4 ax_pthread.m4
  ax_require_defined.m4 ax_gcc_x86_avx_xgetbv.m4 ax_gcc_x86_cpuid.m4
- ax_check_compile_flag.m4"
+ ax_check_compile_flag.m4 ax_pthread.m4"
 
 for ax in $m4_files; do
   rm -f "$ax"

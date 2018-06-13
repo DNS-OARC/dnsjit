@@ -83,6 +83,26 @@ function Ip:prev()
     return self.obj_prev
 end
 
+-- Cast the object to the underlining object module and return it.
+function Ip:cast()
+    return self
+end
+
+-- Cast the object to the generic object module and return it.
+function Ip:uncast()
+    return ffi.cast("core_object_t*", self)
+end
+
+-- Make a copy of the object and return it.
+function Ip:copy()
+    return C.core_object_ip_copy(self)
+end
+
+-- Free the object, should only be used on copies or otherwise allocated.
+function Ip:free()
+    C.core_object_ip_free(self)
+end
+
 -- Return the IP source as a string.
 function Ip:source()
     return self.src[0] ..".".. self.src[1] ..".".. self.src[2] ..".".. self.src[3]

@@ -179,6 +179,26 @@ function Dns:prev()
     return self.obj_prev
 end
 
+-- Cast the object to the underlining object module and return it.
+function Dns:cast()
+    return self
+end
+
+-- Cast the object to the generic object module and return it.
+function Dns:uncast()
+    return ffi.cast("core_object_t*", self)
+end
+
+-- Make a copy of the object and return it.
+function Dns:copy()
+    return C.core_object_dns_copy(self)
+end
+
+-- Free the object, should only be used on copies or otherwise allocated.
+function Dns:free()
+    C.core_object_dns_free(self)
+end
+
 -- Return the Log object to control logging of this instance or module.
 function Dns:log()
     return C.core_object_dns_log()
@@ -226,7 +246,7 @@ end
 function Dns:rr_label()
     local ptr = C.core_object_dns_rr_label(self)
     if ptr == nil then
-        return nil
+        return
     end
     return ffi.string(ptr)
 end

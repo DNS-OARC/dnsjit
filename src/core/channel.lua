@@ -17,7 +17,7 @@
 -- along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
 
 -- dnsjit.core.channel
--- A channel to send objects between threads
+-- Send data to another thread
 --   local chan = require("dnsjit.core.channel").new()
 --   local thr = require("dnsjit.core.thread").new()
 --   thr:start(function(thr)
@@ -30,7 +30,15 @@
 --   chan:close()
 --   thr:stop()
 --
--- A channel can be used to send objects between threads.
+-- A channel can be used to send data to another thread, this is done by
+-- putting a pointer to the data into a wait-free and lock-free ring buffer
+-- (concurrency kit).
+-- The channel uses the single producer, single consumer model (SPSC) so
+-- there can only be one writer and one reader.
+-- .SS Attributes
+-- .TP
+-- int closed
+-- Is 1 if the channel has been closed.
 module(...,package.seeall)
 
 require("dnsjit.core.channel_h")
@@ -44,10 +52,11 @@ local Channel = {}
 -- Create a new Channel, use the optional
 -- .I size
 -- to specify the size of the channel (buffer).
--- Default size is 8192.
+-- Size must be a power-of-two greater than or equal to 4.
+-- Default size is 2048.
 function Channel.new(size)
     if size == nil then
-        size = 8192
+        size = 2048
     end
     local self = core_channel_t()
     C.core_channel_init(self, size)
@@ -63,52 +72,27 @@ function Channel:log()
     return self._log
 end
 
--- Return a void pointer, C type name and module to be able to share the
--- channel between threads.
+-- Return information to use when sharing this object between threads.
 function Channel:share()
     return ffi.cast("void*", self), t_name.."*", "dnsjit.core.channel"
 end
 
--- Return the C functions and context for receiving objects which will put
--- a copy of the received object into the channel.
-function Channel:receive()
-    return C.core_channel_receiver(), self
-end
-
--- Set the receiver to pass objects to, these objects are retrieved from
--- the channel.
-function Channel:receiver(o)
-    local recv, ctx = o:receive()
-    self.recv = recv
-    self.ctx = ctx
-end
-
--- If you have set a receiver, start getting objects from the channel and
--- passing them to the receiver until the channel is closed.
--- Returns 0 on success.
-function Channel:run()
-    return C.core_channel_run(self)
-end
-
--- Put an object into the channel, this object is not copied so you need to
--- do that yourself or make sure they are referenced objects.
--- If the channel is full then it will stall and wait until space becomes
--- available.
--- Returns 0 on success.
+-- Put an object into the channel, if the channel is full then it will
+-- stall and wait until space becomes available.
 function Channel:put(obj)
-    return C.core_channel_put(self, obj)
+    C.core_channel_put(self, obj)
 end
 
 -- Get an object from the channel, if the channel is empty it will wait until
 -- an object is available.
--- Returns nil if the channel is closed or on error.
+-- Returns nil if the channel is closed.
 function Channel:get()
     return C.core_channel_get(self)
 end
 
--- Close the channel, returns 0 on success.
+-- Close the channel.
 function Channel:close()
-    return C.core_channel_close(self)
+    C.core_channel_close(self)
 end
 
 core_channel_t = ffi.metatype(t_name, { __index = Channel })
