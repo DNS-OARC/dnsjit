@@ -59,6 +59,26 @@ function Gre:prev()
     return self.obj_prev
 end
 
+-- Cast the object to the underlining object module and return it.
+function Gre:cast()
+    return self
+end
+
+-- Cast the object to the generic object module and return it.
+function Gre:uncast()
+    return ffi.cast("core_object_t*", self)
+end
+
+-- Make a copy of the object and return it.
+function Gre:copy()
+    return C.core_object_gre_copy(self)
+end
+
+-- Free the object, should only be used on copies or otherwise allocated.
+function Gre:free()
+    C.core_object_gre_free(self)
+end
+
 core_object_gre_t = ffi.metatype(t_name, { __index = Gre })
 
 -- dnsjit.core.object (3),

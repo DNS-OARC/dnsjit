@@ -21,6 +21,7 @@
 #include "config.h"
 
 #include "globals.h"
+#include "core/assert.h"
 #include "core/thread.h"
 
 #include <string.h>
@@ -40,62 +41,51 @@ core_log_t* core_thread_log()
     return &_log;
 }
 
-int core_thread_init(core_thread_t* self)
+void core_thread_init(core_thread_t* self)
 {
-    if (!self) {
-        return 1;
-    }
+    mlassert_self();
 
     *self = _defaults;
-
-    ldebug("init");
-
-    return 0;
 }
 
-int core_thread_destroy(core_thread_t* self)
+void core_thread_destroy(core_thread_t* self)
 {
     core_thread_item_t* item;
-
-    if (!self) {
-        return 1;
-    }
-
-    ldebug("destroy");
+    mlassert_self();
 
     free(self->bytecode);
     while ((item = self->stack)) {
         self->stack = item->next;
         free(item);
     }
-
-    return 0;
 }
 
 static void* _thread(void* vp)
 {
     core_thread_t* self = (core_thread_t*)vp;
     lua_State*     L;
+    mlassert_self();
 
     // TODO: move to dnsjit_newstate()
     L = luaL_newstate();
+    lassert(L, "could not create new Lua state");
     luaL_openlibs(L);
     dnsjit_globals(L);
 
-    lua_getfield(L, LUA_GLOBALSINDEX, "require");
-    lua_pushstring(L, "dnsjit.core.thread");
-    if (lua_pcall(L, 1, 1, 0)) {
-        mlcritical("%s", lua_tostring(L, -1));
-        lua_close(L);
-        return 0;
-    }
-    lua_getfield(L, -1, "_in_thread");
-    lua_pushlightuserdata(L, (void*)self);
-    lua_pushlstring(L, self->bytecode, self->bytecode_len);
-    if (lua_pcall(L, 2, 0, 0)) {
-        mlcritical("%s", lua_tostring(L, -1));
-        lua_close(L);
-        return 0;
+    for (;;) {
+        lua_getfield(L, LUA_GLOBALSINDEX, "require");
+        lua_pushstring(L, "dnsjit.core.thread");
+        if (lua_pcall(L, 1, 1, 0)) {
+            lcritical("%s", lua_tostring(L, -1));
+            break;
+        }
+        lua_getfield(L, -1, "_in_thread");
+        lua_pushlightuserdata(L, (void*)self);
+        lua_pushlstring(L, self->bytecode, self->bytecode_len);
+        if (lua_pcall(L, 2, 0, 0)) {
+            lcritical("%s", lua_tostring(L, -1));
+        }
+        break;
     }
 
     lua_close(L);
@@ -104,18 +94,20 @@ static void* _thread(void* vp)
 
 int core_thread_start(core_thread_t* self, const char* bytecode, size_t len)
 {
-    if (!self || self->bytecode) {
-        return 1;
+    int err;
+    mlassert_self();
+
+    if (self->bytecode) {
+        lfatal("bytecode already set");
     }
 
-    if (!(self->bytecode = malloc(len))) {
-        return 1;
-    }
+    lfatal_oom(self->bytecode = malloc(len));
     memcpy(self->bytecode, bytecode, len);
     self->bytecode_len = len;
 
-    if (pthread_create(&self->thr_id, 0, _thread, (void*)self)) {
-        return 1;
+    if ((err = pthread_create(&self->thr_id, 0, _thread, (void*)self))) {
+        lcritical("pthread_create() error: %s", core_log_errstr(err));
+        return -1;
     }
 
     return 0;
@@ -123,12 +115,12 @@ int core_thread_start(core_thread_t* self, const char* bytecode, size_t len)
 
 int core_thread_stop(core_thread_t* self)
 {
-    if (!self) {
-        return 1;
-    }
+    int err;
+    mlassert_self();
 
-    if (pthread_join(self->thr_id, 0)) {
-        return 1;
+    if ((err = pthread_join(self->thr_id, 0))) {
+        lcritical("pthread_join() error: %s", core_log_errstr(err));
+        return -1;
     }
 
     return 0;
@@ -152,17 +144,17 @@ inline static void _push(core_thread_t* self, core_thread_item_t* item)
     }
 }
 
-int core_thread_push(core_thread_t* self, void* ptr, const char* type, size_t type_len, const char* module, size_t module_len)
+void core_thread_push(core_thread_t* self, void* ptr, const char* type, size_t type_len, const char* module, size_t module_len)
 {
     core_thread_item_t* item;
+    mlassert_self();
+    lassert(ptr, "ptr is nil");
+    lassert(type, "type is nil");
+    lassert(type_len, "type_len is zero");
+    lassert(module, "module is nil");
+    lassert(module_len, "module_len is zero");
 
-    if (!self || !ptr || !type || !type_len || !module || !module_len) {
-        return 1;
-    }
-
-    if (!(item = malloc(sizeof(core_thread_item_t) + type_len + module_len + 2))) {
-        return 1;
-    }
+    lfatal_oom(item = malloc(sizeof(core_thread_item_t) + type_len + module_len + 2));
     item->next = 0;
     item->ptr  = ptr;
     item->type = ((void*)item) + sizeof(core_thread_item_t);
@@ -173,21 +165,16 @@ int core_thread_push(core_thread_t* self, void* ptr, const char* type, size_t ty
     item->module[module_len] = 0;
 
     _push(self, item);
-
-    return 0;
 }
 
-int core_thread_push_string(core_thread_t* self, const char* str, size_t len)
+void core_thread_push_string(core_thread_t* self, const char* str, size_t len)
 {
     core_thread_item_t* item;
+    mlassert_self();
+    lassert(str, "str is nil");
+    lassert(len, "len is zero");
 
-    if (!self || !str || !len) {
-        return 1;
-    }
-
-    if (!(item = malloc(sizeof(core_thread_item_t) + len + 1))) {
-        return 1;
-    }
+    lfatal_oom(item = malloc(sizeof(core_thread_item_t) + len + 1));
     item->next = 0;
     item->ptr  = 0;
     item->str  = ((void*)item) + sizeof(core_thread_item_t);
@@ -195,36 +182,25 @@ int core_thread_push_string(core_thread_t* self, const char* str, size_t len)
     item->str[len] = 0;
 
     _push(self, item);
-
-    return 0;
 }
 
-int core_thread_push_int64(core_thread_t* self, int64_t i64)
+void core_thread_push_int64(core_thread_t* self, int64_t i64)
 {
     core_thread_item_t* item;
+    mlassert_self();
 
-    if (!self) {
-        return 1;
-    }
-
-    if (!(item = malloc(sizeof(core_thread_item_t)))) {
-        return 1;
-    }
+    lfatal_oom(item = malloc(sizeof(core_thread_item_t)));
     item->next = 0;
     item->ptr  = 0;
     item->str  = 0;
     item->i64  = i64;
 
     _push(self, item);
-
-    return 0;
 }
 
 const core_thread_item_t* core_thread_pop(core_thread_t* self)
 {
-    if (!self) {
-        return 0;
-    }
+    mlassert_self();
 
     if (pthread_mutex_lock(&self->lock)) {
         lfatal("mutex lock failed");

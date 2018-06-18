@@ -149,10 +149,12 @@
 -- Used for messages that has impact on processing.
 -- .TP
 -- critical
--- Used for messages that have severe impact on processing, this level can not be disabled.
+-- Used for messages that have severe impact on processing, this level can
+-- not be disabled.
 -- .TP
 -- fatal
--- Used to display a message before stopping all processing and existing, this level can not be disabled.
+-- Used to display a message before stopping all processing and existing,
+-- this level can not be disabled.
 -- .SS C macros
 -- .TP
 -- Object instance macros
@@ -223,18 +225,18 @@ function Log:enable(level)
         self = L
     end
     if level == "all" then
-        self.settings.debug = 3;
-        self.settings.info = 3;
-        self.settings.notice = 3;
-        self.settings.warning = 3;
+        self.settings.debug = 3
+        self.settings.info = 3
+        self.settings.notice = 3
+        self.settings.warning = 3
     elseif level == "debug" then
-        self.settings.debug = 3;
+        self.settings.debug = 3
     elseif level == "info" then
-        self.settings.info = 3;
+        self.settings.info = 3
     elseif level == "notice" then
-        self.settings.notice = 3;
+        self.settings.notice = 3
     elseif level == "warning" then
-        self.settings.warning = 3;
+        self.settings.warning = 3
     else
         error("invalid log level: "..level)
     end
@@ -247,44 +249,58 @@ function Log:disable(level)
         self = L
     end
     if level == "all" then
-        self.settings.debug = 2;
-        self.settings.info = 2;
-        self.settings.notice = 2;
-        self.settings.warning = 2;
+        self.settings.debug = 2
+        self.settings.info = 2
+        self.settings.notice = 2
+        self.settings.warning = 2
     elseif level == "debug" then
-        self.settings.debug = 2;
+        self.settings.debug = 2
     elseif level == "info" then
-        self.settings.info = 2;
+        self.settings.info = 2
     elseif level == "notice" then
-        self.settings.notice = 2;
+        self.settings.notice = 2
     elseif level == "warning" then
-        self.settings.warning = 2;
+        self.settings.warning = 2
     else
         error("invalid log level: "..level)
     end
 end
 
--- Clear specified log level, which means it will revert back to default or inherited settings.
+-- Clear specified log level, which means it will revert back to default
+-- or inherited settings.
 function Log:clear(level)
     if not ffi.istype(t_name, self) then
         level = self
         self = L
     end
     if level == "all" then
-        self.settings.debug = 0;
-        self.settings.info = 0;
-        self.settings.notice = 0;
-        self.settings.warning = 0;
+        self.settings.debug = 0
+        self.settings.info = 0
+        self.settings.notice = 0
+        self.settings.warning = 0
     elseif level == "debug" then
-        self.settings.debug = 0;
+        self.settings.debug = 0
     elseif level == "info" then
-        self.settings.info = 0;
+        self.settings.info = 0
     elseif level == "notice" then
-        self.settings.notice = 0;
+        self.settings.notice = 0
     elseif level == "warning" then
-        self.settings.warning = 0;
+        self.settings.warning = 0
     else
         error("invalid log level: "..level)
+    end
+end
+
+-- Enable or disable the displaying of file and line for messages.
+function Log:display_file_line(bool)
+    if not ffi.istype(t_name, self) then
+        bool = self
+        self = L
+    end
+    if bool == true then
+        self.settings.display_file_line = 3
+    else
+        self.settings.display_file_line = 0
     end
 end
 

@@ -1,16 +1,19 @@
 #!/usr/bin/env dnsjit
 require("dnsjit.core.objects")
-local input = require("dnsjit.input.pcapthread").new()
-local output = require("dnsjit.filter.coro").new()
-
-output:func(function(filter, object)
-    local dns = require("dnsjit.core.object.dns").new(object)
-    if dns and dns:parse() == 0 then
-        print(dns.id)
-    end
-end)
+local input = require("dnsjit.input.pcap").new()
+local layer = require("dnsjit.filter.layer").new()
 
 input:open_offline(arg[2])
-input:only_queries(true)
-input:receiver(output)
-input:run()
+layer:producer(input)
+local producer, ctx = layer:produce()
+
+while true do
+    local object = producer(ctx)
+    if object == nil then break end
+    if object:type() == "payload" then
+        local dns = require("dnsjit.core.object.dns").new(object)
+        if dns and dns:parse() == 0 then
+            print(dns.id)
+        end
+    end
+end

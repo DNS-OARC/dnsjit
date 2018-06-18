@@ -38,19 +38,18 @@ architectures because of LuaJIT.
 
 - [libluajit](http://luajit.org/) 2.0+
 - [libpcap](http://www.tcpdump.org/)
-- libev
 - [liblmdb](https://github.com/LMDB/lmdb)
 - [libck](https://github.com/concurrencykit/ck)
 - [luajit](http://luajit.org/) (for building)
 - automake/autoconf/libtool/pkg-config (for building)
 
-Debian/Ubuntu: `apt-get install libluajit-5.1-dev libpcap-dev libev-dev luajit liblmdb-dev libck-dev`
+Debian/Ubuntu: `apt-get install libluajit-5.1-dev libpcap-dev luajit liblmdb-dev libck-dev`
 
-CentOS: `yum install luajit-devel libpcap-devel libev-devel lmdb-devel ck-devel`
+CentOS: `yum install luajit-devel libpcap-devel lmdb-devel ck-devel`
 
-FreeBSD: `pkg install luajit libpcap libev lmdb` + manual install of libck
+FreeBSD: `pkg install luajit libpcap lmdb` + manual install of libck
 
-OpenBSD: `pkg_add luajit libev` + manual install of libpcap, liblmdb and libck
+OpenBSD: `pkg_add luajit` + manual install of libpcap, liblmdb and libck
 
 ## Build
 
@@ -97,20 +96,23 @@ Following example display the DNS ID found in queries.
 
 ```lua
 require("dnsjit.core.objects")
-local input = require("dnsjit.input.pcapthread").new()
-local output = require("dnsjit.filter.coro").new()
+local input = require("dnsjit.input.pcap").new()
+local layer = require("dnsjit.filter.layer").new()
 
-output:func(function(filter, object)
-    local dns = require("dnsjit.core.object.dns").new(object)
-    if dns and dns:parse() == 0 then
-        print(dns.id)
+input:open_offline(arg[2])
+layer:producer(input)
+local producer, ctx = layer:produce()
+
+while true do
+    local object = producer(ctx)
+    if object == nil then break end
+    if object:type() == "payload" then
+        local dns = require("dnsjit.core.object.dns").new(object)
+        if dns and dns:parse() == 0 then
+            print(dns.id)
+        end
     end
-end)
-
-input:open_offline("file.pcap")
-input:only_queries(true)
-input:receiver(output)
-input:run()
+end
 ```
 
 See more examples in the [examples](https://github.com/DNS-OARC/dnsjit/tree/develop/examples) directory.

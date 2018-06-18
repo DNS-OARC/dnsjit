@@ -26,14 +26,12 @@ typedef struct input_zero {
     core_log_t      _log;
     core_receiver_t recv;
     void*           ctx;
-
-    unsigned short use_shared : 1;
 } input_zero_t;
 
 core_log_t* input_zero_log();
 
-int input_zero_init(input_zero_t* self);
-int input_zero_destroy(input_zero_t* self);
-int input_zero_run(input_zero_t* self, uint64_t num);
+void input_zero_init(input_zero_t* self);
+void input_zero_destroy(input_zero_t* self);
+void input_zero_run(input_zero_t* self, uint64_t num);
 
-core_producer_t input_zero_producer(input_zero_t* self);
+core_producer_t input_zero_producer();

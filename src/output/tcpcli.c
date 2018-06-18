@@ -21,6 +21,7 @@
 #include "config.h"
 
 #include "output/tcpcli.h"
+#include "core/assert.h"
 #include "core/object/dns.h"
 #include "core/object/payload.h"
 
@@ -31,13 +32,12 @@
 #include <fcntl.h>
 #include <string.h>
 #include <arpa/inet.h>
-#include <errno.h>
 
 static core_log_t      _log      = LOG_T_INIT("output.tcpcli");
 static output_tcpcli_t _defaults = {
     LOG_T_INIT_OBJ("output.tcpcli"),
     0, 0, -1,
-    { 0 }, CORE_OBJECT_PACKET_INIT(0),
+    { 0 }, CORE_OBJECT_PAYLOAD_INIT(0),
     0, 0, 0
 };
 
@@ -46,74 +46,55 @@ core_log_t* output_tcpcli_log()
     return &_log;
 }
 
-int output_tcpcli_init(output_tcpcli_t* self)
+void output_tcpcli_init(output_tcpcli_t* self)
 {
-    if (!self) {
-        return 1;
-    }
+    mlassert_self();
 
     *self             = _defaults;
     self->pkt.payload = self->recvbuf;
-
-    ldebug("init");
-
-    return 0;
 }
 
-int output_tcpcli_destroy(output_tcpcli_t* self)
+void output_tcpcli_destroy(output_tcpcli_t* self)
 {
-    if (!self) {
-        return 1;
-    }
-
-    ldebug("destroy");
+    mlassert_self();
 
     if (self->fd > -1) {
         shutdown(self->fd, SHUT_RDWR);
         close(self->fd);
     }
-
-    return 0;
 }
 
 int output_tcpcli_connect(output_tcpcli_t* self, const char* host, const char* port)
 {
     struct addrinfo* addr;
     int              err;
+    mlassert_self();
+    lassert(host, "host is nil");
+    lassert(port, "port is nil");
 
-    if (!self || self->fd > -1 || !host || !port) {
-        return 1;
+    if (self->fd > -1) {
+        lfatal("already connected");
     }
-
-    ldebug("connect %s %s", host, port);
 
     if ((err = getaddrinfo(host, port, 0, &addr))) {
-        lcritical("getaddrinfo() %d", err);
-        return 1;
+        lcritical("getaddrinfo(%s, %s) error %s", host, port, gai_strerror(err));
+        return -1;
     }
     if (!addr) {
-        lcritical("getaddrinfo failed");
-        return 1;
+        lcritical("getaddrinfo failed, no address returned");
+        return -1;
     }
-    ldebug("getaddrinfo() flags: 0x%x family: 0x%x socktype: 0x%x protocol: 0x%x addrlen: %d",
-        addr->ai_flags,
-        addr->ai_family,
-        addr->ai_socktype,
-        addr->ai_protocol,
-        addr->ai_addrlen);
 
     if ((self->fd = socket(addr->ai_addr->sa_family, SOCK_STREAM, 0)) < 0) {
-        lcritical("socket failed");
+        lcritical("socket() error %s", core_log_errstr(errno));
         freeaddrinfo(addr);
-        return 1;
+        return -2;
     }
 
     if (connect(self->fd, addr->ai_addr, addr->ai_addrlen)) {
-        lcritical("connect failed");
+        lcritical("connect() error %s", core_log_errstr(errno));
         freeaddrinfo(addr);
-        close(self->fd);
-        self->fd = -1;
-        return 1;
+        return -2;
     }
 
     freeaddrinfo(addr);
@@ -123,9 +104,10 @@ int output_tcpcli_connect(output_tcpcli_t* self, const char* host, const char* p
 int output_tcpcli_nonblocking(output_tcpcli_t* self)
 {
     int flags;
+    mlassert_self();
 
-    if (!self || self->fd < 0) {
-        return -1;
+    if (self->fd < 0) {
+        lfatal("not connected");
     }
 
     flags = fcntl(self->fd, F_GETFL);
@@ -139,43 +121,38 @@ int output_tcpcli_nonblocking(output_tcpcli_t* self)
 int output_tcpcli_set_nonblocking(output_tcpcli_t* self, int nonblocking)
 {
     int flags;
+    mlassert_self();
 
-    if (!self || self->fd < 0) {
-        return 1;
+    if (self->fd < 0) {
+        lfatal("not connected");
     }
 
-    ldebug("set nonblocking %d", nonblocking);
-
     if ((flags = fcntl(self->fd, F_GETFL)) == -1) {
-        lcritical("fcntl(FL_GETFL) failed");
-        return 1;
+        lcritical("fcntl(FL_GETFL) error %s", core_log_errstr(errno));
+        return -1;
     }
 
     if (nonblocking) {
-        if (fcntl(self->fd, F_SETFL, flags | O_NONBLOCK)) {
-            lcritical("fcntl(FL_SETFL) failed");
-            return 1;
-        }
+        flags |= O_NONBLOCK;
     } else {
-        if (fcntl(self->fd, F_SETFL, flags & ~O_NONBLOCK)) {
-            lcritical("fcntl(FL_SETFL) failed");
-            return 1;
-        }
+        flags &= ~O_NONBLOCK;
+    }
+
+    if (fcntl(self->fd, F_SETFL, flags | O_NONBLOCK)) {
+        lcritical("fcntl(FL_SETFL, %x) error %s", flags, core_log_errstr(errno));
+        return -1;
     }
 
     return 0;
 }
 
-static int _receive(void* ctx, const core_object_t* obj)
+static void _receive(void* ctx, const core_object_t* obj)
 {
     output_tcpcli_t* self = (output_tcpcli_t*)ctx;
     const uint8_t*   payload;
     size_t           len, sent;
     uint16_t         dnslen;
-
-    if (!self) {
-        return 1;
-    }
+    mlassert_self();
 
     for (; obj;) {
         switch (obj->obj_type) {
@@ -187,11 +164,11 @@ static int _receive(void* ctx, const core_object_t* obj)
             len     = ((core_object_payload_t*)obj)->len;
             break;
         default:
-            return 1;
+            return;
         }
 
         if (len < 3 || payload[2] & 0x80) {
-            return 0;
+            return;
         }
 
         sent = 0;
@@ -213,7 +190,7 @@ static int _receive(void* ctx, const core_object_t* obj)
                         sent += ret;
                         if (sent < len)
                             continue;
-                        return 0;
+                        return;
                     }
                     switch (errno) {
                     case EAGAIN:
@@ -243,12 +220,16 @@ static int _receive(void* ctx, const core_object_t* obj)
         }
         break;
     }
-
-    return 1;
 }
 
-core_receiver_t output_tcpcli_receiver()
+core_receiver_t output_tcpcli_receiver(output_tcpcli_t* self)
 {
+    mlassert_self();
+
+    if (self->fd < 0) {
+        lfatal("not connected");
+    }
+
     return _receive;
 }
 
@@ -257,10 +238,7 @@ static const core_object_t* _produce(void* ctx)
     output_tcpcli_t* self = (output_tcpcli_t*)ctx;
     ssize_t          n, recv;
     uint16_t         dnslen;
-
-    if (!self || self->fd < 0) {
-        return 0;
-    }
+    mlassert_self();
 
     if (!self->have_dnslen) {
         recv = 0;
@@ -326,7 +304,13 @@ static const core_object_t* _produce(void* ctx)
     return (core_object_t*)&self->pkt;
 }
 
-core_producer_t output_tcpcli_producer()
+core_producer_t output_tcpcli_producer(output_tcpcli_t* self)
 {
+    mlassert_self();
+
+    if (self->fd < 0) {
+        lfatal("not connected");
+    }
+
     return _produce;
 }

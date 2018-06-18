@@ -22,10 +22,8 @@
 //lua:require("dnsjit.core.object_h")
 
 typedef struct core_object_dns {
-    unsigned short        obj_type;
-    const core_object_t*  obj_prev;
-    core_object_refcall_t obj_ref;
-    void*                 obj_refctx;
+    const core_object_t* obj_prev;
+    int32_t              obj_type;
 
     unsigned short have_id : 1;
     unsigned short have_qr : 1;
@@ -68,6 +66,7 @@ typedef struct core_object_dns {
 core_log_t* core_object_dns_log();
 
 core_object_dns_t* core_object_dns_new(const core_object_t* obj);
+core_object_dns_t* core_object_dns_copy(const core_object_dns_t* self);
 void core_object_dns_free(core_object_dns_t* self);
 
 int core_object_dns_parse_header(core_object_dns_t* self);

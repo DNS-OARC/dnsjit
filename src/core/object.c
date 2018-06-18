@@ -21,65 +21,115 @@
 #include "config.h"
 
 #include "core/object.h"
+#include "core/assert.h"
 #include "core/object/pcap.h"
+#include "core/object/ether.h"
+#include "core/object/null.h"
+#include "core/object/loop.h"
+#include "core/object/linuxsll.h"
+#include "core/object/ieee802.h"
+#include "core/object/gre.h"
+#include "core/object/ip.h"
+#include "core/object/ip6.h"
+#include "core/object/icmp.h"
+#include "core/object/icmp6.h"
 #include "core/object/udp.h"
+#include "core/object/tcp.h"
+#include "core/object/payload.h"
+#include "core/object/dns.h"
 
-#include <stdlib.h>
-#include <string.h>
-
-/* TODO: document */
-core_object_t* core_object_copy(const core_object_t* obj)
+core_object_t* core_object_copy(const core_object_t* self)
 {
-    if (!obj) {
-        return 0;
-    }
+    glassert_self();
 
-    if (obj->obj_ref) {
-        obj->obj_ref((core_object_t*)obj, CORE_OBJECT_INCREF);
-        return (core_object_t*)obj;
-    }
-
-    switch (obj->obj_type) {
-    case CORE_OBJECT_PCAP: {
-        core_object_pcap_t* pcap = (core_object_pcap_t*)obj;
-        core_object_pcap_t* copy = malloc(sizeof(core_object_pcap_t) + pcap->caplen);
-
-        if (!copy) {
-            return 0;
-        }
-
-        memcpy(copy, pcap, sizeof(core_object_pcap_t));
-        copy->obj_prev = 0;
-
-        memcpy((void*)copy + sizeof(core_object_pcap_t), pcap->bytes, pcap->caplen);
-        copy->bytes = (unsigned char*)copy + sizeof(core_object_pcap_t);
-
-        return (core_object_t*)copy;
-    }
-    // case CORE_OBJECT_UDP: {
-    //     core_object_udp_t* udp  = (core_object_udp_t*)obj;
-    //     core_object_udp_t* copy = malloc(sizeof(core_object_udp_t) + udp->len);
-    //
-    //     memcpy(copy, udp, sizeof(core_object_udp_t));
-    //     copy->obj_prev = 0;
-    //
-    //     memcpy((void*)copy + sizeof(core_object_udp_t), udp->payload, udp->len);
-    //     copy->payload = (unsigned char*)copy + sizeof(core_object_udp_t);
-    //
-    //     return (core_object_t*)copy;
-    // }
+    switch (self->obj_type) {
+    case CORE_OBJECT_PCAP:
+        return (core_object_t*)core_object_pcap_copy((core_object_pcap_t*)self);
+    case CORE_OBJECT_ETHER:
+        return (core_object_t*)core_object_ether_copy((core_object_ether_t*)self);
+    case CORE_OBJECT_NULL:
+        return (core_object_t*)core_object_null_copy((core_object_null_t*)self);
+    case CORE_OBJECT_LOOP:
+        return (core_object_t*)core_object_loop_copy((core_object_loop_t*)self);
+    case CORE_OBJECT_LINUXSLL:
+        return (core_object_t*)core_object_linuxsll_copy((core_object_linuxsll_t*)self);
+    case CORE_OBJECT_IEEE802:
+        return (core_object_t*)core_object_ieee802_copy((core_object_ieee802_t*)self);
+    case CORE_OBJECT_GRE:
+        return (core_object_t*)core_object_gre_copy((core_object_gre_t*)self);
+    case CORE_OBJECT_IP:
+        return (core_object_t*)core_object_ip_copy((core_object_ip_t*)self);
+    case CORE_OBJECT_IP6:
+        return (core_object_t*)core_object_ip6_copy((core_object_ip6_t*)self);
+    case CORE_OBJECT_ICMP:
+        return (core_object_t*)core_object_icmp_copy((core_object_icmp_t*)self);
+    case CORE_OBJECT_ICMP6:
+        return (core_object_t*)core_object_icmp6_copy((core_object_icmp6_t*)self);
+    case CORE_OBJECT_UDP:
+        return (core_object_t*)core_object_udp_copy((core_object_udp_t*)self);
+    case CORE_OBJECT_TCP:
+        return (core_object_t*)core_object_tcp_copy((core_object_tcp_t*)self);
+    case CORE_OBJECT_PAYLOAD:
+        return (core_object_t*)core_object_payload_copy((core_object_payload_t*)self);
+    case CORE_OBJECT_DNS:
+        return (core_object_t*)core_object_dns_copy((core_object_dns_t*)self);
     default:
-        break;
+        glfatal("unknown type %d", self->obj_type);
     }
-
     return 0;
 }
 
-void core_object_free(core_object_t* obj)
+void core_object_free(core_object_t* self)
 {
-    if (obj->obj_ref) {
-        obj->obj_ref(obj, CORE_OBJECT_DECREF);
-    } else {
-        free(obj);
+    glassert_self();
+
+    switch (self->obj_type) {
+    case CORE_OBJECT_PCAP:
+        core_object_pcap_free((core_object_pcap_t*)self);
+        break;
+    case CORE_OBJECT_ETHER:
+        core_object_ether_free((core_object_ether_t*)self);
+        break;
+    case CORE_OBJECT_NULL:
+        core_object_null_free((core_object_null_t*)self);
+        break;
+    case CORE_OBJECT_LOOP:
+        core_object_loop_free((core_object_loop_t*)self);
+        break;
+    case CORE_OBJECT_LINUXSLL:
+        core_object_linuxsll_free((core_object_linuxsll_t*)self);
+        break;
+    case CORE_OBJECT_IEEE802:
+        core_object_ieee802_free((core_object_ieee802_t*)self);
+        break;
+    case CORE_OBJECT_GRE:
+        core_object_gre_free((core_object_gre_t*)self);
+        break;
+    case CORE_OBJECT_IP:
+        core_object_ip_free((core_object_ip_t*)self);
+        break;
+    case CORE_OBJECT_IP6:
+        core_object_ip6_free((core_object_ip6_t*)self);
+        break;
+    case CORE_OBJECT_ICMP:
+        core_object_icmp_free((core_object_icmp_t*)self);
+        break;
+    case CORE_OBJECT_ICMP6:
+        core_object_icmp6_free((core_object_icmp6_t*)self);
+        break;
+    case CORE_OBJECT_UDP:
+        core_object_udp_free((core_object_udp_t*)self);
+        break;
+    case CORE_OBJECT_TCP:
+        core_object_tcp_free((core_object_tcp_t*)self);
+        break;
+    case CORE_OBJECT_PAYLOAD:
+        core_object_payload_free((core_object_payload_t*)self);
+        break;
+    case CORE_OBJECT_DNS:
+        core_object_dns_free((core_object_dns_t*)self);
+        break;
+    default:
+        glfatal("unknown type %d", self->obj_type);
     }
 }

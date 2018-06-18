@@ -21,12 +21,12 @@
 #include "config.h"
 
 #include "filter/timing.h"
+#include "core/assert.h"
 #include "core/timespec.h"
-#include "core/object/packet.h"
+#include "core/object/pcap.h"
 
 #include <time.h>
 #include <sys/time.h>
-#include <errno.h>
 
 #define N1e9 1000000000
 
@@ -36,7 +36,7 @@ typedef struct _filter_timing {
     struct timespec diff;
     core_timespec_t last_pkthdr_ts;
     struct timespec last_ts;
-    int (*timing_callback)(filter_timing_t*, const core_object_packet_t*, const core_object_t*);
+    int (*timing_callback)(filter_timing_t*, const core_object_pcap_t*, const core_object_t*);
     struct timespec mod_ts;
 } _filter_timing_t;
 
@@ -47,14 +47,15 @@ static filter_timing_t _defaults = {
     TIMING_MODE_KEEP, 0, 0, 0.0,
 };
 
+#define _self ((_filter_timing_t*)self)
+
 core_log_t* filter_timing_log()
 {
     return &_log;
 }
 
-static int _keep(filter_timing_t* self, const core_object_packet_t* pkt, const core_object_t* obj)
+static int _keep(filter_timing_t* self, const core_object_pcap_t* pkt, const core_object_t* obj)
 {
-    _filter_timing_t* _self = (_filter_timing_t*)self;
 #if HAVE_CLOCK_NANOSLEEP
     struct timespec to = {
         _self->diff.tv_sec + pkt->ts.sec,
@@ -112,10 +113,9 @@ static int _keep(filter_timing_t* self, const core_object_packet_t* pkt, const c
     return 0;
 }
 
-static int _increase(filter_timing_t* self, const core_object_packet_t* pkt, const core_object_t* obj)
+static int _increase(filter_timing_t* self, const core_object_pcap_t* pkt, const core_object_t* obj)
 {
-    _filter_timing_t* _self = (_filter_timing_t*)self;
-    struct timespec   diff  = {
+    struct timespec diff = {
         pkt->ts.sec - _self->last_pkthdr_ts.sec,
         pkt->ts.nsec - _self->last_pkthdr_ts.nsec
     };
@@ -184,10 +184,9 @@ static int _increase(filter_timing_t* self, const core_object_packet_t* pkt, con
     return 0;
 }
 
-static int _reduce(filter_timing_t* self, const core_object_packet_t* pkt, const core_object_t* obj)
+static int _reduce(filter_timing_t* self, const core_object_pcap_t* pkt, const core_object_t* obj)
 {
-    _filter_timing_t* _self = (_filter_timing_t*)self;
-    struct timespec   diff  = {
+    struct timespec diff = {
         pkt->ts.sec - _self->last_pkthdr_ts.sec,
         pkt->ts.nsec - _self->last_pkthdr_ts.nsec
     };
@@ -256,10 +255,9 @@ static int _reduce(filter_timing_t* self, const core_object_packet_t* pkt, const
     return 0;
 }
 
-static int _multiply(filter_timing_t* self, const core_object_packet_t* pkt, const core_object_t* obj)
+static int _multiply(filter_timing_t* self, const core_object_pcap_t* pkt, const core_object_t* obj)
 {
-    _filter_timing_t* _self = (_filter_timing_t*)self;
-    struct timespec   diff  = {
+    struct timespec diff = {
         pkt->ts.sec - _self->last_pkthdr_ts.sec,
         pkt->ts.nsec - _self->last_pkthdr_ts.nsec
     };
@@ -328,10 +326,8 @@ static int _multiply(filter_timing_t* self, const core_object_packet_t* pkt, con
     return 0;
 }
 
-static int _init(filter_timing_t* self, const core_object_packet_t* pkt, const core_object_t* obj)
+static int _init(filter_timing_t* self, const core_object_pcap_t* pkt, const core_object_t* obj)
 {
-    _filter_timing_t* _self = (_filter_timing_t*)self;
-
 #if HAVE_CLOCK_NANOSLEEP
     if (clock_gettime(CLOCK_MONOTONIC, &_self->last_ts)) {
         lfatal("clock_gettime()");
@@ -383,45 +379,40 @@ static int _init(filter_timing_t* self, const core_object_packet_t* pkt, const c
 
 filter_timing_t* filter_timing_new()
 {
-    filter_timing_t*  self  = malloc(sizeof(_filter_timing_t));
-    _filter_timing_t* _self = (_filter_timing_t*)self;
-
-    if (self) {
-        *self                  = _defaults;
-        _self->timing_callback = _init;
-
-        ldebug("new");
-    }
+    filter_timing_t* self;
+    mlfatal_oom(self = malloc(sizeof(_filter_timing_t)));
+    *self                  = _defaults;
+    _self->timing_callback = _init;
 
     return self;
 }
 
 void filter_timing_free(filter_timing_t* self)
 {
-    ldebug("free");
+    mlassert_self();
     free(self);
 }
 
-static int _receive(void* ctx, const core_object_t* obj)
+static void _receive(void* ctx, const core_object_t* obj)
 {
-    _filter_timing_t*           _self = (_filter_timing_t*)ctx;
-    const core_object_packet_t* pkt   = (core_object_packet_t*)obj;
+    filter_timing_t* self = (filter_timing_t*)ctx;
+    mlassert_self();
+    lassert(obj, "obj is nil");
 
-    if (!_self || !obj || !_self->pub.recv) {
-        return 1;
+    if (obj->obj_type != CORE_OBJECT_PCAP) {
+        lfatal("obj is not CORE_OBJECT_PCAP");
     }
 
-    while (pkt) {
-        if (pkt->obj_type == CORE_OBJECT_PACKET) {
-            return _self->timing_callback((filter_timing_t*)_self, pkt, obj);
-        }
-        pkt = (core_object_packet_t*)pkt->obj_prev;
-    }
-
-    return 0;
+    _self->timing_callback(self, (core_object_pcap_t*)obj, obj);
 }
 
-core_receiver_t filter_timing_receiver()
+core_receiver_t filter_timing_receiver(filter_timing_t* self)
 {
+    mlassert_self();
+
+    if (!self->recv) {
+        lfatal("no receiver set");
+    }
+
     return _receive;
 }

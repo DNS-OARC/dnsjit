@@ -67,7 +67,7 @@ end
 
 -- Return the C functions and context for receiving objects.
 function Respdiff:receive()
-    return C.output_respdiff_receiver(), self.obj
+    return C.output_respdiff_receiver(self.obj), self.obj
 end
 
 -- Commit the LMDB transactions, can not store any more objects after this
@@ -77,9 +77,8 @@ end
 -- and
 -- .I end_time
 -- are used to fill the meta table.
--- Returns 0 on success.
 function Respdiff:commit(start_time, end_time)
-    return C.output_respdiff_commit(self.obj, self.origname, self.recvname, start_time, end_time)
+    C.output_respdiff_commit(self.obj, self.origname, self.recvname, start_time, end_time)
 end
 
 -- respdiff " https://gitlab.labs.nic.cz/knot/respdiff"

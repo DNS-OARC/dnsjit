@@ -21,7 +21,6 @@
 #include "config.h"
 
 #include "globals.h"
-#include "filter/coro.h"
 
 #include <lua.h>
 #include <lualib.h>
@@ -29,6 +28,4 @@
 
 void dnsjit_globals(lua_State* L)
 {
-    lua_pushcfunction(L, filter_coro_store_thread);
-    lua_setglobal(L, "dnsjit_filter_coro_store_thread");
 }

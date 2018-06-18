@@ -35,16 +35,17 @@
 #define CORE_OBJECT_IP6 21
 #define CORE_OBJECT_ICMP 22
 #define CORE_OBJECT_ICMP6 23
-/* DNS carrying objects */
+/* payload carrying objects */
 #define CORE_OBJECT_UDP 30
 #define CORE_OBJECT_TCP 31
-#define CORE_OBJECT_PACKET 32
-#define CORE_OBJECT_PAYLOAD 33
-/* DNS object(s) */
-#define CORE_OBJECT_DNS 40
+/* payload */
+#define CORE_OBJECT_PAYLOAD 40
+/* service object(s) */
+#define CORE_OBJECT_DNS 50
 
+#include <stdint.h>
 #include "core/object.hh"
 
-#define CORE_OBJECT_INIT(type, prev) type, (core_object_t*)prev, 0, 0
+#define CORE_OBJECT_INIT(type, prev) (core_object_t*)prev, type
 
 #endif

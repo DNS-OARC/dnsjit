@@ -21,3 +21,25 @@
 #include "config.h"
 
 #include "core/object/ip6.h"
+#include "core/assert.h"
+
+#include <stdlib.h>
+#include <string.h>
+
+core_object_ip6_t* core_object_ip6_copy(const core_object_ip6_t* self)
+{
+    core_object_ip6_t* copy;
+    glassert_self();
+
+    glfatal_oom(copy = malloc(sizeof(core_object_ip6_t)));
+    memcpy(copy, self, sizeof(core_object_ip6_t));
+    copy->obj_prev = 0;
+
+    return copy;
+}
+
+void core_object_ip6_free(core_object_ip6_t* self)
+{
+    glassert_self();
+    free(self);
+}

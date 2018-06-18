@@ -32,6 +32,10 @@
 -- pthread_mutex_t
 -- .TP
 -- struct sockaddr_storage
+-- .TP
+-- ck_ring_t
+-- .TP
+-- ck_ring_buffer_t
 module(...,package.seeall)
 
 require("dnsjit.core.compat_h")

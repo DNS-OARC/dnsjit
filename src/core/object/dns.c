@@ -21,10 +21,11 @@
 #include "config.h"
 
 #include "core/object/dns.h"
-#include "core/object/packet.h"
 #include "core/object/payload.h"
 #include "omg-dns/omg_dns.h"
+#include "core/assert.h"
 
+#include <stdlib.h>
 #include <string.h>
 
 #define NUM_LABELS 256
@@ -91,65 +92,65 @@ core_object_dns_t* core_object_dns_new(const core_object_t* obj)
 {
     core_object_dns_t* self;
 
-    if (!obj) {
-        return 0;
-    }
+    mlassert(obj, "obj is nil");
 
     switch (obj->obj_type) {
-    case CORE_OBJECT_PACKET:
     case CORE_OBJECT_PAYLOAD:
         break;
     default:
-        return 0;
+        mlfatal("invalid object type %d", obj->obj_type);
     }
 
-    if ((self = malloc(sizeof(_query_t)))) {
-        *_self         = _defaults;
-        self->obj_prev = obj;
-    }
+    mlfatal_oom(self = malloc(sizeof(_query_t)));
+    *_self         = _defaults;
+    self->obj_prev = obj;
 
     return self;
 }
 
+core_object_dns_t* core_object_dns_copy(const core_object_dns_t* self)
+{
+    _query_t* copy;
+    mlassert_self();
+
+    mlfatal_oom(copy = malloc(sizeof(_query_t)));
+    *copy = _defaults;
+    memcpy(&copy->pub, self, sizeof(core_object_dns_t));
+    copy->pub.obj_prev = 0;
+    copy->parsed       = 0;
+
+    return (core_object_dns_t*)copy;
+}
+
 void core_object_dns_free(core_object_dns_t* self)
 {
-    if (self) {
-        free(_self->parsed);
-        free(self);
-    }
+    mlassert_self();
+
+    free(_self->parsed);
+    free(self);
 }
 
 int core_object_dns_parse_header(core_object_dns_t* self)
 {
     const u_char* payload;
     size_t        len;
+    mlassert_self();
 
-    if (!_self || !self->obj_prev || _self->dns.have_header) {
-        return 1;
+    if (!self->obj_prev || _self->dns.have_header) {
+        return -1;
     }
 
     switch (self->obj_prev->obj_type) {
-    case CORE_OBJECT_PACKET: {
-        const core_object_packet_t* pkt;
-        for (pkt = (core_object_packet_t*)self->obj_prev; pkt && pkt->obj_type != CORE_OBJECT_PACKET; pkt = (core_object_packet_t*)pkt->obj_prev)
-            ;
-        if (!pkt) {
-            return 1;
-        }
-        payload = pkt->payload;
-        len     = pkt->len;
-        break;
-    }
     case CORE_OBJECT_PAYLOAD:
         payload = ((const core_object_payload_t*)self->obj_prev)->payload;
         len     = ((const core_object_payload_t*)self->obj_prev)->len;
         break;
     default:
-        return 1;
+        return -1;
     }
 
     if (omg_dns_parse_header(&_self->dns, payload, len)) {
-        return 2;
+        return -2;
     }
 
     self->have_id      = _self->dns.have_id;
@@ -190,34 +191,22 @@ int core_object_dns_parse(core_object_dns_t* self)
 {
     const u_char* payload;
     size_t        len;
+    mlassert_self();
 
-    if (!_self || !self->obj_prev || _self->parsed || _self->dns.have_body) {
-        return 1;
+    if (!self->obj_prev || _self->parsed || _self->dns.have_body) {
+        return -1;
     }
 
     switch (self->obj_prev->obj_type) {
-    case CORE_OBJECT_PACKET: {
-        const core_object_packet_t* pkt;
-        for (pkt = (core_object_packet_t*)self->obj_prev; pkt && pkt->obj_type != CORE_OBJECT_PACKET; pkt = (core_object_packet_t*)pkt->obj_prev)
-            ;
-        if (!pkt) {
-            return 1;
-        }
-        payload = pkt->payload;
-        len     = pkt->len;
-        break;
-    }
     case CORE_OBJECT_PAYLOAD:
         payload = ((const core_object_payload_t*)self->obj_prev)->payload;
         len     = ((const core_object_payload_t*)self->obj_prev)->len;
         break;
     default:
-        return 1;
+        return -1;
     }
 
-    if (!(_self->parsed = calloc(1, sizeof(_parse_t)))) {
-        return 1;
-    }
+    mlfatal_oom(_self->parsed = calloc(1, sizeof(_parse_t)));
 
     _self->parsed->rr_idx    = 0;
     _self->parsed->label_idx = 0;
@@ -227,7 +216,7 @@ int core_object_dns_parse(core_object_dns_t* self)
 
     if (!_self->dns.have_header) {
         if (omg_dns_parse(&_self->dns, payload, len)) {
-            return 2;
+            return -2;
         }
 
         self->have_id      = _self->dns.have_id;
@@ -262,7 +251,7 @@ int core_object_dns_parse(core_object_dns_t* self)
         self->arcount      = _self->dns.arcount;
     } else if (len > _self->dns.bytes_parsed) {
         if (omg_dns_parse_body(&_self->dns, payload + _self->dns.bytes_parsed, len - _self->dns.bytes_parsed)) {
-            return 2;
+            return -2;
         }
     }
     _self->parsed->at_rr        = -1;
@@ -278,8 +267,10 @@ int core_object_dns_parse(core_object_dns_t* self)
 
 int core_object_dns_rr_reset(core_object_dns_t* self)
 {
-    if (!_self || !_self->parsed) {
-        return 1;
+    mlassert_self();
+
+    if (!_self->parsed) {
+        return -1;
     }
 
     _self->parsed->at_rr        = -1;
@@ -290,8 +281,10 @@ int core_object_dns_rr_reset(core_object_dns_t* self)
 
 int core_object_dns_rr_next(core_object_dns_t* self)
 {
-    if (!_self || !_self->parsed) {
-        return 1;
+    mlassert_self();
+
+    if (!_self->parsed) {
+        return -1;
     }
 
     if (_self->parsed->at_rr < 0) {
@@ -305,7 +298,9 @@ int core_object_dns_rr_next(core_object_dns_t* self)
 
 int core_object_dns_rr_ok(core_object_dns_t* self)
 {
-    if (!_self || !_self->parsed || _self->parsed->at_rr < 0 || _self->parsed->at_rr >= _self->parsed->rr_idx) {
+    mlassert_self();
+
+    if (!_self->parsed || _self->parsed->at_rr < 0 || _self->parsed->at_rr >= _self->parsed->rr_idx) {
         return 0;
     }
 
@@ -317,22 +312,13 @@ const char* core_object_dns_rr_label(core_object_dns_t* self)
     const u_char* payload;
     char*         label;
     size_t        left;
+    mlassert_self();
 
-    if (!_self || !_self->parsed || _self->parsed->at_rr < 0 || _self->parsed->at_rr >= _self->parsed->rr_idx || _self->parsed->rr_ret[_self->parsed->at_rr] != OMG_DNS_OK) {
+    if (!_self->parsed || _self->parsed->at_rr < 0 || _self->parsed->at_rr >= _self->parsed->rr_idx || _self->parsed->rr_ret[_self->parsed->at_rr] != OMG_DNS_OK) {
         return 0;
     }
 
     switch (self->obj_prev->obj_type) {
-    case CORE_OBJECT_PACKET: {
-        const core_object_packet_t* pkt;
-        for (pkt = (core_object_packet_t*)self->obj_prev; pkt && pkt->obj_type != CORE_OBJECT_PACKET; pkt = (core_object_packet_t*)pkt->obj_prev)
-            ;
-        if (!pkt) {
-            return 0;
-        }
-        payload = pkt->payload;
-        break;
-    }
     case CORE_OBJECT_PAYLOAD:
         payload = ((const core_object_payload_t*)self->obj_prev)->payload;
         break;
@@ -407,7 +393,9 @@ const char* core_object_dns_rr_label(core_object_dns_t* self)
 
 uint16_t core_object_dns_rr_type(core_object_dns_t* self)
 {
-    if (!_self || !_self->parsed || _self->parsed->at_rr < 0 || _self->parsed->at_rr >= _self->parsed->rr_idx || _self->parsed->rr_ret[_self->parsed->at_rr] != OMG_DNS_OK) {
+    mlassert_self();
+
+    if (!_self->parsed || _self->parsed->at_rr < 0 || _self->parsed->at_rr >= _self->parsed->rr_idx || _self->parsed->rr_ret[_self->parsed->at_rr] != OMG_DNS_OK) {
         return 0;
     }
 
@@ -416,7 +404,9 @@ uint16_t core_object_dns_rr_type(core_object_dns_t* self)
 
 uint16_t core_object_dns_rr_class(core_object_dns_t* self)
 {
-    if (!_self || !_self->parsed || _self->parsed->at_rr < 0 || _self->parsed->at_rr >= _self->parsed->rr_idx || _self->parsed->rr_ret[_self->parsed->at_rr] != OMG_DNS_OK) {
+    mlassert_self();
+
+    if (!_self->parsed || _self->parsed->at_rr < 0 || _self->parsed->at_rr >= _self->parsed->rr_idx || _self->parsed->rr_ret[_self->parsed->at_rr] != OMG_DNS_OK) {
         return 0;
     }
 
@@ -425,7 +415,9 @@ uint16_t core_object_dns_rr_class(core_object_dns_t* self)
 
 uint32_t core_object_dns_rr_ttl(core_object_dns_t* self)
 {
-    if (!_self || !_self->parsed || _self->parsed->at_rr < 0 || _self->parsed->at_rr >= _self->parsed->rr_idx || _self->parsed->rr_ret[_self->parsed->at_rr] != OMG_DNS_OK) {
+    mlassert_self();
+
+    if (!_self->parsed || _self->parsed->at_rr < 0 || _self->parsed->at_rr >= _self->parsed->rr_idx || _self->parsed->rr_ret[_self->parsed->at_rr] != OMG_DNS_OK) {
         return 0;
     }
 

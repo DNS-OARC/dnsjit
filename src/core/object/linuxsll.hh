@@ -21,10 +21,8 @@
 //lua:require("dnsjit.core.object_h")
 
 typedef struct core_object_linuxsll {
-    unsigned short        obj_type;
-    const core_object_t*  obj_prev;
-    core_object_refcall_t obj_ref;
-    void*                 obj_refctx;
+    const core_object_t* obj_prev;
+    int32_t              obj_type;
 
     uint16_t packet_type;
     uint16_t arp_hardware;
@@ -32,3 +30,6 @@ typedef struct core_object_linuxsll {
     uint8_t  link_layer_address[8];
     uint16_t ether_type;
 } core_object_linuxsll_t;
+
+core_object_linuxsll_t* core_object_linuxsll_copy(const core_object_linuxsll_t* self);
+void core_object_linuxsll_free(core_object_linuxsll_t* self);

@@ -57,19 +57,19 @@ end
 
 -- Set the producer to get objects from.
 function Null:producer(o)
-    self.obj._log:debug("producer()")
     self.obj.prod, self.obj.ctx = o:produce()
     self._producer = o
 end
 
--- Retrieve
+-- Retrieve all objects from the producer, if the optional
 -- .I num
--- objects from the producer, if
--- .I num
--- is zero or less then retrieve all objects.
--- Returns 0 if successful.
+-- is a positive number then stop after that amount of objects have been
+-- retrieved.
 function Null:run(num)
-    return C.output_null_run(self.obj, num)
+    if num == nil then
+        num = -1
+    end
+    C.output_null_run(self.obj, num)
 end
 
 -- Return the number of packets we sent into the void.

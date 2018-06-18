@@ -41,9 +41,8 @@ typedef struct filter_layer {
     core_receiver_t recv;
     void*           ctx;
 
-    core_producer_t           prod;
-    void*                     prod_ctx;
-    const core_object_pcap_t* prod_obj;
+    core_producer_t prod;
+    void*           prod_ctx;
 
     const core_object_t*   produced;
     core_object_null_t     null;
@@ -64,8 +63,8 @@ typedef struct filter_layer {
 
 core_log_t* filter_layer_log();
 
-int filter_layer_init(filter_layer_t* self);
-int filter_layer_destroy(filter_layer_t* self);
+void filter_layer_init(filter_layer_t* self);
+void filter_layer_destroy(filter_layer_t* self);
 
 core_receiver_t filter_layer_receiver();
-core_producer_t filter_layer_producer();
+core_producer_t filter_layer_producer(filter_layer_t* self);

@@ -21,6 +21,7 @@
 #include "config.h"
 
 #include "input/pcap.h"
+#include "core/assert.h"
 #include "core/object/pcap.h"
 
 static core_log_t   _log      = LOG_T_INIT("input.pcap");
@@ -38,46 +39,35 @@ core_log_t* input_pcap_log()
     return &_log;
 }
 
-int input_pcap_init(input_pcap_t* self)
+void input_pcap_init(input_pcap_t* self)
 {
-    if (!self) {
-        return 1;
-    }
+    mlassert_self();
 
     *self = _defaults;
-
-    ldebug("init");
-
-    return 0;
 }
 
-int input_pcap_destroy(input_pcap_t* self)
+void input_pcap_destroy(input_pcap_t* self)
 {
-    if (!self) {
-        return 1;
-    }
-
-    ldebug("destroy");
+    mlassert_self();
 
     if (self->pcap) {
         pcap_close(self->pcap);
     }
-
-    return 0;
 }
 
 int input_pcap_open_offline(input_pcap_t* self, const char* file)
 {
-    if (!self || !file) {
-        return 1;
-    }
+    char errbuf[PCAP_ERRBUF_SIZE] = { 0 };
+    mlassert_self();
+    lassert(file, "file is nil");
 
     if (self->pcap) {
-        pcap_close(self->pcap);
+        lfatal("already opened");
     }
 
-    if (!(self->pcap = pcap_open_offline(file, 0))) {
-        return 1;
+    if (!(self->pcap = pcap_open_offline(file, errbuf))) {
+        lcritical("pcap_open_offline(%s) error: %s", file, errbuf);
+        return -1;
     }
 
     self->snaplen    = pcap_snapshot(self->pcap);
@@ -88,6 +78,8 @@ int input_pcap_open_offline(input_pcap_t* self, const char* file)
     self->prod_pkt.linktype   = self->linktype;
     self->prod_pkt.is_swapped = self->is_swapped;
 
+    ldebug("pcap v%u.%u snaplen:%lu %s", pcap_major_version(self->pcap), pcap_minor_version(self->pcap), self->snaplen, self->is_swapped ? " swapped" : "");
+
     return 0;
 }
 
@@ -95,10 +87,9 @@ static void _handler(u_char* user, const struct pcap_pkthdr* h, const u_char* by
 {
     input_pcap_t*      self = (input_pcap_t*)user;
     core_object_pcap_t pkt  = CORE_OBJECT_PCAP_INIT(0);
-
-    if (!self || !h || !bytes) {
-        return;
-    }
+    mlassert_self();
+    lassert(h, "pcap_pkthdr is nil");
+    lassert(bytes, "bytes is nil");
 
     self->pkts++;
 
@@ -116,8 +107,12 @@ static void _handler(u_char* user, const struct pcap_pkthdr* h, const u_char* by
 
 int input_pcap_loop(input_pcap_t* self, int cnt)
 {
-    if (!self || !self->pcap || !self->recv) {
-        return -1;
+    mlassert_self();
+    if (!self->pcap) {
+        lfatal("no PCAP opened");
+    }
+    if (!self->recv) {
+        lfatal("no receiver set");
     }
 
     return pcap_loop(self->pcap, cnt, _handler, (void*)self);
@@ -125,8 +120,12 @@ int input_pcap_loop(input_pcap_t* self, int cnt)
 
 int input_pcap_dispatch(input_pcap_t* self, int cnt)
 {
-    if (!self || !self->pcap || !self->recv) {
-        return -1;
+    mlassert_self();
+    if (!self->pcap) {
+        lfatal("no PCAP opened");
+    }
+    if (!self->recv) {
+        lfatal("no receiver set");
     }
 
     return pcap_dispatch(self->pcap, cnt, _handler, (void*)self);
@@ -138,10 +137,7 @@ static const core_object_t* _produce(void* ctx)
     struct pcap_pkthdr* h;
     const u_char*       bytes;
     int                 ret = 0;
-
-    if (!self || !self->pcap) {
-        return 0;
-    }
+    mlassert_self();
 
     while (!(ret = pcap_next_ex(self->pcap, &h, &bytes)))
         ;
@@ -157,7 +153,13 @@ static const core_object_t* _produce(void* ctx)
     return 0;
 }
 
-core_producer_t input_pcap_producer()
+core_producer_t input_pcap_producer(input_pcap_t* self)
 {
+    mlassert_self();
+
+    if (!self->pcap) {
+        lfatal("no PCAP opened");
+    }
+
     return _produce;
 }

@@ -79,21 +79,21 @@ end
 -- .IR pop() .
 -- The object needs to be kept alive as long as the thread is running, strings
 -- and numbers are copied.
--- Returns 0 on success.
 function Thread:push(obj)
     local t = type(obj)
     if t == "string" then
-        return C.core_thread_push_string(self, obj, #obj)
+        C.core_thread_push_string(self, obj, #obj)
     elseif t == "number" then
-        return C.core_thread_push_int64(self, obj)
+        C.core_thread_push_int64(self, obj)
+    else
+        local ptr, type, module = obj:share()
+        C.core_thread_push(self, ptr, type, #type, module, #module)
     end
-    local ptr, type, module = obj:share()
-    return C.core_thread_push(self, ptr, type, #type, module, #module)
 end
 
 -- Pop a shared value off the thread stack, should only be called within the
 -- thread.
--- Returns nil on failure or if no shared values are left on the stack.
+-- Returns nil if no shared values are left on the stack.
 function Thread:pop()
     local item = C.core_thread_pop(self)
     if item == nil then

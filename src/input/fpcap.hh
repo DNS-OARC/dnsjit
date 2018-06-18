@@ -30,14 +30,9 @@ typedef struct input_fpcap {
 
     unsigned short is_swapped : 1;
     unsigned short is_nanosec : 1;
-    unsigned short use_shared : 1;
+    unsigned short is_broken : 1;
 
     core_object_pcap_t prod_pkt;
-    void*              prod_ctx;
-
-    core_object_pcap_t* shared_pkts;
-    size_t              num_shared_pkts;
-    size_t              num_multiple_pkts;
 
     void*    file;
     size_t   pkts;
@@ -55,8 +50,8 @@ typedef struct input_fpcap {
 
 core_log_t* input_fpcap_log();
 
-int input_fpcap_init(input_fpcap_t* self);
-int input_fpcap_destroy(input_fpcap_t* self);
+void input_fpcap_init(input_fpcap_t* self);
+void input_fpcap_destroy(input_fpcap_t* self);
 int input_fpcap_open(input_fpcap_t* self, const char* file);
 int input_fpcap_run(input_fpcap_t* self);
 

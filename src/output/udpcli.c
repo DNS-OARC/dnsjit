@@ -21,6 +21,7 @@
 #include "config.h"
 
 #include "output/udpcli.h"
+#include "core/assert.h"
 #include "core/object/dns.h"
 #include "core/object/payload.h"
 
@@ -28,14 +29,13 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <string.h>
-#include <errno.h>
 
 static core_log_t      _log      = LOG_T_INIT("output.udpcli");
 static output_udpcli_t _defaults = {
     LOG_T_INIT_OBJ("output.udpcli"),
     0, 0, -1,
     { 0 }, 0,
-    { 0 }, CORE_OBJECT_PACKET_INIT(0)
+    { 0 }, CORE_OBJECT_PAYLOAD_INIT(0)
 };
 
 core_log_t* output_udpcli_log()
@@ -43,69 +43,52 @@ core_log_t* output_udpcli_log()
     return &_log;
 }
 
-int output_udpcli_init(output_udpcli_t* self)
+void output_udpcli_init(output_udpcli_t* self)
 {
-    if (!self) {
-        return 1;
-    }
+    mlassert_self();
 
     *self             = _defaults;
     self->pkt.payload = self->recvbuf;
-
-    ldebug("init");
-
-    return 0;
 }
 
-int output_udpcli_destroy(output_udpcli_t* self)
+void output_udpcli_destroy(output_udpcli_t* self)
 {
-    if (!self) {
-        return 1;
-    }
-
-    ldebug("destroy");
+    mlassert_self();
 
     if (self->fd > -1) {
         shutdown(self->fd, SHUT_RDWR);
         close(self->fd);
     }
-
-    return 0;
 }
 
 int output_udpcli_connect(output_udpcli_t* self, const char* host, const char* port)
 {
     struct addrinfo* addr;
     int              err;
+    mlassert_self();
+    lassert(host, "host is nil");
+    lassert(port, "port is nil");
 
-    if (!self || self->fd > -1 || !host || !port) {
-        return 1;
+    if (self->fd > -1) {
+        lfatal("already connected");
     }
-
-    ldebug("connect %s %s", host, port);
 
     if ((err = getaddrinfo(host, port, 0, &addr))) {
-        lcritical("getaddrinfo() %d", err);
-        return 1;
+        lcritical("getaddrinfo(%s, %s) error %s", host, port, gai_strerror(err));
+        return -1;
     }
     if (!addr) {
-        lcritical("getaddrinfo failed");
-        return 1;
+        lcritical("getaddrinfo failed, no address returned");
+        return -1;
     }
-    ldebug("getaddrinfo() flags: 0x%x family: 0x%x socktype: 0x%x protocol: 0x%x addrlen: %d",
-        addr->ai_flags,
-        addr->ai_family,
-        addr->ai_socktype,
-        addr->ai_protocol,
-        addr->ai_addrlen);
 
     memcpy(&self->addr, addr->ai_addr, addr->ai_addrlen);
     self->addr_len = addr->ai_addrlen;
     freeaddrinfo(addr);
 
     if ((self->fd = socket(((struct sockaddr*)&self->addr)->sa_family, SOCK_DGRAM, 0)) < 0) {
-        lcritical("socket failed");
-        return 1;
+        lcritical("socket() error %s", core_log_errstr(errno));
+        return -2;
     }
 
     return 0;
@@ -114,9 +97,10 @@ int output_udpcli_connect(output_udpcli_t* self, const char* host, const char* p
 int output_udpcli_nonblocking(output_udpcli_t* self)
 {
     int flags;
+    mlassert_self();
 
-    if (!self || self->fd < 0) {
-        return -1;
+    if (self->fd < 0) {
+        lfatal("not connected");
     }
 
     flags = fcntl(self->fd, F_GETFL);
@@ -130,42 +114,37 @@ int output_udpcli_nonblocking(output_udpcli_t* self)
 int output_udpcli_set_nonblocking(output_udpcli_t* self, int nonblocking)
 {
     int flags;
+    mlassert_self();
 
-    if (!self || self->fd < 0) {
-        return 1;
+    if (self->fd < 0) {
+        lfatal("not connected");
     }
 
-    ldebug("set nonblocking %d", nonblocking);
-
     if ((flags = fcntl(self->fd, F_GETFL)) == -1) {
-        lcritical("fcntl(FL_GETFL) failed");
-        return 1;
+        lcritical("fcntl(FL_GETFL) error %s", core_log_errstr(errno));
+        return -1;
     }
 
     if (nonblocking) {
-        if (fcntl(self->fd, F_SETFL, flags | O_NONBLOCK)) {
-            lcritical("fcntl(FL_SETFL) failed");
-            return 1;
-        }
+        flags |= O_NONBLOCK;
     } else {
-        if (fcntl(self->fd, F_SETFL, flags & ~O_NONBLOCK)) {
-            lcritical("fcntl(FL_SETFL) failed");
-            return 1;
-        }
+        flags &= ~O_NONBLOCK;
+    }
+
+    if (fcntl(self->fd, F_SETFL, flags | O_NONBLOCK)) {
+        lcritical("fcntl(FL_SETFL, %x) error %s", flags, core_log_errstr(errno));
+        return -1;
     }
 
     return 0;
 }
 
-static int _receive(void* ctx, const core_object_t* obj)
+static void _receive(void* ctx, const core_object_t* obj)
 {
     output_udpcli_t* self = (output_udpcli_t*)ctx;
     const uint8_t*   payload;
     size_t           len, sent;
-
-    if (!self) {
-        return 1;
-    }
+    mlassert_self();
 
     for (; obj;) {
         switch (obj->obj_type) {
@@ -177,11 +156,11 @@ static int _receive(void* ctx, const core_object_t* obj)
             len     = ((core_object_payload_t*)obj)->len;
             break;
         default:
-            return 1;
+            return;
         }
 
         if (len < 3 || payload[2] & 0x80) {
-            return 0;
+            return;
         }
 
         sent = 0;
@@ -192,7 +171,7 @@ static int _receive(void* ctx, const core_object_t* obj)
                 sent += ret;
                 if (sent < len)
                     continue;
-                return 0;
+                return;
             }
             switch (errno) {
             case EAGAIN:
@@ -208,12 +187,16 @@ static int _receive(void* ctx, const core_object_t* obj)
         }
         break;
     }
-
-    return 1;
 }
 
-core_receiver_t output_udpcli_receiver()
+core_receiver_t output_udpcli_receiver(output_udpcli_t* self)
 {
+    mlassert_self();
+
+    if (self->fd < 0) {
+        lfatal("not connected");
+    }
+
     return _receive;
 }
 
@@ -221,10 +204,7 @@ static const core_object_t* _produce(void* ctx)
 {
     output_udpcli_t* self = (output_udpcli_t*)ctx;
     ssize_t          n;
-
-    if (!self || self->fd < 0) {
-        return 0;
-    }
+    mlassert_self();
 
     for (;;) {
         n = recvfrom(self->fd, self->recvbuf, sizeof(self->recvbuf), 0, 0, 0);
@@ -252,7 +232,13 @@ static const core_object_t* _produce(void* ctx)
     return (core_object_t*)&self->pkt;
 }
 
-core_producer_t output_udpcli_producer()
+core_producer_t output_udpcli_producer(output_udpcli_t* self)
 {
+    mlassert_self();
+
+    if (self->fd < 0) {
+        lfatal("not connected");
+    }
+
     return _produce;
 }

@@ -21,6 +21,7 @@
 #include "config.h"
 
 #include "output/null.h"
+#include "core/assert.h"
 #include "core/object/pcap.h"
 
 static core_log_t    _log      = LOG_T_INIT("output.null");
@@ -34,49 +35,24 @@ core_log_t* output_null_log()
     return &_log;
 }
 
-int output_null_init(output_null_t* self)
+void output_null_init(output_null_t* self)
 {
-    if (!self) {
-        return 1;
-    }
+    mlassert_self();
 
     *self = _defaults;
-
-    ldebug("init");
-
-    return 0;
 }
 
-int output_null_destroy(output_null_t* self)
+void output_null_destroy(output_null_t* self)
 {
-    if (!self) {
-        return 1;
-    }
-
-    ldebug("destroy");
-
-    return 0;
+    mlassert_self();
 }
 
-static int _receive(void* ctx, const core_object_t* obj)
+static void _receive(void* ctx, const core_object_t* obj)
 {
     output_null_t* self = (output_null_t*)ctx;
+    mlassert_self();
 
-    if (self) {
-        if (obj && obj->obj_type == CORE_OBJECT_PCAP) {
-            const core_object_pcap_t* pkt = (core_object_pcap_t*)obj;
-            if (pkt->is_multiple) {
-                while (pkt) {
-                    self->pkts++;
-                    pkt = (core_object_pcap_t*)pkt->obj_prev;
-                }
-                return 0;
-            }
-        }
-        self->pkts++;
-    }
-
-    return 0;
+    self->pkts++;
 }
 
 core_receiver_t output_null_receiver()
@@ -84,56 +60,29 @@ core_receiver_t output_null_receiver()
     return _receive;
 }
 
-int output_null_run(output_null_t* self, uint64_t num)
+void output_null_run(output_null_t* self, int64_t num)
 {
-    core_producer_t p;
-    void*           c;
+    mlassert_self();
 
-    if (!self || !self->prod) {
-        return 1;
+    if (!self->prod) {
+        lfatal("no producer set");
     }
 
-    ldebug("run");
-
-    p = self->prod;
-    c = self->ctx;
-    if (num) {
+    if (num > 0) {
         while (num--) {
-            const core_object_t* obj = p(c);
+            const core_object_t* obj = self->prod(self->ctx);
             if (!obj)
-                continue;
+                break;
 
-            if (obj->obj_type == CORE_OBJECT_PCAP) {
-                const core_object_pcap_t* pkt = (core_object_pcap_t*)obj;
-                if (pkt->is_multiple) {
-                    while (pkt) {
-                        self->pkts++;
-                        pkt = (core_object_pcap_t*)pkt->obj_prev;
-                    }
-                    continue;
-                }
-            }
             self->pkts++;
         }
     } else {
         for (;;) {
-            const core_object_t* obj = p(c);
+            const core_object_t* obj = self->prod(self->ctx);
             if (!obj)
                 break;
 
-            if (obj->obj_type == CORE_OBJECT_PCAP) {
-                const core_object_pcap_t* pkt = (core_object_pcap_t*)obj;
-                if (pkt->is_multiple) {
-                    while (pkt) {
-                        self->pkts++;
-                        pkt = (core_object_pcap_t*)pkt->obj_prev;
-                    }
-                    continue;
-                }
-            }
             self->pkts++;
         }
     }
-
-    return 0;
 }

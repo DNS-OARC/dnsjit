@@ -395,3 +395,5 @@ core_log_t* core_log_log()
 {
     return &_log;
 }
+
+#include "core/log_errstr.c"

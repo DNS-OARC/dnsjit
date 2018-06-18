@@ -21,10 +21,11 @@
 //lua:require("dnsjit.core.object_h")
 
 typedef struct core_object_loop {
-    unsigned short        obj_type;
-    const core_object_t*  obj_prev;
-    core_object_refcall_t obj_ref;
-    void*                 obj_refctx;
+    const core_object_t* obj_prev;
+    int32_t              obj_type;
 
     uint32_t family;
 } core_object_loop_t;
+
+core_object_loop_t* core_object_loop_copy(const core_object_loop_t* self);
+void core_object_loop_free(core_object_loop_t* self);

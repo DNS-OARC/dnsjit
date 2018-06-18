@@ -19,14 +19,21 @@
  */
 
 #include "core/log.h"
-#include "core/object.h"
 #include "core/receiver.h"
 
 #ifndef __dnsjit_core_channel_h
 #define __dnsjit_core_channel_h
 
-#include <pthread.h>
-#include <stdint.h>
+#if defined(__GNUC__) || defined(__SUNPRO_C)
+#include "gcc/ck_cc.h"
+#ifdef CK_CC_RESTRICT
+#undef CK_CC_RESTRICT
+#define CK_CC_RESTRICT __restrict__
+#endif
+#endif
+
+#include <ck_ring.h>
+#include <ck_pr.h>
 
 #include "core/channel.hh"
 

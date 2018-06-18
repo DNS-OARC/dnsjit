@@ -21,6 +21,7 @@
 #include "config.h"
 
 #include "filter/layer.h"
+#include "core/assert.h"
 
 #include <string.h>
 #include <pcap/pcap.h>
@@ -42,7 +43,7 @@ static core_log_t     _log      = LOG_T_INIT("filter.layer");
 static filter_layer_t _defaults = {
     LOG_T_INIT_OBJ("filter.layer"),
     0, 0,
-    0, 0, 0,
+    0, 0,
     0,
     CORE_OBJECT_NULL_INIT(0),
     CORE_OBJECT_ETHER_INIT(0),
@@ -64,28 +65,16 @@ core_log_t* filter_layer_log()
     return &_log;
 }
 
-int filter_layer_init(filter_layer_t* self)
+void filter_layer_init(filter_layer_t* self)
 {
-    if (!self) {
-        return 1;
-    }
+    mlassert_self();
 
     *self = _defaults;
-
-    ldebug("init");
-
-    return 0;
 }
 
-int filter_layer_destroy(filter_layer_t* self)
+void filter_layer_destroy(filter_layer_t* self)
 {
-    if (!self) {
-        return 1;
-    }
-
-    ldebug("destroy");
-
-    return 0;
+    mlassert_self();
 }
 
 #define need4x2(v1, v2, p, l) \
@@ -154,7 +143,7 @@ int filter_layer_destroy(filter_layer_t* self)
 
 //static int _ip(filter_layer_t* self, const core_object_t* obj, const unsigned char* pkt, size_t len);
 
-static int _proto(filter_layer_t* self, uint8_t proto, const core_object_t* obj, const unsigned char* pkt, size_t len)
+static inline int _proto(filter_layer_t* self, uint8_t proto, const core_object_t* obj, const unsigned char* pkt, size_t len)
 {
     switch (proto) {
     case IPPROTO_GRE: {
@@ -283,7 +272,7 @@ static int _proto(filter_layer_t* self, uint8_t proto, const core_object_t* obj,
     return 0;
 }
 
-static int _ip(filter_layer_t* self, const core_object_t* obj, const unsigned char* pkt, size_t len)
+static inline int _ip(filter_layer_t* self, const core_object_t* obj, const unsigned char* pkt, size_t len)
 {
     if (len) {
         switch ((*pkt >> 4)) {
@@ -451,7 +440,7 @@ static int _ip(filter_layer_t* self, const core_object_t* obj, const unsigned ch
     return 0;
 }
 
-static int _ieee802(filter_layer_t* self, uint16_t tpid, const core_object_t* obj, const unsigned char* pkt, size_t len)
+static inline int _ieee802(filter_layer_t* self, uint16_t tpid, const core_object_t* obj, const unsigned char* pkt, size_t len)
 {
     core_object_ieee802_t* ieee802 = &self->ieee802[self->n_ieee802];
     uint16_t               tci;
@@ -494,7 +483,7 @@ static int _ieee802(filter_layer_t* self, uint16_t tpid, const core_object_t* ob
     return 0;
 }
 
-static int _link(filter_layer_t* self, const core_object_pcap_t* pcap)
+static inline int _link(filter_layer_t* self, const core_object_pcap_t* pcap)
 {
     const unsigned char* pkt;
     size_t               len;
@@ -614,32 +603,22 @@ static int _link(filter_layer_t* self, const core_object_pcap_t* pcap)
     return 0;
 }
 
-static int _receive(void* ctx, const core_object_t* obj)
+static void _receive(void* ctx, const core_object_t* obj)
 {
-    filter_layer_t*           self = (filter_layer_t*)ctx;
-    const core_object_pcap_t* pcap = (core_object_pcap_t*)obj;
-    int                       ret;
+    filter_layer_t* self = (filter_layer_t*)ctx;
+    mlassert_self();
+    lassert(obj, "obj is nil");
 
-    if (!self || !obj || obj->obj_type != CORE_OBJECT_PCAP || !self->recv) {
-        return 1;
+    if (!self->recv) {
+        lfatal("no receiver set");
+    }
+    if (obj->obj_type != CORE_OBJECT_PCAP) {
+        lfatal("obj is not CORE_OBJECT_PCAP");
     }
 
-    if (pcap->is_multiple) {
-        while (pcap) {
-            if ((ret = _link(self, pcap)))
-                return ret;
-            self->recv(self->ctx, self->produced);
-            pcap = (const core_object_pcap_t*)pcap->obj_prev;
-            if (pcap && pcap->obj_type != CORE_OBJECT_PCAP)
-                return 1;
-        }
-    } else {
-        if ((ret = _link(self, pcap)))
-            return ret;
+    if (!_link(self, (core_object_pcap_t*)obj)) {
         self->recv(self->ctx, self->produced);
     }
-
-    return 0;
 }
 
 core_receiver_t filter_layer_receiver()
@@ -649,34 +628,25 @@ core_receiver_t filter_layer_receiver()
 
 static const core_object_t* _produce(void* ctx)
 {
-    filter_layer_t* self = (filter_layer_t*)ctx;
+    filter_layer_t*      self = (filter_layer_t*)ctx;
+    const core_object_t* obj;
+    mlassert_self();
 
-    if (!self) {
+    obj = self->prod(self->prod_ctx);
+    if (!obj || obj->obj_type != CORE_OBJECT_PCAP || _link(self, (core_object_pcap_t*)obj)) {
         return 0;
-    }
-
-    if (self->prod_obj) {
-        if (self->prod_obj->obj_type != CORE_OBJECT_PCAP || _link(self, self->prod_obj)) {
-            self->prod_obj = 0;
-            return 0;
-        }
-        self->prod_obj = (const core_object_pcap_t*)self->prod_obj->obj_prev;
-    } else {
-        const core_object_pcap_t* obj = (core_object_pcap_t*)self->prod(self->prod_ctx);
-
-        if (!obj || obj->obj_type != CORE_OBJECT_PCAP || _link(self, obj)) {
-            return 0;
-        }
-
-        if (obj->is_multiple) {
-            self->prod_obj = (const core_object_pcap_t*)obj->obj_prev;
-        }
     }
 
     return self->produced;
 }
 
-core_producer_t filter_layer_producer()
+core_producer_t filter_layer_producer(filter_layer_t* self)
 {
+    mlassert_self();
+
+    if (!self->prod) {
+        lfatal("no producer set");
+    }
+
     return _produce;
 }

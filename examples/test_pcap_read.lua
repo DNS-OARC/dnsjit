@@ -1,7 +1,8 @@
 #!/usr/bin/env dnsjit
 local clock = require("dnsjit.lib.clock")
+local log = require("dnsjit.core.log")
 local getopt = require("dnsjit.lib.getopt").new({
-    { "t", "thread", 0, "Test also with dnsjit.filter.thread, give number of threads to run", "?" },
+    { "v", "verbose", 0, "Enable and increase verbosity for each time given", "?+" },
     { "l", "layer", false, "Test also with dnsjit.filter.layer", "?" },
     { "p", "producer", false, "Test with the producer interface rather then receiver interface", "?" },
 })
@@ -10,17 +11,26 @@ if getopt:val("help") then
     getopt:usage()
     return
 end
+local v = getopt:val("v")
+if v > 0 then
+    log.enable("warning")
+end
+if v > 1 then
+    log.enable("notice")
+end
+if v > 2 then
+    log.enable("info")
+end
+if v > 3 then
+    log.enable("debug")
+end
 
 if pcap == nil then
     print("usage: "..arg[1].." <pcap> [runs]")
     return
 end
 
-if getopt:val("p") then
-    inputs = { "fpcap", "mmpcap", "pcap" }
-else
-    inputs = { "fpcap", "mmpcap", "pcap", "pcapthread" }
-end
+inputs = { "fpcap", "mmpcap", "pcap" }
 result = {}
 results = {}
 highest = nil
@@ -38,54 +48,25 @@ if getopt:val("p") then
 
         print("run", name)
         for n = 1, runs do
-            t = nil
-            tos = nil
-            -- if getopt:val("t") > 1 then
-            --     local nn
-            --     tos = {}
-            --     o = require("dnsjit.filter.thread").new()
-            --     for nn = 1, getopt:val("t") do
-            --         local oo = require("dnsjit.output.null").new()
-            --         o:receiver(oo)
-            --         table.insert(tos, oo)
-            --     end
-            --     o:start()
-            --     t = o
-            -- else
-                o = require("dnsjit.output.null").new()
-            -- end
+            o = require("dnsjit.output.null").new()
             i = require("dnsjit.input."..name).new()
+
             if name == "pcap" then
                 i:open_offline(pcap)
-                if getopt:val("l") then
-                    f = require("dnsjit.filter.layer").new()
-                    f:producer(i)
-                    o:producer(f)
-                else
-                    o:producer(i)
-                end
-                ss, sns = clock:monotonic()
-                -- i:dispatch()
-                o:run(0)
             else
-                -- if t then
-                    -- i:use_shared(true)
-                -- end
                 i:open(pcap)
-                if getopt:val("l") then
-                    f = require("dnsjit.filter.layer").new()
-                    f:producer(i)
-                    o:producer(f)
-                else
-                    o:producer(i)
-                end
-                ss, sns = clock:monotonic()
-                -- i:run()
-                o:run(0)
             end
-            if t then
-                t:stop()
+
+            if getopt:val("l") then
+                f = require("dnsjit.filter.layer").new()
+                f:producer(i)
+                o:producer(f)
+            else
+                o:producer(i)
             end
+
+            ss, sns = clock:monotonic()
+            o:run()
             es, ens = clock:monotonic()
 
             if es > ss then
@@ -94,13 +75,7 @@ if getopt:val("p") then
                 rt = rt + (ens - sns) / 1000000000
             end
 
-            if tos then
-                for _, oo in pairs(tos) do
-                    p = p + oo:packets()
-                end
-            else
-                p = p + o:packets()
-            end
+            p = p + o:packets()
         end
 
         result[name] = {
@@ -119,56 +94,28 @@ else
 
         print("run", name)
         for n = 1, runs do
-            t = nil
-            tos = nil
-            if getopt:val("t") > 1 then
-                local nn
-                tos = {}
-                o = require("dnsjit.filter.thread").new()
-                for nn = 1, getopt:val("t") do
-                    local oo = require("dnsjit.output.null").new()
-                    o:receiver(oo)
-                    table.insert(tos, oo)
-                end
-                o:start()
-                t = o
-            else
-                o = require("dnsjit.output.null").new()
-            end
+            o = require("dnsjit.output.null").new()
             i = require("dnsjit.input."..name).new()
+
             if name == "pcap" then
                 i:open_offline(pcap)
-                if getopt:val("l") then
-                    f = require("dnsjit.filter.layer").new()
-                    f:receiver(o)
-                    i:receiver(f)
-                else
-                    i:receiver(o)
-                end
-                ss, sns = clock:monotonic()
-                i:dispatch()
-            elseif name == "pcapthread" then
-                i:open_offline(pcap)
-                i:receiver(o)
-                ss, sns = clock:monotonic()
-                i:run()
             else
-                if t then
-                    i:use_shared(true)
-                end
                 i:open(pcap)
-                if getopt:val("l") then
-                    f = require("dnsjit.filter.layer").new()
-                    f:receiver(o)
-                    i:receiver(f)
-                else
-                    i:receiver(o)
-                end
-                ss, sns = clock:monotonic()
-                i:run()
             end
-            if t then
-                t:stop()
+
+            if getopt:val("l") then
+                f = require("dnsjit.filter.layer").new()
+                f:receiver(o)
+                i:receiver(f)
+            else
+                i:receiver(o)
+            end
+
+            ss, sns = clock:monotonic()
+            if name == "pcap" then
+                i:dispatch()
+            else
+                i:run()
             end
             es, ens = clock:monotonic()
 
@@ -178,17 +125,7 @@ else
                 rt = rt + (ens - sns) / 1000000000
             end
 
-            if name == "pcapthread" then
-                p = p + i:packets()
-            else
-                if tos then
-                    for _, oo in pairs(tos) do
-                        p = p + oo:packets()
-                    end
-                else
-                    p = p + o:packets()
-                end
-            end
+            p = p + o:packets()
         end
 
         result[name] = {

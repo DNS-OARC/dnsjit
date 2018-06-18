@@ -87,7 +87,6 @@ end
 
 -- Set the receiver to pass objects to.
 function Fpcap:receiver(o)
-    self.obj._log:debug("receiver()")
     self.obj.recv, self.obj.ctx = o:receive()
     self._receiver = o
 end
@@ -103,25 +102,8 @@ function Fpcap:open(file)
     return C.input_fpcap_open(self.obj, file)
 end
 
--- Enable (true) or disable (false) usage of shared objects, if
--- .I bool
--- is not specified then return the current state.
-function Fpcap:use_shared(bool)
-    if bool == nil then
-        if self.obj.use_shared == 1 then
-            return true
-        else
-            return false
-        end
-    elseif bool == true then
-        self.obj.use_shared = 1
-    else
-        self.obj.use_shared = 0
-    end
-end
-
--- Start processing packets.
--- Returns 0 on success.
+-- Start processing packets and send each packet read to the receiver.
+-- Returns 0 if all packets was read successfully.
 function Fpcap:run()
     return C.input_fpcap_run(self.obj)
 end

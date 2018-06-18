@@ -17,12 +17,14 @@
 -- along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
 
 -- dnsjit.input.zero
--- Generate empty packets (/dev/zero)
+-- Generate empty objects (/dev/zero)
 --   local input = require("dnsjit.input.zero").new()
 --   input:receiver(filter_or_output)
---   input:run(10000000)
+--   input:run(1e6)
 --
--- Input module for generating empty packets, mostly used for testing.
+-- Input module for generating empty
+-- .I core.object.null
+-- objects, mostly used for testing.
 module(...,package.seeall)
 
 require("dnsjit.input.zero_h")
@@ -54,38 +56,20 @@ end
 
 -- Set the receiver to pass objects to.
 function Zero:receiver(o)
-    self.obj._log:debug("receiver()")
     self.obj.recv, self.obj.ctx = o:receive()
     self._receiver = o
 end
 
 -- Return the C functions and context for producing objects.
 function Zero:produce()
-    return C.input_zero_producer(self.obj), self.obj
-end
-
--- Enable (true) or disable (false) usage of shared objects, if
--- .I bool
--- is not specified then return the current state.
-function Zero:use_shared(bool)
-    if bool == nil then
-        if self.obj.use_shared == 1 then
-            return true
-        else
-            return false
-        end
-    elseif bool == true then
-        self.obj.use_shared = 1
-    else
-        self.obj.use_shared = 0
-    end
+    return C.input_zero_producer(), self.obj
 end
 
 -- Generate
 -- .I num
--- empty packets and send them to the receiver, return 0 if successful.
+-- empty objects and send them to the receiver.
 function Zero:run(num)
-    return C.input_zero_run(self.obj, num)
+    C.input_zero_run(self.obj, num)
 end
 
 return Zero

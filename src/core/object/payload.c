@@ -21,3 +21,31 @@
 #include "config.h"
 
 #include "core/object/payload.h"
+#include "core/assert.h"
+
+#include <stdlib.h>
+#include <string.h>
+
+core_object_payload_t* core_object_payload_copy(const core_object_payload_t* self)
+{
+    core_object_payload_t* copy;
+    glassert_self();
+
+    glfatal_oom(copy = malloc(sizeof(core_object_payload_t) + self->len + self->padding));
+    memcpy(copy, self, sizeof(core_object_payload_t));
+    copy->obj_prev = 0;
+
+    if (copy->payload) {
+        copy->payload = (void*)copy + sizeof(core_object_payload_t);
+        memcpy((void*)copy->payload, self->payload, self->len + self->padding);
+    }
+
+    return copy;
+}
+
+void core_object_payload_free(core_object_payload_t* self)
+{
+    glassert_self();
+    free((void*)self->payload);
+    free(self);
+}

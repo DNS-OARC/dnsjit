@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
 
-ACLOCAL_AMFLAGS = -I m4 -I src/pcap-thread/m4
+ACLOCAL_AMFLAGS = -I m4
 
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in \
   $(srcdir)/src/config.h.in~ \
