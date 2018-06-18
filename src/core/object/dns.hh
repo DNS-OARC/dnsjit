@@ -21,9 +21,55 @@
 //lua:require("dnsjit.core.log")
 //lua:require("dnsjit.core.object_h")
 
+typedef struct core_object_dns_label {
+    unsigned short is_end : 1;
+    unsigned short have_length : 1;
+    unsigned short have_offset : 1;
+    unsigned short have_extension_bits : 1;
+    unsigned short have_dn : 1;
+    unsigned short extension_bits : 2;
+
+    uint8_t  length;
+    uint16_t offset;
+} core_object_dns_label_t;
+
+typedef struct core_object_dns_rr {
+    unsigned short have_type : 1;
+    unsigned short have_class : 1;
+    unsigned short have_ttl : 1;
+    unsigned short have_rdlength : 1;
+    unsigned short have_rdata : 1;
+    unsigned short have_rdata_labels : 1;
+    unsigned short have_padding : 1;
+
+    uint16_t type;
+    uint16_t class;
+    uint32_t ttl;
+    uint16_t rdlength;
+
+    size_t labels;
+    size_t rdata_offset;
+    size_t rdata_labels;
+    size_t padding_offset;
+    size_t padding_length;
+} core_object_dns_rr_t;
+
+typedef struct core_object_dns_q {
+    unsigned short have_type : 1;
+    unsigned short have_class : 1;
+
+    uint16_t type;
+    uint16_t class;
+
+    size_t labels;
+} core_object_dns_q_t;
+
 typedef struct core_object_dns {
     const core_object_t* obj_prev;
     int32_t              obj_type;
+
+    const uint8_t *payload, *at;
+    size_t         len, left;
 
     unsigned short have_id : 1;
     unsigned short have_qr : 1;
@@ -56,26 +102,15 @@ typedef struct core_object_dns {
     uint16_t       ancount;
     uint16_t       nscount;
     uint16_t       arcount;
-
-    size_t questions;
-    size_t answers;
-    size_t authorities;
-    size_t additionals;
 } core_object_dns_t;
 
 core_log_t* core_object_dns_log();
 
-core_object_dns_t* core_object_dns_new(const core_object_t* obj);
+core_object_dns_t* core_object_dns_new();
 core_object_dns_t* core_object_dns_copy(const core_object_dns_t* self);
 void core_object_dns_free(core_object_dns_t* self);
+void core_object_dns_reset(core_object_dns_t* self, const core_object_t* obj);
 
 int core_object_dns_parse_header(core_object_dns_t* self);
-int core_object_dns_parse(core_object_dns_t* self);
-
-int core_object_dns_rr_reset(core_object_dns_t* self);
-int core_object_dns_rr_next(core_object_dns_t* self);
-int core_object_dns_rr_ok(core_object_dns_t* self);
-const char* core_object_dns_rr_label(core_object_dns_t* self);
-uint16_t core_object_dns_rr_type(core_object_dns_t* self);
-uint16_t core_object_dns_rr_class(core_object_dns_t* self);
-uint32_t core_object_dns_rr_ttl(core_object_dns_t* self);
+int core_object_dns_parse_q(core_object_dns_t* self, core_object_dns_q_t* q, core_object_dns_label_t* label, size_t labels);
+int core_object_dns_parse_rr(core_object_dns_t* self, core_object_dns_rr_t* rr, core_object_dns_label_t* label, size_t labels);

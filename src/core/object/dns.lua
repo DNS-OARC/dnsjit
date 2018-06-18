@@ -18,36 +18,30 @@
 
 -- dnsjit.core.object.dns
 -- Container of a DNS message
---   local query = require("dnsjit.core.object.dns")
---   local q = query.new(pkt)
---   print(q:src(), q:dst(), q.id, q.rcode)
+-- .SS Parse DNS header and check if query or response
+--   local dns = require("dnsjit.core.object.dns").new(payload)
+--   if dns:parse_header() == 0 then
+--     if dns.qr == 0 then
+--       print(dns.id, dns.opcode_tostring(dns.opcode))
+--     else
+--       print(dns.id, dns.rcode_tostring(dns.rcode))
+--     end
+--   end
+-- .SS Print a DNS payload
+--   local dns = require("dnsjit.core.object.dns").new(payload)
+--   dns:print()
+-- .SS Parse a DNS payload
+--   local dns = require("dnsjit.core.object.dns").new(payload)
+--   local qs, q_labels, rrs, rr_labels = dns:parse()
+--   if qs and q_labels then
+--     ...
+--     if rrs and rr_labels then
+--       ...
+--     end
+--   end
 --
 -- The object that describes a DNS message.
 -- .SS Attributes
--- .TP
--- src_id
--- Source ID, used to track the query through the input, filter and output
--- modules.
--- See also
--- .BR dnsjit.core.tracking (3).
--- .TP
--- qr_id
--- Query/Response ID, used to track the query through the input, filter
--- and output modules.
--- See also
--- .BR dnsjit.core.tracking (3).
--- .TP
--- dst_id
--- Destination ID, used to track the query through the input, filter
--- and output modules.
--- See also
--- .BR dnsjit.core.tracking (3).
--- .TP
--- sport
--- Source port.
--- .TP
--- dport
--- Destination port.
 -- .TP
 -- have_id
 -- Set if there is a DNS ID.
@@ -138,34 +132,348 @@
 -- .TP
 -- arcount
 -- The ARCOUNT.
--- .TP
--- questions
--- The actual number of questions found.
--- .TP
--- answers
--- The actual number of answers found.
--- .TP
--- authorities
--- The actual number of authorities found.
--- .TP
--- additionals
--- The actual number of additionals found.
+-- .SS Constants
+-- The following tables exists for DNS parameters, taken from
+-- .I https://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml
+-- on the 2016-12-09.
+-- .LP
+-- .IR CLASS ,
+-- .IR CLASS_STR ,
+-- .IR TYPE ,
+-- .IR TYPE_STR ,
+-- .IR OPCODE ,
+-- .IR OPCODE_STR ,
+-- .IR RCODE ,
+-- .IR RCODE_STR ,
+-- .IR AFSDB ,
+-- .IR AFSDB_STR ,
+-- .IR DHCID ,
+-- .IR DHCID_STR ,
+-- .IR ENDS0 ,
+-- .IR ENDS0_STR
+-- .LP
+-- The
+-- .I *_STR
+-- tables can be used to get a textual representation of the numbers, see also
+-- .IR class_tostring() ,
+-- .IR type_tostring() ,
+-- .IR opcode_tostring() ,
+-- .IR rcode_tostring() ,
+-- .IR afsdb_tostring() ,
+-- .I dhcid_tostring()
+-- and
+-- .IR edns0_tostring() .
 module(...,package.seeall)
 
 require("dnsjit.core.object.dns_h")
+local label = require("dnsjit.core.object.dns.label")
+local Q = require("dnsjit.core.object.dns.q")
+local RR = require("dnsjit.core.object.dns.rr")
 local ffi = require("ffi")
 local C = ffi.C
 
 local t_name = "core_object_dns_t"
 local core_object_dns_t
-local Dns = {}
+local Dns = {
+    CLASS = {
+        IN = 1,
+        CH = 3,
+        HS = 4,
+        NONE = 254,
+        ANY = 255,
+    },
+    TYPE = {
+        A = 1,
+        NS = 2,
+        MD = 3,
+        MF = 4,
+        CNAME = 5,
+        SOA = 6,
+        MB = 7,
+        MG = 8,
+        MR = 9,
+        NULL = 10,
+        WKS = 11,
+        PTR = 12,
+        HINFO = 13,
+        MINFO = 14,
+        MX = 15,
+        TXT = 16,
+        RP = 17,
+        AFSDB = 18,
+        X25 = 19,
+        ISDN = 20,
+        RT = 21,
+        NSAP = 22,
+        NSAP_PTR = 23,
+        SIG = 24,
+        KEY = 25,
+        PX = 26,
+        GPOS = 27,
+        AAAA = 28,
+        LOC = 29,
+        NXT = 30,
+        EID = 31,
+        NIMLOC = 32,
+        SRV = 33,
+        ATMA = 34,
+        NAPTR = 35,
+        KX = 36,
+        CERT = 37,
+        A6 = 38,
+        DNAME = 39,
+        SINK = 40,
+        OPT = 41,
+        APL = 42,
+        DS = 43,
+        SSHFP = 44,
+        IPSECKEY = 45,
+        RRSIG = 46,
+        NSEC = 47,
+        DNSKEY = 48,
+        DHCID = 49,
+        NSEC3 = 50,
+        NSEC3PARAM = 51,
+        TLSA = 52,
+        SMIMEA = 53,
+        HIP = 55,
+        NINFO = 56,
+        RKEY = 57,
+        TALINK = 58,
+        CDS = 59,
+        CDNSKEY = 60,
+        OPENPGPKEY = 61,
+        CSYNC = 62,
+        SPF = 99,
+        UINFO = 100,
+        UID = 101,
+        GID = 102,
+        UNSPEC = 103,
+        NID = 104,
+        L32 = 105,
+        L64 = 106,
+        LP = 107,
+        EUI48 = 108,
+        EUI64 = 109,
+        TKEY = 249,
+        TSIG = 250,
+        IXFR = 251,
+        AXFR = 252,
+        MAILB = 253,
+        MAILA = 254,
+        ANY = 255,
+        URI = 256,
+        CAA = 257,
+        AVC = 258,
+        TA = 32768,
+        DLV = 32769,
+    },
+    OPCODE = {
+        QUERY = 0,
+        IQUERY = 1,
+        STATUS = 2,
+        NOTIFY = 4,
+        UPDATE = 5,
+    },
+    RCODE = {
+        NOERROR = 0,
+        FORMERR = 1,
+        SERVFAIL = 2,
+        NXDOMAIN = 3,
+        NOTIMP = 4,
+        REFUSED = 5,
+        YXDOMAIN = 6,
+        YXRRSET = 7,
+        NXRRSET = 8,
+        NOTAUTH = 9,
+        NOTZONE = 10,
+        BADVERS = 16,
+        BADSIG = 16,
+        BADKEY = 17,
+        BADTIME = 18,
+        BADMODE = 19,
+        BADNAME = 20,
+        BADALG = 21,
+        BADTRUNC = 22,
+        BADCOOKIE = 23,
+    },
+    AFSDB = {
+        SUBTYPE_AFS3LOCSRV = 1,
+        SUBTYPE_DCENCA_ROOT = 2,
+    },
+    DHCID = {
+        TYPE_1OCTET = 0,
+        TYPE_DATAOCTET = 1,
+        TYPE_CLIENT_DUID = 2,
+    },
+    EDNS0 = {
+        OPT_LLQ = 1,
+        OPT_UL = 2,
+        OPT_NSID = 3,
+        OPT_DAU = 5,
+        OPT_DHU = 6,
+        OPT_N3U = 7,
+        OPT_CLIENT_SUBNET = 8,
+        OPT_EXPIRE = 9,
+        OPT_COOKIE = 10,
+        OPT_TCP_KEEPALIVE = 11,
+        OPT_PADDING = 12,
+        OPT_CHAIN = 13,
+        OPT_DEVICEID = 26946,
+    },
+}
+local _CLASS = {}
+_CLASS[Dns.CLASS.IN] = "IN"
+_CLASS[Dns.CLASS.CH] = "CH"
+_CLASS[Dns.CLASS.HS] = "HS"
+_CLASS[Dns.CLASS.NONE] = "NONE"
+_CLASS[Dns.CLASS.ANY] = "ANY"
+local _TYPE = {}
+_TYPE[Dns.TYPE.A] = "A"
+_TYPE[Dns.TYPE.NS] = "NS"
+_TYPE[Dns.TYPE.MD] = "MD"
+_TYPE[Dns.TYPE.MF] = "MF"
+_TYPE[Dns.TYPE.CNAME] = "CNAME"
+_TYPE[Dns.TYPE.SOA] = "SOA"
+_TYPE[Dns.TYPE.MB] = "MB"
+_TYPE[Dns.TYPE.MG] = "MG"
+_TYPE[Dns.TYPE.MR] = "MR"
+_TYPE[Dns.TYPE.NULL] = "NULL"
+_TYPE[Dns.TYPE.WKS] = "WKS"
+_TYPE[Dns.TYPE.PTR] = "PTR"
+_TYPE[Dns.TYPE.HINFO] = "HINFO"
+_TYPE[Dns.TYPE.MINFO] = "MINFO"
+_TYPE[Dns.TYPE.MX] = "MX"
+_TYPE[Dns.TYPE.TXT] = "TXT"
+_TYPE[Dns.TYPE.RP] = "RP"
+_TYPE[Dns.TYPE.AFSDB] = "AFSDB"
+_TYPE[Dns.TYPE.X25] = "X25"
+_TYPE[Dns.TYPE.ISDN] = "ISDN"
+_TYPE[Dns.TYPE.RT] = "RT"
+_TYPE[Dns.TYPE.NSAP] = "NSAP"
+_TYPE[Dns.TYPE.NSAP_PTR] = "NSAP_PTR"
+_TYPE[Dns.TYPE.SIG] = "SIG"
+_TYPE[Dns.TYPE.KEY] = "KEY"
+_TYPE[Dns.TYPE.PX] = "PX"
+_TYPE[Dns.TYPE.GPOS] = "GPOS"
+_TYPE[Dns.TYPE.AAAA] = "AAAA"
+_TYPE[Dns.TYPE.LOC] = "LOC"
+_TYPE[Dns.TYPE.NXT] = "NXT"
+_TYPE[Dns.TYPE.EID] = "EID"
+_TYPE[Dns.TYPE.NIMLOC] = "NIMLOC"
+_TYPE[Dns.TYPE.SRV] = "SRV"
+_TYPE[Dns.TYPE.ATMA] = "ATMA"
+_TYPE[Dns.TYPE.NAPTR] = "NAPTR"
+_TYPE[Dns.TYPE.KX] = "KX"
+_TYPE[Dns.TYPE.CERT] = "CERT"
+_TYPE[Dns.TYPE.A6] = "A6"
+_TYPE[Dns.TYPE.DNAME] = "DNAME"
+_TYPE[Dns.TYPE.SINK] = "SINK"
+_TYPE[Dns.TYPE.OPT] = "OPT"
+_TYPE[Dns.TYPE.APL] = "APL"
+_TYPE[Dns.TYPE.DS] = "DS"
+_TYPE[Dns.TYPE.SSHFP] = "SSHFP"
+_TYPE[Dns.TYPE.IPSECKEY] = "IPSECKEY"
+_TYPE[Dns.TYPE.RRSIG] = "RRSIG"
+_TYPE[Dns.TYPE.NSEC] = "NSEC"
+_TYPE[Dns.TYPE.DNSKEY] = "DNSKEY"
+_TYPE[Dns.TYPE.DHCID] = "DHCID"
+_TYPE[Dns.TYPE.NSEC3] = "NSEC3"
+_TYPE[Dns.TYPE.NSEC3PARAM] = "NSEC3PARAM"
+_TYPE[Dns.TYPE.TLSA] = "TLSA"
+_TYPE[Dns.TYPE.SMIMEA] = "SMIMEA"
+_TYPE[Dns.TYPE.HIP] = "HIP"
+_TYPE[Dns.TYPE.NINFO] = "NINFO"
+_TYPE[Dns.TYPE.RKEY] = "RKEY"
+_TYPE[Dns.TYPE.TALINK] = "TALINK"
+_TYPE[Dns.TYPE.CDS] = "CDS"
+_TYPE[Dns.TYPE.CDNSKEY] = "CDNSKEY"
+_TYPE[Dns.TYPE.OPENPGPKEY] = "OPENPGPKEY"
+_TYPE[Dns.TYPE.CSYNC] = "CSYNC"
+_TYPE[Dns.TYPE.SPF] = "SPF"
+_TYPE[Dns.TYPE.UINFO] = "UINFO"
+_TYPE[Dns.TYPE.UID] = "UID"
+_TYPE[Dns.TYPE.GID] = "GID"
+_TYPE[Dns.TYPE.UNSPEC] = "UNSPEC"
+_TYPE[Dns.TYPE.NID] = "NID"
+_TYPE[Dns.TYPE.L32] = "L32"
+_TYPE[Dns.TYPE.L64] = "L64"
+_TYPE[Dns.TYPE.LP] = "LP"
+_TYPE[Dns.TYPE.EUI48] = "EUI48"
+_TYPE[Dns.TYPE.EUI64] = "EUI64"
+_TYPE[Dns.TYPE.TKEY] = "TKEY"
+_TYPE[Dns.TYPE.TSIG] = "TSIG"
+_TYPE[Dns.TYPE.IXFR] = "IXFR"
+_TYPE[Dns.TYPE.AXFR] = "AXFR"
+_TYPE[Dns.TYPE.MAILB] = "MAILB"
+_TYPE[Dns.TYPE.MAILA] = "MAILA"
+_TYPE[Dns.TYPE.ANY] = "ANY"
+_TYPE[Dns.TYPE.URI] = "URI"
+_TYPE[Dns.TYPE.CAA] = "CAA"
+_TYPE[Dns.TYPE.AVC] = "AVC"
+_TYPE[Dns.TYPE.TA] = "TA"
+_TYPE[Dns.TYPE.DLV] = "DLV"
+local _OPCODE = {}
+_OPCODE[Dns.OPCODE.QUERY] = "QUERY"
+_OPCODE[Dns.OPCODE.IQUERY] = "IQUERY"
+_OPCODE[Dns.OPCODE.STATUS] = "STATUS"
+_OPCODE[Dns.OPCODE.NOTIFY] = "NOTIFY"
+_OPCODE[Dns.OPCODE.UPDATE] = "UPDATE"
+local _RCODE = {}
+_RCODE[Dns.RCODE.NOERROR] = "NOERROR"
+_RCODE[Dns.RCODE.FORMERR] = "FORMERR"
+_RCODE[Dns.RCODE.SERVFAIL] = "SERVFAIL"
+_RCODE[Dns.RCODE.NXDOMAIN] = "NXDOMAIN"
+_RCODE[Dns.RCODE.NOTIMP] = "NOTIMP"
+_RCODE[Dns.RCODE.REFUSED] = "REFUSED"
+_RCODE[Dns.RCODE.YXDOMAIN] = "YXDOMAIN"
+_RCODE[Dns.RCODE.YXRRSET] = "YXRRSET"
+_RCODE[Dns.RCODE.NXRRSET] = "NXRRSET"
+_RCODE[Dns.RCODE.NOTAUTH] = "NOTAUTH"
+_RCODE[Dns.RCODE.NOTZONE] = "NOTZONE"
+_RCODE[Dns.RCODE.BADVERS] = "BADVERS"
+_RCODE[Dns.RCODE.BADSIG] = "BADSIG"
+_RCODE[Dns.RCODE.BADKEY] = "BADKEY"
+_RCODE[Dns.RCODE.BADTIME] = "BADTIME"
+_RCODE[Dns.RCODE.BADMODE] = "BADMODE"
+_RCODE[Dns.RCODE.BADNAME] = "BADNAME"
+_RCODE[Dns.RCODE.BADALG] = "BADALG"
+_RCODE[Dns.RCODE.BADTRUNC] = "BADTRUNC"
+_RCODE[Dns.RCODE.BADCOOKIE] = "BADCOOKIE"
+local _AFSDB = {}
+_AFSDB[Dns.AFSDB.SUBTYPE_AFS3LOCSRV] = "SUBTYPE_AFS3LOCSRV"
+_AFSDB[Dns.AFSDB.SUBTYPE_DCENCA_ROOT] = "SUBTYPE_DCENCA_ROOT"
+local _DHCID = {}
+_DHCID[Dns.DHCID.TYPE_1OCTET] = "TYPE_1OCTET"
+_DHCID[Dns.DHCID.TYPE_DATAOCTET] = "TYPE_DATAOCTET"
+_DHCID[Dns.DHCID.TYPE_CLIENT_DUID] = "TYPE_CLIENT_DUID"
+local _EDNS0 = {}
+_EDNS0[Dns.EDNS0.OPT_LLQ] = "OPT_LLQ"
+_EDNS0[Dns.EDNS0.OPT_UL] = "OPT_UL"
+_EDNS0[Dns.EDNS0.OPT_NSID] = "OPT_NSID"
+_EDNS0[Dns.EDNS0.OPT_DAU] = "OPT_DAU"
+_EDNS0[Dns.EDNS0.OPT_DHU] = "OPT_DHU"
+_EDNS0[Dns.EDNS0.OPT_N3U] = "OPT_N3U"
+_EDNS0[Dns.EDNS0.OPT_CLIENT_SUBNET] = "OPT_CLIENT_SUBNET"
+_EDNS0[Dns.EDNS0.OPT_EXPIRE] = "OPT_EXPIRE"
+_EDNS0[Dns.EDNS0.OPT_COOKIE] = "OPT_COOKIE"
+_EDNS0[Dns.EDNS0.OPT_TCP_KEEPALIVE] = "OPT_TCP_KEEPALIVE"
+_EDNS0[Dns.EDNS0.OPT_PADDING] = "OPT_PADDING"
+_EDNS0[Dns.EDNS0.OPT_CHAIN] = "OPT_CHAIN"
+_EDNS0[Dns.EDNS0.OPT_DEVICEID] = "OPT_DEVICEID"
+Dns.CLASS_STR = _CLASS
+Dns.TYPE_STR = _TYPE
+Dns.OPCODE_STR = _OPCODE
+Dns.RCODE_STR = _RCODE
+Dns.AFSDB_STR = _AFSDB
+Dns.DHCID_STR = _DHCID
+Dns.EDNS0_STR = _EDNS0
 
--- Create a new DNS object ontop of a packet or payload object.
+-- Create a new DNS object, optionally on-top of another object.
 function Dns.new(obj)
-    local self = C.core_object_dns_new(obj)
-    if self ~= nil then
-        ffi.gc(self, C.core_object_dns_free)
-    end
+    local self = C.core_object_dns_new()
+    self.obj_prev = obj
+    ffi.gc(self, C.core_object_dns_free)
     return self
 end
 
@@ -199,77 +507,134 @@ function Dns:free()
     C.core_object_dns_free(self)
 end
 
--- Return the Log object to control logging of this instance or module.
+-- Return the Log object to control logging of this module.
 function Dns:log()
     return C.core_object_dns_log()
 end
 
--- Parse the DNS headers or the query, returns 0 on success.
+-- Begin parsing the underlaying object, first the header is parsed then
+-- optionally continue calling
+-- .IR parse_q ()
+-- for the number of questions (see
+-- .IR qdcount ).
+-- After that continue calling
+-- .IR parse_rr ()
+-- for the number of answers, authorities and additionals resource records
+-- (see
+-- .IR ancount ", "
+-- .I nscount
+-- and
+-- .IR arcount ).
+-- Returns 0 on success or negative integer on error which can be for
+-- malformed or truncated DNS (-2) or if more space for labels is needed (-3).
 function Dns:parse_header()
     return C.core_object_dns_parse_header(self)
 end
 
--- Parse the full DNS message or just the body if the header was already
--- parsed, returns 0 on success.
-function Dns:parse()
-    return C.core_object_dns_parse(self)
+-- Parse the next resource record as a question.
+-- Returns 0 on success or negative integer on error which can be for
+-- malformed or truncated DNS (-2) or if more space for labels is needed (-3).
+function Dns:parse_q(q, labels, num_labels)
+    return C.core_object_dns_parse_q(self, q, labels, num_labels)
 end
 
--- Return the IP source as a string.
-function Dns:src()
-    return ffi.string(C.core_object_dns_src(self))
+-- Parse the next resource record.
+-- Returns 0 on success or negative integer on error which can be for
+-- malformed or truncated DNS (-2) or if more space for labels is needed (-3).
+function Dns:parse_rr(rr, labels, num_labels)
+    return C.core_object_dns_parse_rr(self, rr, labels, num_labels)
 end
 
--- Return the IP destination as a string.
-function Dns:dst()
-    return ffi.string(C.core_object_dns_dst(self))
-end
-
--- Reset the walking of resource record(s), returns 0 on success.
-function Dns:rr_reset()
-    return C.core_object_dns_rr_reset(self)
-end
-
--- Start walking the resource record(s) (RR) found or continue with the next.
--- Returns 0 on success, < 0 on end of RRs and > 0 on error.
-function Dns:rr_next()
-    return C.core_object_dns_rr_next(self)
-end
-
--- Check if the RR at the current position was parsed successfully or not,
--- returns 1 if successful.
-function Dns:rr_ok()
-    return C.core_object_dns_rr_ok(self)
-end
-
--- Return the FQDN of the current RR or nil on error.
-function Dns:rr_label()
-    local ptr = C.core_object_dns_rr_label(self)
-    if ptr == nil then
-        return
+-- Begin parsing the underlaying object using
+-- .IR parse_header "(), "
+-- .IR parse_q ()
+-- and
+-- .IR parse_rr ().
+-- The optional
+-- .I num_labels
+-- can be used to set a specific number of labels used for each question
+-- and resource record (default 16).
+-- Returns result code, an array of questions, an array of question labels,
+-- an array of resource records and an array of resource records labels.
+-- Result code is 0 on success or negative integer on error which can be for
+-- malformed or truncated DNS (-2) or if more space for labels is needed (-3).
+function Dns:parse(num_labels)
+    local qs, qls, rrs, rrls = {}, {}, {}, {}
+    if num_labels == nil then
+        num_labels = 16
     end
-    return ffi.string(ptr)
+
+    ret = self:parse_header()
+    if ret ~= 0 then
+        return ret, qs, qls, rrs, rrls
+    end
+    for n = 1, self.qdcount do
+        local labels = label.new(num_labels)
+        local q = Q.new()
+        local ret = C.core_object_dns_parse_q(self, q, labels, num_labels)
+
+        if ret ~= 0 then
+            return ret, qs, qls, rrs, rrls
+        end
+        table.insert(qs, q)
+        table.insert(qls, labels)
+    end
+    for n = 1, self.ancount do
+        local labels = label.new(num_labels)
+        local rr = RR.new()
+        local ret = C.core_object_dns_parse_rr(self, rr, labels, num_labels)
+
+        if ret ~= 0 then
+            return ret, qs, qls, rrs, rrls
+        end
+        table.insert(rrs, rr)
+        table.insert(rrls, labels)
+    end
+    for n = 1, self.nscount do
+        local labels = label.new(num_labels)
+        local rr = RR.new()
+        local ret = C.core_object_dns_parse_rr(self, rr, labels, num_labels)
+
+        if ret ~= 0 then
+            return ret, qs, qls, rrs, rrls
+        end
+        table.insert(rrs, rr)
+        table.insert(rrls, labels)
+    end
+    for n = 1, self.arcount do
+        local labels = label.new(num_labels)
+        local rr = RR.new()
+        local ret = C.core_object_dns_parse_rr(self, rr, labels, num_labels)
+
+        if ret ~= 0 then
+            return ret, qs, qls, rrs, rrls
+        end
+        table.insert(rrs, rr)
+        table.insert(rrls, labels)
+    end
+
+    return 0, qs, qls, rrs, rrls
 end
 
--- Return an integer with the RR type.
-function Dns:rr_type()
-    return C.core_object_dns_rr_type(self)
-end
+-- Begin parsing the underlaying object using
+-- .IR parse_header "(), "
+-- .IR parse_q ()
+-- and
+-- .IR parse_rr (),
+-- and print it's content.
+-- The optional
+-- .I num_labels
+-- can be used to set a specific number of labels used for each question
+-- and resource record (default 16).
+function Dns:print(num_labels)
+    if num_labels == nil then
+        num_labels = 16
+    end
+    local labels = label.new(num_labels)
+    local q = Q.new()
+    local rr = RR.new()
 
--- Return an integer with the RR class.
-function Dns:rr_class()
-    return C.core_object_dns_rr_class(self)
-end
-
--- Return an integer with the RR TTL.
-function Dns:rr_ttl()
-    return C.core_object_dns_rr_ttl(self)
-end
-
--- Print the content of this DNS message if previously parsed, returns 0 on
--- success.
-function Dns:print()
-    if self:rr_reset() ~= 0 then
+    if self:parse_header() ~= 0 then
         return
     end
 
@@ -298,51 +663,117 @@ function Dns:print()
 
     print("id:", self.id)
     print("", "qr:", self.qr)
-    print("", "opcode:", self.opcode)
+    print("", "opcode:", Dns.opcode_tostring(self.opcode))
     print("", "flags:", table.concat(flags, " "))
-    print("", "rcode:", self.opcode)
+    print("", "rcode:", Dns.rcode_tostring(self.rcode))
     print("", "qdcount:", self.qdcount)
     print("", "ancount:", self.ancount)
     print("", "nscount:", self.nscount)
     print("", "arcount:", self.arcount)
-    local n = self.questions
+
     print("", "questions:")
-    while n > 0 and self:rr_next() == 0 do
-        if self:rr_ok() == 1 then
-            print("", "", self:rr_class(), self:rr_type(), self:rr_label())
+    for n = 1, self.qdcount do
+        if C.core_object_dns_parse_q(self, q, labels, num_labels) ~= 0 then
+            return
         end
-        n = n - 1
+        print("", "", Dns.class_tostring(q.class), Dns.type_tostring(q.type), label.tooffstr(self, labels, num_labels))
     end
-    n = self.answers
     print("", "answers:")
-    while n > 0 and self:rr_next() == 0 do
-        if self:rr_ok() == 1 then
-            print("", "", self:rr_class(), self:rr_type(), self:rr_ttl(), self:rr_label())
+    for n = 1, self.ancount do
+        if C.core_object_dns_parse_rr(self, rr, labels, num_labels) ~= 0 then
+            return
         end
-        n = n - 1
+        if rr.rdata_labels == 0 then
+            print("", "", Dns.class_tostring(rr.class), Dns.type_tostring(rr.type), rr.ttl, label.tooffstr(self, labels, rr.labels))
+        else
+            print("", "", Dns.class_tostring(rr.class), Dns.type_tostring(rr.type), rr.ttl, label.tooffstr(self, labels, rr.labels), label.tooffstr(self, labels, rr.rdata_labels, rr.labels))
+        end
     end
-    n = self.authorities
     print("", "authorities:")
-    while n > 0 and self:rr_next() == 0 do
-        if self:rr_ok() == 1 then
-            print("", "", self:rr_class(), self:rr_type(), self:rr_ttl(), self:rr_label())
+    for n = 1, self.nscount do
+        if C.core_object_dns_parse_rr(self, rr, labels, num_labels) ~= 0 then
+            return
         end
-        n = n - 1
+        if rr.rdata_labels == 0 then
+            print("", "", Dns.class_tostring(rr.class), Dns.type_tostring(rr.type), rr.ttl, label.tooffstr(self, labels, rr.labels))
+        else
+            print("", "", Dns.class_tostring(rr.class), Dns.type_tostring(rr.type), rr.ttl, label.tooffstr(self, labels, rr.labels), label.tooffstr(self, labels, rr.rdata_labels, rr.labels))
+        end
     end
-    n = self.additionals
     print("", "additionals:")
-    while n > 0 and self:rr_next() == 0 do
-        if self:rr_ok() == 1 then
-            print("", "", self:rr_class(), self:rr_type(), self:rr_ttl(), self:rr_label())
+    for n = 1, self.arcount do
+        if C.core_object_dns_parse_rr(self, rr, labels, num_labels) ~= 0 then
+            return
         end
-        n = n - 1
+        if rr.rdata_labels == 0 then
+            print("", "", Dns.class_tostring(rr.class), Dns.type_tostring(rr.type), rr.ttl, label.tooffstr(self, labels, rr.labels))
+        else
+            print("", "", Dns.class_tostring(rr.class), Dns.type_tostring(rr.type), rr.ttl, label.tooffstr(self, labels, rr.labels), label.tooffstr(self, labels, rr.rdata_labels, rr.labels))
+        end
     end
+end
+
+-- Return the textual name for a class.
+function Dns.class_tostring(class)
+    if Dns.CLASS_STR[class] == nil then
+        return "UNKNOWN("..class..")"
+    end
+    return Dns.CLASS_STR[class]
+end
+
+-- Return the textual name for a type.
+function Dns.type_tostring(type)
+    if Dns.TYPE_STR[type] == nil then
+        return "UNKNOWN("..type..")"
+    end
+    return Dns.TYPE_STR[type]
+end
+
+-- Return the textual name for an opcode.
+function Dns.opcode_tostring(opcode)
+    if Dns.OPCODE_STR[opcode] == nil then
+        return "UNKNOWN("..opcode..")"
+    end
+    return Dns.OPCODE_STR[opcode]
+end
+
+-- Return the textual name for a rcode.
+function Dns.rcode_tostring(rcode)
+    if Dns.RCODE_STR[rcode] == nil then
+        return "UNKNOWN("..rcode..")"
+    end
+    return Dns.RCODE_STR[rcode]
+end
+
+-- Return the textual name for an afsdb subtype.
+function Dns.afsdb_tostring(afsdb)
+    if Dns.AFSDB_STR[afsdb] == nil then
+        return "UNKNOWN("..afsdb..")"
+    end
+    return Dns.AFSDB_STR[afsdb]
+end
+
+-- Return the textual name for a dhcid type.
+function Dns.dhcid_tostring(dhcid)
+    if Dns.DHCID_STR[dhcid] == nil then
+        return "UNKNOWN("..dhcid..")"
+    end
+    return Dns.DHCID_STR[dhcid]
+end
+
+-- Return the textual name for an EDNS0 OPT record.
+function Dns.edns0_tostring(edns0)
+    if Dns.EDNS0_STR[edns0] == nil then
+        return "UNKNOWN("..edns0..")"
+    end
+    return Dns.EDNS0_STR[edns0]
 end
 
 core_object_dns_t = ffi.metatype(t_name, { __index = Dns })
 
 -- dnsjit.core.object (3),
--- dnsjit.core.object.packet (3),
 -- dnsjit.core.object.payload (3),
--- dnsjit.core.tracking (3)
+-- dnsjit.core.object.dns.label (3),
+-- dnsjit.core.object.dns.q (3),
+-- dnsjit.core.object.dns.rr (3)
 return Dns

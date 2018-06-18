@@ -66,7 +66,7 @@ for run = 1, runs do
     local o = require("dnsjit.output.null").new()
     local recv, rctx = o:receive()
     local pkt = ffi.new("core_object_null_t")
-    pkt.obj_type = object.CORE_OBJECT_NULL
+    pkt.obj_type = object.NULL
     local obj = ffi.cast("core_object_t*", pkt)
 
     local start_sec, start_nsec = clock:monotonic()

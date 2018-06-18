@@ -38,6 +38,8 @@ local output = require("dnsjit.output.udpcli").new()
 if getopt:val("t") then
     output = require("dnsjit.output.tcpcli").new()
 end
+require("dnsjit.core.objects")
+local dns = require("dnsjit.core.object.dns").new()
 
 input:open(pcap)
 layer:producer(input)
@@ -56,9 +58,10 @@ if printdns then
     while true do
         local obj = prod(pctx)
         if obj == nil then break end
-        if obj:type() == "payload" then
-            local dns = require("dnsjit.core.object.dns").new(obj)
-            if dns and dns:parse_header() == 0 and dns.qr == 0 and dns:parse() == 0 then
+        local pl = obj:cast()
+        if obj:type() == "payload" and pl.len > 0 then
+            dns.obj_prev = obj
+            if dns:parse_header() == 0 and dns.qr == 0 then
                 print("query:")
                 dns:print()
 
@@ -69,11 +72,9 @@ if printdns then
                     resp = oprod(opctx)
                 end
                 while resp ~= nil do
-                    local dns = require("dnsjit.core.object.dns").new(resp)
-                    if dns and dns:parse() == 0 then
-                        print("response:")
-                        dns:print()
-                    end
+                    dns.obj_prev = resp
+                    print("response:")
+                    dns:print()
                     resp = oprod(opctx)
                 end
             end
@@ -83,9 +84,10 @@ else
     while true do
         local obj = prod(pctx)
         if obj == nil then break end
-        if obj:type() == "payload" then
-            local dns = require("dnsjit.core.object.dns").new(obj)
-            if dns and dns:parse_header() == 0 and dns.qr == 0 then
+        local pl = obj:cast()
+        if obj:type() == "payload" and pl.len > 0 then
+            dns.obj_prev = obj
+            if dns:parse_header() == 0 and dns.qr == 0 then
                 recv(rctx, obj)
             end
         end

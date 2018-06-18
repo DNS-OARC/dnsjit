@@ -33,10 +33,9 @@ BUILT_SOURCES = core/compat.hh core/log_errstr.c
 
 bin_PROGRAMS = dnsjit
 
-dnsjit_SOURCES = dnsjit.c globals.c \
-  omg-dns/omg_dns.c
-dist_dnsjit_SOURCES = core.lua lib.lua input.lua filter.lua globals.h output.lua \
-  omg-dns/omg_dns.h
+dnsjit_SOURCES = dnsjit.c globals.c
+dist_dnsjit_SOURCES = core.lua lib.lua input.lua filter.lua globals.h \
+  output.lua
 lua_hobjects = core/compat.luaho
 lua_objects = core.luao lib.luao input.luao filter.luao output.luao
 dnsjit_LDADD = $(PTHREAD_LIBS) $(luajit_LIBS)
@@ -50,8 +49,8 @@ dist_dnsjit_SOURCES += core/channel.hh core/timespec.hh core/thread.hh core/obje
 lua_hobjects += core/channel.luaho core/timespec.luaho core/thread.luaho core/object/loop.luaho core/object/gre.luaho core/object/linuxsll.luaho core/object/tcp.luaho core/object/ether.luaho core/object/icmp.luaho core/object/ieee802.luaho core/object/ip6.luaho core/object/udp.luaho core/object/dns.luaho core/object/pcap.luaho core/object/payload.luaho core/object/icmp6.luaho core/object/ip.luaho core/object/null.luaho core/producer.luaho core/receiver.luaho core/object.luaho core/log.luaho lib/clock.luaho input/zero.luaho input/mmpcap.luaho input/pcap.luaho input/fpcap.luaho filter/layer.luaho filter/timing.luaho filter/split.luaho output/udpcli.luaho output/respdiff.luaho output/tcpcli.luaho output/null.luaho
 
 # Lua sources
-dist_dnsjit_SOURCES += core/channel.lua core/log.lua core/timespec.lua core/compat.lua core/producer.lua core/objects.lua core/thread.lua core/object/pcap.lua core/object/icmp6.lua core/object/gre.lua core/object/ether.lua core/object/ip.lua core/object/ieee802.lua core/object/tcp.lua core/object/payload.lua core/object/ip6.lua core/object/linuxsll.lua core/object/null.lua core/object/loop.lua core/object/icmp.lua core/object/dns.lua core/object/udp.lua core/receiver.lua core/object.lua lib/getopt.lua lib/clock.lua lib/parseconf.lua input/fpcap.lua input/pcap.lua input/zero.lua input/mmpcap.lua filter/timing.lua filter/split.lua filter/layer.lua output/tcpcli.lua output/respdiff.lua output/null.lua output/udpcli.lua
-lua_objects += core/channel.luao core/log.luao core/timespec.luao core/compat.luao core/producer.luao core/objects.luao core/thread.luao core/object/pcap.luao core/object/icmp6.luao core/object/gre.luao core/object/ether.luao core/object/ip.luao core/object/ieee802.luao core/object/tcp.luao core/object/payload.luao core/object/ip6.luao core/object/linuxsll.luao core/object/null.luao core/object/loop.luao core/object/icmp.luao core/object/dns.luao core/object/udp.luao core/receiver.luao core/object.luao lib/getopt.luao lib/clock.luao lib/parseconf.luao input/fpcap.luao input/pcap.luao input/zero.luao input/mmpcap.luao filter/timing.luao filter/split.luao filter/layer.luao output/tcpcli.luao output/respdiff.luao output/null.luao output/udpcli.luao
+dist_dnsjit_SOURCES += core/channel.lua core/log.lua core/timespec.lua core/compat.lua core/producer.lua core/objects.lua core/thread.lua core/object/pcap.lua core/object/icmp6.lua core/object/gre.lua core/object/ether.lua core/object/dns/q.lua core/object/dns/label.lua core/object/dns/rr.lua core/object/ip.lua core/object/ieee802.lua core/object/tcp.lua core/object/payload.lua core/object/ip6.lua core/object/linuxsll.lua core/object/null.lua core/object/loop.lua core/object/icmp.lua core/object/dns.lua core/object/udp.lua core/receiver.lua core/object.lua lib/getopt.lua lib/clock.lua lib/parseconf.lua input/fpcap.lua input/pcap.lua input/zero.lua input/mmpcap.lua filter/timing.lua filter/split.lua filter/layer.lua output/tcpcli.lua output/respdiff.lua output/null.lua output/udpcli.lua
+lua_objects += core/channel.luao core/log.luao core/timespec.luao core/compat.luao core/producer.luao core/objects.luao core/thread.luao core/object/pcap.luao core/object/icmp6.luao core/object/gre.luao core/object/ether.luao core/object/dns/q.luao core/object/dns/label.luao core/object/dns/rr.luao core/object/ip.luao core/object/ieee802.luao core/object/tcp.luao core/object/payload.luao core/object/ip6.luao core/object/linuxsll.luao core/object/null.luao core/object/loop.luao core/object/icmp.luao core/object/dns.luao core/object/udp.luao core/receiver.luao core/object.luao lib/getopt.luao lib/clock.luao lib/parseconf.luao input/fpcap.luao input/pcap.luao input/zero.luao input/mmpcap.luao filter/timing.luao filter/split.luao filter/layer.luao output/tcpcli.luao output/respdiff.luao output/null.luao output/udpcli.luao
 
 dnsjit_LDFLAGS = -Wl,-E
 dnsjit_LDADD += $(lua_hobjects) $(lua_objects)
@@ -61,7 +60,7 @@ man1_MANS = dnsjit.1
 CLEANFILES += $(man1_MANS)
 
 man3_MANS = dnsjit.core.3 dnsjit.lib.3 dnsjit.input.3 dnsjit.filter.3 dnsjit.output.3
-man3_MANS += dnsjit.core.channel.3 dnsjit.core.log.3 dnsjit.core.timespec.3 dnsjit.core.compat.3 dnsjit.core.producer.3 dnsjit.core.objects.3 dnsjit.core.thread.3 dnsjit.core.object.pcap.3 dnsjit.core.object.icmp6.3 dnsjit.core.object.gre.3 dnsjit.core.object.ether.3 dnsjit.core.object.ip.3 dnsjit.core.object.ieee802.3 dnsjit.core.object.tcp.3 dnsjit.core.object.payload.3 dnsjit.core.object.ip6.3 dnsjit.core.object.linuxsll.3 dnsjit.core.object.null.3 dnsjit.core.object.loop.3 dnsjit.core.object.icmp.3 dnsjit.core.object.dns.3 dnsjit.core.object.udp.3 dnsjit.core.receiver.3 dnsjit.core.object.3 dnsjit.lib.getopt.3 dnsjit.lib.clock.3 dnsjit.lib.parseconf.3 dnsjit.input.fpcap.3 dnsjit.input.pcap.3 dnsjit.input.zero.3 dnsjit.input.mmpcap.3 dnsjit.filter.timing.3 dnsjit.filter.split.3 dnsjit.filter.layer.3 dnsjit.output.tcpcli.3 dnsjit.output.respdiff.3 dnsjit.output.null.3 dnsjit.output.udpcli.3
+man3_MANS += dnsjit.core.channel.3 dnsjit.core.log.3 dnsjit.core.timespec.3 dnsjit.core.compat.3 dnsjit.core.producer.3 dnsjit.core.objects.3 dnsjit.core.thread.3 dnsjit.core.object.pcap.3 dnsjit.core.object.icmp6.3 dnsjit.core.object.gre.3 dnsjit.core.object.ether.3 dnsjit.core.object.dns.q.3 dnsjit.core.object.dns.label.3 dnsjit.core.object.dns.rr.3 dnsjit.core.object.ip.3 dnsjit.core.object.ieee802.3 dnsjit.core.object.tcp.3 dnsjit.core.object.payload.3 dnsjit.core.object.ip6.3 dnsjit.core.object.linuxsll.3 dnsjit.core.object.null.3 dnsjit.core.object.loop.3 dnsjit.core.object.icmp.3 dnsjit.core.object.dns.3 dnsjit.core.object.udp.3 dnsjit.core.receiver.3 dnsjit.core.object.3 dnsjit.lib.getopt.3 dnsjit.lib.clock.3 dnsjit.lib.parseconf.3 dnsjit.input.fpcap.3 dnsjit.input.pcap.3 dnsjit.input.zero.3 dnsjit.input.mmpcap.3 dnsjit.filter.timing.3 dnsjit.filter.split.3 dnsjit.filter.layer.3 dnsjit.output.tcpcli.3 dnsjit.output.respdiff.3 dnsjit.output.null.3 dnsjit.output.udpcli.3
 CLEANFILES += *.3in $(man3_MANS)
 
 .lua.luao:
@@ -146,6 +145,15 @@ dnsjit.core.object.gre.3in: core/object/gre.lua gen-manpage.lua
 
 dnsjit.core.object.ether.3in: core/object/ether.lua gen-manpage.lua
 	$(LUAJIT) "$(srcdir)/gen-manpage.lua" "$(srcdir)/core/object/ether.lua" > "$@"
+
+dnsjit.core.object.dns.q.3in: core/object/dns/q.lua gen-manpage.lua
+	$(LUAJIT) "$(srcdir)/gen-manpage.lua" "$(srcdir)/core/object/dns/q.lua" > "$@"
+
+dnsjit.core.object.dns.label.3in: core/object/dns/label.lua gen-manpage.lua
+	$(LUAJIT) "$(srcdir)/gen-manpage.lua" "$(srcdir)/core/object/dns/label.lua" > "$@"
+
+dnsjit.core.object.dns.rr.3in: core/object/dns/rr.lua gen-manpage.lua
+	$(LUAJIT) "$(srcdir)/gen-manpage.lua" "$(srcdir)/core/object/dns/rr.lua" > "$@"
 
 dnsjit.core.object.ip.3in: core/object/ip.lua gen-manpage.lua
 	$(LUAJIT) "$(srcdir)/gen-manpage.lua" "$(srcdir)/core/object/ip.lua" > "$@"
