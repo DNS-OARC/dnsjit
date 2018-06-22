@@ -35,10 +35,9 @@ BUILT_SOURCES = core/compat.hh core/log_errstr.c
 
 bin_PROGRAMS = dnsjit
 
-dnsjit_SOURCES = dnsjit.c globals.c \
-  omg-dns/omg_dns.c
-dist_dnsjit_SOURCES = core.lua lib.lua input.lua filter.lua globals.h output.lua \
-  omg-dns/omg_dns.h
+dnsjit_SOURCES = dnsjit.c globals.c
+dist_dnsjit_SOURCES = core.lua lib.lua input.lua filter.lua globals.h \
+  output.lua
 lua_hobjects = core/compat.luaho
 lua_objects = core.luao lib.luao input.luao filter.luao output.luao
 dnsjit_LDADD = $(PTHREAD_LIBS) $(luajit_LIBS)

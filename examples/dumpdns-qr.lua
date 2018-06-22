@@ -9,6 +9,12 @@ end
 local object = require("dnsjit.core.objects")
 local input = require("dnsjit.input.pcap").new()
 local layer = require("dnsjit.filter.layer").new()
+local dns = require("dnsjit.core.object.dns").new()
+local label = require("dnsjit.core.object.dns.label")
+
+local ffi = require("ffi")
+local labels = require("dnsjit.core.object.dns.label").new(16)
+local q = require("dnsjit.core.object.dns.q").new()
 
 input:open_offline(pcap)
 layer:producer(input)
@@ -20,24 +26,25 @@ local responses = {}
 while true do
     local obj = producer(ctx)
     if obj == nil then break end
-    if obj:type() == "payload" then
+    local pl = obj:cast()
+    if obj:type() == "payload" and pl.len > 0 then
         local transport = obj.obj_prev
         while transport do
-            if transport.obj_type == object.CORE_OBJECT_IP or transport.obj_type == object.CORE_OBJECT_IP6 then
+            if transport.obj_type == object.IP or transport.obj_type == object.IP6 then
                 break
             end
             transport = transport.obj_prev
         end
         local protocol = obj.obj_prev
         while protocol do
-            if protocol.obj_type == object.CORE_OBJECT_UDP or protocol.obj_type == object.CORE_OBJECT_TCP then
+            if protocol.obj_type == object.UDP or protocol.obj_type == object.TCP then
                 break
             end
             protocol = protocol.obj_prev
         end
 
-        local dns = require("dnsjit.core.object.dns").new(obj)
-        if transport and protocol and dns and dns:parse() == 0 then
+        dns.obj_prev = obj
+        if transport and protocol and dns:parse_header() == 0 then
             transport = transport:cast()
             protocol = protocol:cast()
 
@@ -48,18 +55,18 @@ while true do
                     dst = transport:destination(),
                     dport = protocol.dport,
                     id = dns.id,
-                    rcode = dns.rcode,
+                    rcode = dns.rcode_tostring(dns.rcode),
                 })
             else
-                if dns.questions > 0 and dns:rr_next() == 0 and dns:rr_ok() then
+                if dns.qdcount > 0 and dns:parse_q(q, labels, 16) == 0 then
                     table.insert(queries, {
                         src = transport:source(),
                         sport = protocol.sport,
                         dst = transport:destination(),
                         dport = protocol.dport,
                         id = dns.id,
-                        qname = dns:rr_label(),
-                        qtype = dns:rr_type(),
+                        qname = label.tooffstr(dns, labels, 16),
+                        qtype = dns.type_tostring(q.type)
                     })
                 end
             end

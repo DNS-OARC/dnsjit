@@ -36,6 +36,31 @@
 #ifdef HAVE_NET_ETHERTYPES_H
 #include <net/ethertypes.h>
 #endif
+#ifdef HAVE_ENDIAN_H
+#include <endian.h>
+#else
+#ifdef HAVE_SYS_ENDIAN_H
+#include <sys/endian.h>
+#else
+#ifdef HAVE_MACHINE_ENDIAN_H
+#include <machine/endian.h>
+#endif
+#endif
+#endif
+#ifdef HAVE_BYTESWAP_H
+#include <byteswap.h>
+#endif
+#ifndef bswap_16
+#ifndef bswap16
+#define bswap_16(x) swap16(x)
+#define bswap_32(x) swap32(x)
+#define bswap_64(x) swap64(x)
+#else
+#define bswap_16(x) bswap16(x)
+#define bswap_32(x) bswap32(x)
+#define bswap_64(x) bswap64(x)
+#endif
+#endif
 
 #define N_IEEE802 3
 
@@ -94,36 +119,50 @@ void filter_layer_destroy(filter_layer_t* self)
     p += 1;            \
     l -= 1
 
-#define need16(v, p, l)       \
-    if (l < 2) {              \
-        break;                \
-    }                         \
-    v = (*p << 8) | *(p + 1); \
-    p += 2;                   \
+static inline uint16_t _need16(const void* ptr)
+{
+    uint16_t v;
+    memcpy(&v, ptr, sizeof(v));
+    return be16toh(v);
+}
+
+#define need16(v, p, l) \
+    if (l < 2) {        \
+        break;          \
+    }                   \
+    v = _need16(p);     \
+    p += 2;             \
     l -= 2
 
 #define needr16(v, p, l)      \
     if (l < 2) {              \
         break;                \
     }                         \
-    v = *p | (*(p + 1) << 8); \
+    v = bswap_16(_need16(p)); \
     p += 2;                   \
     l -= 2
 
-#define need32(v, p, l)                                             \
-    if (l < 4) {                                                    \
-        break;                                                      \
-    }                                                               \
-    v = (*p << 24) | (*(p + 1) << 16) | (*(p + 2) << 8) | *(p + 3); \
-    p += 4;                                                         \
+static inline uint32_t _need32(const void* ptr)
+{
+    uint32_t v;
+    memcpy(&v, ptr, sizeof(v));
+    return be32toh(v);
+}
+
+#define need32(v, p, l) \
+    if (l < 4) {        \
+        break;          \
+    }                   \
+    v = _need32(p);     \
+    p += 4;             \
     l -= 4
 
-#define needr32(v, p, l)                                            \
-    if (l < 4) {                                                    \
-        break;                                                      \
-    }                                                               \
-    v = *p | (*(p + 1) << 8) | (*(p + 2) << 16) | (*(p + 3) << 24); \
-    p += 4;                                                         \
+#define needr32(v, p, l)      \
+    if (l < 4) {              \
+        break;                \
+    }                         \
+    v = bswap_32(_need32(p)); \
+    p += 4;                   \
     l -= 4
 
 #define needxb(b, x, p, l) \

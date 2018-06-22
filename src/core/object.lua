@@ -57,42 +57,42 @@ local C = ffi.C
 local t_name = "core_object_t"
 local core_object_t
 local Object = {
-    CORE_OBJECT_NONE = 0,
-    CORE_OBJECT_PCAP = 1,
-    CORE_OBJECT_ETHER = 10,
-    CORE_OBJECT_NULL = 11,
-    CORE_OBJECT_LOOP = 12,
-    CORE_OBJECT_LINUXSLL = 13,
-    CORE_OBJECT_IEEE802 = 14,
-    CORE_OBJECT_GRE = 15,
-    CORE_OBJECT_IP = 20,
-    CORE_OBJECT_IP6 = 21,
-    CORE_OBJECT_ICMP = 22,
-    CORE_OBJECT_ICMP6 = 23,
-    CORE_OBJECT_UDP = 30,
-    CORE_OBJECT_TCP = 31,
-    CORE_OBJECT_PAYLOAD = 40,
-    CORE_OBJECT_DNS = 50
+    NONE = 0,
+    PCAP = 1,
+    ETHER = 10,
+    NULL = 11,
+    LOOP = 12,
+    LINUXSLL = 13,
+    IEEE802 = 14,
+    GRE = 15,
+    IP = 20,
+    IP6 = 21,
+    ICMP = 22,
+    ICMP6 = 23,
+    UDP = 30,
+    TCP = 31,
+    PAYLOAD = 40,
+    DNS = 50
 }
 
 local _type = {}
-_type[Object.CORE_OBJECT_PCAP] = "pcap"
-_type[Object.CORE_OBJECT_ETHER] = "ether"
-_type[Object.CORE_OBJECT_NULL] = "null"
-_type[Object.CORE_OBJECT_LOOP] = "loop"
-_type[Object.CORE_OBJECT_LINUXSLL] = "linuxsll"
-_type[Object.CORE_OBJECT_IEEE802] = "ieee802"
-_type[Object.CORE_OBJECT_GRE] = "gre"
-_type[Object.CORE_OBJECT_IP] = "ip"
-_type[Object.CORE_OBJECT_IP6] = "ip6"
-_type[Object.CORE_OBJECT_ICMP] = "icmp"
-_type[Object.CORE_OBJECT_ICMP6] = "icmp6"
-_type[Object.CORE_OBJECT_UDP] = "udp"
-_type[Object.CORE_OBJECT_TCP] = "tcp"
-_type[Object.CORE_OBJECT_PAYLOAD] = "payload"
-_type[Object.CORE_OBJECT_DNS] = "dns"
+_type[Object.PCAP] = "pcap"
+_type[Object.ETHER] = "ether"
+_type[Object.NULL] = "null"
+_type[Object.LOOP] = "loop"
+_type[Object.LINUXSLL] = "linuxsll"
+_type[Object.IEEE802] = "ieee802"
+_type[Object.GRE] = "gre"
+_type[Object.IP] = "ip"
+_type[Object.IP6] = "ip6"
+_type[Object.ICMP] = "icmp"
+_type[Object.ICMP6] = "icmp6"
+_type[Object.UDP] = "udp"
+_type[Object.TCP] = "tcp"
+_type[Object.PAYLOAD] = "payload"
+_type[Object.DNS] = "dns"
 
-_type[Object.CORE_OBJECT_NONE] = "none"
+_type[Object.NONE] = "none"
 
 -- Return the textual type of the object.
 function Object:type()
@@ -105,21 +105,21 @@ function Object:prev()
 end
 
 local _cast = {}
-_cast[Object.CORE_OBJECT_PCAP] = "core_object_pcap_t*"
-_cast[Object.CORE_OBJECT_ETHER] = "core_object_ether_t*"
-_cast[Object.CORE_OBJECT_NULL] = "core_object_null_t*"
-_cast[Object.CORE_OBJECT_LOOP] = "core_object_loop_t*"
-_cast[Object.CORE_OBJECT_LINUXSLL] = "core_object_linuxsll_t*"
-_cast[Object.CORE_OBJECT_IEEE802] = "core_object_ieee802_t*"
-_cast[Object.CORE_OBJECT_GRE] = "core_object_gre_t*"
-_cast[Object.CORE_OBJECT_IP] = "core_object_ip_t*"
-_cast[Object.CORE_OBJECT_IP6] = "core_object_ip6_t*"
-_cast[Object.CORE_OBJECT_ICMP] = "core_object_icmp_t*"
-_cast[Object.CORE_OBJECT_ICMP6] = "core_object_icmp6_t*"
-_cast[Object.CORE_OBJECT_UDP] = "core_object_udp_t*"
-_cast[Object.CORE_OBJECT_TCP] = "core_object_tcp_t*"
-_cast[Object.CORE_OBJECT_PAYLOAD] = "core_object_payload_t*"
-_cast[Object.CORE_OBJECT_DNS] = "core_object_dns_t*"
+_cast[Object.PCAP] = "core_object_pcap_t*"
+_cast[Object.ETHER] = "core_object_ether_t*"
+_cast[Object.NULL] = "core_object_null_t*"
+_cast[Object.LOOP] = "core_object_loop_t*"
+_cast[Object.LINUXSLL] = "core_object_linuxsll_t*"
+_cast[Object.IEEE802] = "core_object_ieee802_t*"
+_cast[Object.GRE] = "core_object_gre_t*"
+_cast[Object.IP] = "core_object_ip_t*"
+_cast[Object.IP6] = "core_object_ip6_t*"
+_cast[Object.ICMP] = "core_object_icmp_t*"
+_cast[Object.ICMP6] = "core_object_icmp6_t*"
+_cast[Object.UDP] = "core_object_udp_t*"
+_cast[Object.TCP] = "core_object_tcp_t*"
+_cast[Object.PAYLOAD] = "core_object_payload_t*"
+_cast[Object.DNS] = "core_object_dns_t*"
 
 -- Cast the object to the underlining object module and return it.
 function Object:cast()

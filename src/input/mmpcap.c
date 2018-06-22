@@ -30,6 +30,31 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <string.h>
+#ifdef HAVE_ENDIAN_H
+#include <endian.h>
+#else
+#ifdef HAVE_SYS_ENDIAN_H
+#include <sys/endian.h>
+#else
+#ifdef HAVE_MACHINE_ENDIAN_H
+#include <machine/endian.h>
+#endif
+#endif
+#endif
+#ifdef HAVE_BYTESWAP_H
+#include <byteswap.h>
+#endif
+#ifndef bswap_16
+#ifndef bswap16
+#define bswap_16(x) swap16(x)
+#define bswap_32(x) swap32(x)
+#define bswap_64(x) swap64(x)
+#else
+#define bswap_16(x) bswap16(x)
+#define bswap_32(x) bswap32(x)
+#define bswap_64(x) bswap64(x)
+#endif
+#endif
 
 static core_log_t     _log      = LOG_T_INIT("input.mmpcap");
 static input_mmpcap_t _defaults = {
@@ -63,16 +88,6 @@ void input_mmpcap_destroy(input_mmpcap_t* self)
     if (self->fd > -1) {
         close(self->fd);
     }
-}
-
-static inline uint16_t _flip16(uint16_t u16)
-{
-    return ((u16 & 0xff) << 8) | (u16 >> 8);
-}
-
-static inline uint32_t _flip32(uint32_t u32)
-{
-    return ((u32 & 0xff) << 24) | ((u32 & 0xff00) << 8) | ((u32 & 0xff0000) >> 8) | (u32 >> 24);
 }
 
 int input_mmpcap_open(input_mmpcap_t* self, const char* file)
@@ -112,12 +127,12 @@ int input_mmpcap_open(input_mmpcap_t* self, const char* file)
         self->is_nanosec = 1;
     case 0xd4c3b2a1:
         self->is_swapped    = 1;
-        self->version_major = _flip16(self->version_major);
-        self->version_minor = _flip16(self->version_minor);
-        self->thiszone      = (int32_t)_flip32((uint32_t)self->thiszone);
-        self->sigfigs       = _flip32(self->sigfigs);
-        self->snaplen       = _flip32(self->snaplen);
-        self->network       = _flip32(self->network);
+        self->version_major = bswap_16(self->version_major);
+        self->version_minor = bswap_16(self->version_minor);
+        self->thiszone      = (int32_t)bswap_32((uint32_t)self->thiszone);
+        self->sigfigs       = bswap_32(self->sigfigs);
+        self->snaplen       = bswap_32(self->snaplen);
+        self->network       = bswap_32(self->network);
         break;
     case 0xa1b2c3d4:
     case 0xa1b23c4d:
@@ -167,10 +182,10 @@ int input_mmpcap_run(input_mmpcap_t* self)
         memcpy(&hdr, &self->buf[self->at], 16);
         self->at += 16;
         if (self->is_swapped) {
-            hdr.ts_sec   = _flip32(hdr.ts_sec);
-            hdr.ts_usec  = _flip32(hdr.ts_usec);
-            hdr.incl_len = _flip32(hdr.incl_len);
-            hdr.orig_len = _flip32(hdr.orig_len);
+            hdr.ts_sec   = bswap_32(hdr.ts_sec);
+            hdr.ts_usec  = bswap_32(hdr.ts_usec);
+            hdr.incl_len = bswap_32(hdr.incl_len);
+            hdr.orig_len = bswap_32(hdr.orig_len);
         }
         if (hdr.incl_len > self->snaplen) {
             lwarning("invalid packet length, larger then snaplen");
@@ -232,10 +247,10 @@ static const core_object_t* _produce(void* ctx)
     memcpy(&hdr, &self->buf[self->at], 16);
     self->at += 16;
     if (self->is_swapped) {
-        hdr.ts_sec   = _flip32(hdr.ts_sec);
-        hdr.ts_usec  = _flip32(hdr.ts_usec);
-        hdr.incl_len = _flip32(hdr.incl_len);
-        hdr.orig_len = _flip32(hdr.orig_len);
+        hdr.ts_sec   = bswap_32(hdr.ts_sec);
+        hdr.ts_usec  = bswap_32(hdr.ts_usec);
+        hdr.incl_len = bswap_32(hdr.incl_len);
+        hdr.orig_len = bswap_32(hdr.orig_len);
     }
     if (hdr.incl_len > self->snaplen) {
         lwarning("invalid packet length, larger then snaplen");
