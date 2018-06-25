@@ -35,6 +35,7 @@ module(...,package.seeall)
 
 require("dnsjit.core.object.ether_h")
 local ffi = require("ffi")
+local C = ffi.C
 
 local t_name = "core_object_ether_t"
 local core_object_ether_t

@@ -44,6 +44,7 @@ module(...,package.seeall)
 
 require("dnsjit.core.object.payload_h")
 local ffi = require("ffi")
+local C = ffi.C
 
 local t_name = "core_object_payload_t"
 local core_object_payload_t

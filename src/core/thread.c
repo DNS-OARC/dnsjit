@@ -135,6 +135,7 @@ inline static void _push(core_thread_t* self, core_thread_item_t* item)
         self->stack = self->last = item;
     } else {
         self->last->next = item;
+        self->last       = item;
     }
     if (pthread_cond_signal(&self->cond)) {
         lfatal("cond signal failed");

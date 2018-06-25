@@ -46,6 +46,5 @@ core_object_payload_t* core_object_payload_copy(const core_object_payload_t* sel
 void core_object_payload_free(core_object_payload_t* self)
 {
     glassert_self();
-    free((void*)self->payload);
     free(self);
 }

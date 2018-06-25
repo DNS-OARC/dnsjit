@@ -41,6 +41,7 @@ module(...,package.seeall)
 
 require("dnsjit.core.object.ieee802_h")
 local ffi = require("ffi")
+local C = ffi.C
 
 local t_name = "core_object_ieee802_t"
 local core_object_ieee802_t

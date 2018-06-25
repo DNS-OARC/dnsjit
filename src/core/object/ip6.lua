@@ -70,6 +70,7 @@ module(...,package.seeall)
 
 require("dnsjit.core.object.ip6_h")
 local ffi = require("ffi")
+local C = ffi.C
 
 local t_name = "core_object_ip6_t"
 local core_object_ip6_t

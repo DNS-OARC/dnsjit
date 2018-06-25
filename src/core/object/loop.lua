@@ -29,6 +29,7 @@ module(...,package.seeall)
 
 require("dnsjit.core.object.loop_h")
 local ffi = require("ffi")
+local C = ffi.C
 
 local t_name = "core_object_loop_t"
 local core_object_loop_t
