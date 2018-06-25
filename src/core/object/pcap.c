@@ -46,6 +46,5 @@ core_object_pcap_t* core_object_pcap_copy(const core_object_pcap_t* self)
 void core_object_pcap_free(core_object_pcap_t* self)
 {
     glassert_self();
-    free((void*)self->bytes);
     free(self);
 }

@@ -29,6 +29,7 @@ module(...,package.seeall)
 
 require("dnsjit.core.object.null_h")
 local ffi = require("ffi")
+local C = ffi.C
 
 local t_name = "core_object_null_t"
 local core_object_null_t

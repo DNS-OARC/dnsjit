@@ -41,6 +41,7 @@ module(...,package.seeall)
 
 require("dnsjit.core.object.linuxsll_h")
 local ffi = require("ffi")
+local C = ffi.C
 
 local t_name = "core_object_linuxsll_t"
 local core_object_linuxsll_t

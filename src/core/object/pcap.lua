@@ -51,6 +51,7 @@ module(...,package.seeall)
 
 require("dnsjit.core.object.pcap_h")
 local ffi = require("ffi")
+local C = ffi.C
 
 local t_name = "core_object_pcap_t"
 local core_object_pcap_t

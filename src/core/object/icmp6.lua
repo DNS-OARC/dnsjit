@@ -35,6 +35,7 @@ module(...,package.seeall)
 
 require("dnsjit.core.object.icmp6_h")
 local ffi = require("ffi")
+local C = ffi.C
 
 local t_name = "core_object_icmp6_t"
 local core_object_icmp6_t
