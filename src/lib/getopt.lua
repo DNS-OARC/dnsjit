@@ -60,6 +60,17 @@
 -- are automatically added if the option
 -- .I --help
 -- is not already defined.
+-- .SS Attributes
+-- .TP
+-- left
+-- A table that contains the arguments left after parsing, same as returned by
+-- .IR parse() .
+-- .TP
+-- usage_desc
+-- A string that describes the usage of the program, if not set then the
+-- default will be "
+-- .I "program [options...]"
+-- ".
 module(...,package.seeall)
 
 local log = require("dnsjit.core.log")
@@ -74,8 +85,10 @@ Getopt = {}
 -- .BR Getopt:add() .
 function Getopt.new(args)
     local self = setmetatable({
-        opt = {},
-        s2l = {},
+        left = {},
+        usage_desc = nil,
+        _opt = {},
+        _s2l = {},
         _log = log.new("lib.getopt", module_log),
     }, { __index = Getopt })
 
@@ -110,9 +123,9 @@ function Getopt:add(short, long, default, help, extensions)
         error("name (long|short) needs to be set")
     end
 
-    if self.opt[name] then
+    if self._opt[name] then
         error("option "..name.." alredy exists")
-    elseif short and self.s2l[short] then
+    elseif short and self._s2l[short] then
         error("option "..short.." alredy exists")
     end
 
@@ -137,7 +150,7 @@ function Getopt:add(short, long, default, help, extensions)
         end
     end
 
-    self.opt[name] = {
+    self._opt[name] = {
         value = nil,
         short = short,
         long = long,
@@ -149,13 +162,13 @@ function Getopt:add(short, long, default, help, extensions)
         counter = counter,
     }
     if long and short then
-        self.s2l[short] = long
+        self._s2l[short] = long
     elseif short and not long then
-        self.s2l[short] = short
+        self._s2l[short] = short
     end
 
-    if not self.opt["help"] then
-        self.opt["help"] = {
+    if not self._opt["help"] then
+        self._opt["help"] = {
             short = nil,
             long = "help",
             type = "boolean",
@@ -163,19 +176,23 @@ function Getopt:add(short, long, default, help, extensions)
             help = "Display this help text",
             optional = true,
         }
-        if not self.s2l["h"] then
-            self.opt["help"].short = "h"
-            self.s2l["h"] = "help"
+        if not self._s2l["h"] then
+            self._opt["help"].short = "h"
+            self._s2l["h"] = "help"
         end
     end
 end
 
 -- Print the usage.
 function Getopt:usage()
-    print("Usage:")
+    if self.usage_desc then
+        print("usage: " .. self.usage_desc)
+    else
+        print("usage: program [options...]")
+    end
 
     local opts = {}
-    for k, _ in pairs(self.opt) do
+    for k, _ in pairs(self._opt) do
         if k ~= "help" then
             table.insert(opts, k)
         end
@@ -184,7 +201,7 @@ function Getopt:usage()
     table.insert(opts, "help")
 
     for _, k in pairs(opts) do
-        local v = self.opt[k]
+        local v = self._opt[k]
         local arg
         if v.type == "string" then
             arg = " \""..v.default.."\""
@@ -257,7 +274,7 @@ function Getopt:parse(args, startn)
                     local n2, name2
                     for n2 = 1, name:len() - 1 do
                         name2 = name:sub(n2, n2)
-                        opt = self.opt[self.s2l[name2]]
+                        opt = self._opt[self._s2l[name2]]
                         if not opt then
                             error("unknown option "..name2)
                         end
@@ -282,13 +299,13 @@ function Getopt:parse(args, startn)
                     name = name:sub(-1)
                 end
             end
-            if self.s2l[name] then
-                name = self.s2l[name]
+            if self._s2l[name] then
+                name = self._s2l[name]
             end
-            if not self.opt[name] then
+            if not self._opt[name] then
                 error("unknown option "..name)
             end
-            opt = self.opt[name]
+            opt = self._opt[name]
             if opt.type == "string" then
                 need_arg = true
             elseif opt.type == "number" then
@@ -321,18 +338,19 @@ function Getopt:parse(args, startn)
         error("option "..name.." needs argument")
     end
 
-    for k, v in pairs(self.opt) do
+    for k, v in pairs(self._opt) do
         if v.optional == false and v.value == nil then
             error("missing required option "..k.."")
         end
     end
 
+    self.left = left
     return left
 end
 
 -- Return the value of an option.
 function Getopt:val(name)
-    local opt = self.opt[name] or self.opt[self.s2l[name]]
+    local opt = self._opt[name] or self._opt[self._s2l[name]]
     if not opt then
         return
     end
