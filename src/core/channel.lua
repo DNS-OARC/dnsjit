@@ -95,6 +95,23 @@ function Channel:close()
     C.core_channel_close(self)
 end
 
+-- Return the C functions and context for receiving objects.
+function Channel:receive()
+    return C.core_channel_receiver(), self
+end
+
+-- Set the receiver to pass objects to.
+-- NOTE; The channel keeps no reference of the receiver, it needs to live as
+-- long as the channel does.
+function Channel:receiver(o)
+    self.recv, self.ctx = o:receive()
+end
+
+-- Retrieve all objects from the channel and send it to the receiver.
+function Channel:run()
+    C.core_channel_run(self)
+end
+
 core_channel_t = ffi.metatype(t_name, { __index = Channel })
 
 -- dnsjit.core.thread (3)

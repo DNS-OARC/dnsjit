@@ -28,7 +28,8 @@
 static core_log_t     _log      = LOG_T_INIT("core.channel");
 static core_channel_t _defaults = {
     LOG_T_INIT_OBJ("core.channel"),
-    0, { 0 }, 0
+    0, { 0 }, 0,
+    0, 0
 };
 
 core_log_t* core_channel_log()
@@ -87,4 +88,30 @@ void core_channel_close(core_channel_t* self)
 {
     mlassert_self();
     ck_pr_store_int(&self->closed, 1);
+}
+
+core_receiver_t core_channel_receiver()
+{
+    return (core_receiver_t)core_channel_put;
+}
+
+void core_channel_run(core_channel_t* self)
+{
+    void* obj = 0;
+    mlassert_self();
+    lassert(self->ring_buf, "ring_buf is nil");
+    if (!self->recv) {
+        lfatal("no receiver set");
+    }
+
+    for (;;) {
+        while (!ck_ring_dequeue_spsc(&self->ring, self->ring_buf, &obj)) {
+            sched_yield();
+            if (ck_pr_load_int(&self->closed)) {
+                linfo("channel closed");
+                return;
+            }
+        }
+        self->recv(self->ctx, obj);
+    }
 }

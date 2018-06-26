@@ -106,7 +106,7 @@ function Ip6:free()
     C.core_object_ip6_free(self)
 end
 
-function _pretty(ip)
+local function _pretty(ip)
     local src = {}
 
     local n, nn

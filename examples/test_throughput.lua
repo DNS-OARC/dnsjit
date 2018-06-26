@@ -5,7 +5,8 @@ local clock = require("dnsjit.lib.clock")
 local log = require("dnsjit.core.log")
 local getopt = require("dnsjit.lib.getopt").new({
     { "v", "verbose", 0, "Enable and increase verbosity for each time given", "?+" },
-    { "s", "split", false, "Test also with dnsjit.filter.split", "?" }
+    { "s", "split", false, "Test also with dnsjit.filter.split", "?" },
+    { "t", "thread", false, "Test also with dnsjit.core.thread using dnsjit.core.channel", "?" },
 })
 local num, runs = unpack(getopt:parse())
 if getopt:val("help") then
@@ -230,5 +231,219 @@ if getopt:val("s") then
         end
 
         print(run, "runtime", runtime, num/runtime, "/sec", o1:packets() + o2:packets() + o3:packets() + o4:packets(), o1:packets(), o2:packets(), o3:packets(), o4:packets())
+    end
+end
+
+if getopt:val("t") then
+    print("zero:receiver() -> thread lua x1")
+    local run
+    for run = 1, runs do
+        local i = require("dnsjit.input.zero").new()
+        local c = require("dnsjit.core.channel").new()
+        local t = require("dnsjit.core.thread").new()
+
+        t:start(function(t)
+            local c = t:pop()
+
+            while true do
+                local o = c:get()
+                if o == nil then break end
+            end
+        end)
+        t:push(c)
+
+        local prod, pctx = i:produce()
+        local start_sec, start_nsec = clock:monotonic()
+        for n = 1, num do
+            c:put(prod(pctx))
+        end
+        c:close()
+        t:stop()
+        local end_sec, end_nsec = clock:monotonic()
+
+        local runtime = 0
+        if end_sec > start_sec then
+            runtime = ((end_sec - start_sec) - 1) + ((1000000000 - start_nsec + end_nsec)/1000000000)
+        elseif end_sec == start_sec and end_nsec > start_nsec then
+            runtime = (end_nsec - start_nsec) / 1000000000
+        end
+
+        print(run, "runtime", runtime, num/runtime, "/sec")
+    end
+
+    print("zero:receiver() -> thread lua x2")
+    local run
+    for run = 1, runs do
+        local i = require("dnsjit.input.zero").new()
+        local c = require("dnsjit.core.channel").new()
+        local c2 = require("dnsjit.core.channel").new()
+        local t = require("dnsjit.core.thread").new()
+        local t2 = require("dnsjit.core.thread").new()
+
+        local f = function(t)
+            local c = t:pop()
+
+            while true do
+                local o = c:get()
+                if o == nil then break end
+            end
+        end
+
+        t:start(f)
+        t2:start(f)
+        t:push(c)
+        t2:push(c2)
+
+        local prod, pctx = i:produce()
+        local start_sec, start_nsec = clock:monotonic()
+        for n = 1, num/2 do
+            c:put(prod(pctx))
+            c2:put(prod(pctx))
+        end
+        c:close()
+        c2:close()
+        t:stop()
+        t2:stop()
+        local end_sec, end_nsec = clock:monotonic()
+
+        local runtime = 0
+        if end_sec > start_sec then
+            runtime = ((end_sec - start_sec) - 1) + ((1000000000 - start_nsec + end_nsec)/1000000000)
+        elseif end_sec == start_sec and end_nsec > start_nsec then
+            runtime = (end_nsec - start_nsec) / 1000000000
+        end
+
+        print(run, "runtime", runtime, num/runtime, "/sec")
+    end
+
+    print("zero:receiver() -> thread lua x4")
+    local run
+    for run = 1, runs do
+        local i = require("dnsjit.input.zero").new()
+        local c = require("dnsjit.core.channel").new()
+        local c2 = require("dnsjit.core.channel").new()
+        local c3 = require("dnsjit.core.channel").new()
+        local c4 = require("dnsjit.core.channel").new()
+        local t = require("dnsjit.core.thread").new()
+        local t2 = require("dnsjit.core.thread").new()
+        local t3 = require("dnsjit.core.thread").new()
+        local t4 = require("dnsjit.core.thread").new()
+
+        local f = function(t)
+            local c = t:pop()
+
+            while true do
+                local o = c:get()
+                if o == nil then break end
+            end
+        end
+
+        t:start(f)
+        t2:start(f)
+        t3:start(f)
+        t4:start(f)
+        t:push(c)
+        t2:push(c2)
+        t3:push(c3)
+        t4:push(c4)
+
+        local prod, pctx = i:produce()
+        local start_sec, start_nsec = clock:monotonic()
+        for n = 1, num/4 do
+            c:put(prod(pctx))
+            c2:put(prod(pctx))
+            c3:put(prod(pctx))
+            c4:put(prod(pctx))
+        end
+        c:close()
+        c2:close()
+        c3:close()
+        c4:close()
+        t:stop()
+        t2:stop()
+        t3:stop()
+        t4:stop()
+        local end_sec, end_nsec = clock:monotonic()
+
+        local runtime = 0
+        if end_sec > start_sec then
+            runtime = ((end_sec - start_sec) - 1) + ((1000000000 - start_nsec + end_nsec)/1000000000)
+        elseif end_sec == start_sec and end_nsec > start_nsec then
+            runtime = (end_nsec - start_nsec) / 1000000000
+        end
+
+        print(run, "runtime", runtime, num/runtime, "/sec")
+    end
+
+    print("zero:receiver() -> thread lua x1 -> null:receiver()")
+    local run
+    for run = 1, runs do
+        local i = require("dnsjit.input.zero").new()
+        local c = require("dnsjit.core.channel").new()
+        local t = require("dnsjit.core.thread").new()
+
+        t:start(function(t)
+            local c = t:pop()
+            local o = require("dnsjit.output.null").new()
+
+            local recv, rctx = o:receive()
+            while true do
+                local obj = c:get()
+                if obj == nil then break end
+                recv(rctx, obj)
+            end
+        end)
+        t:push(c)
+
+        local prod, pctx = i:produce()
+        local start_sec, start_nsec = clock:monotonic()
+        for n = 1, num do
+            c:put(prod(pctx))
+        end
+        c:close()
+        t:stop()
+        local end_sec, end_nsec = clock:monotonic()
+
+        local runtime = 0
+        if end_sec > start_sec then
+            runtime = ((end_sec - start_sec) - 1) + ((1000000000 - start_nsec + end_nsec)/1000000000)
+        elseif end_sec == start_sec and end_nsec > start_nsec then
+            runtime = (end_nsec - start_nsec) / 1000000000
+        end
+
+        print(run, "runtime", runtime, num/runtime, "/sec")
+    end
+
+    print("zero:receiver() -> thread x1 -> null:receiver()")
+    local run
+    for run = 1, runs do
+        local i = require("dnsjit.input.zero").new()
+        local c = require("dnsjit.core.channel").new()
+        local t = require("dnsjit.core.thread").new()
+
+        t:start(function(t)
+            local c = t:pop()
+            local o = require("dnsjit.output.null").new()
+
+            c:receiver(o)
+            c:run()
+        end)
+        t:push(c)
+
+        i:receiver(c)
+        local start_sec, start_nsec = clock:monotonic()
+        i:run(num)
+        c:close()
+        t:stop()
+        local end_sec, end_nsec = clock:monotonic()
+
+        local runtime = 0
+        if end_sec > start_sec then
+            runtime = ((end_sec - start_sec) - 1) + ((1000000000 - start_nsec + end_nsec)/1000000000)
+        elseif end_sec == start_sec and end_nsec > start_nsec then
+            runtime = (end_nsec - start_nsec) / 1000000000
+        end
+
+        print(run, "runtime", runtime, num/runtime, "/sec")
     end
 end
