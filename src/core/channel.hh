@@ -27,6 +27,9 @@ typedef struct core_channel {
     ck_ring_buffer_t* ring_buf;
     ck_ring_t         ring;
     int               closed;
+
+    core_receiver_t recv;
+    void*           ctx;
 } core_channel_t;
 
 core_log_t* core_channel_log();
@@ -36,3 +39,6 @@ void core_channel_destroy(core_channel_t* self);
 void core_channel_put(core_channel_t* self, const void* obj);
 void* core_channel_get(core_channel_t* self);
 void core_channel_close(core_channel_t* self);
+
+core_receiver_t core_channel_receiver();
+void core_channel_run(core_channel_t* self);
