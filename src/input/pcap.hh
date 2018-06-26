@@ -32,7 +32,7 @@ typedef struct input_pcap {
     core_receiver_t recv;
     void*           ctx;
 
-    unsigned short is_swapped : 1;
+    uint8_t is_swapped;
 
     core_object_pcap_t prod_pkt;
 

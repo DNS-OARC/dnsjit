@@ -31,7 +31,7 @@ typedef struct core_object_pcap {
     uint32_t             caplen, len;
     const unsigned char* bytes;
 
-    unsigned short is_swapped : 1;
+    uint8_t is_swapped;
 } core_object_pcap_t;
 
 core_object_pcap_t* core_object_pcap_copy(const core_object_pcap_t* self);

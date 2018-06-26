@@ -19,16 +19,16 @@
  */
 
 typedef struct core_log_settings {
-    unsigned short debug : 2;
-    unsigned short info : 2;
-    unsigned short notice : 2;
-    unsigned short warning : 2;
-    unsigned short display_file_line : 2;
+    uint8_t debug;
+    uint8_t info;
+    uint8_t notice;
+    uint8_t warning;
+    uint8_t display_file_line;
 } core_log_settings_t;
 
 typedef struct core_log {
     const char*                name;
-    unsigned short             is_obj : 1;
+    uint8_t                    is_obj;
     core_log_settings_t        settings;
     const core_log_settings_t* module;
 } core_log_t;

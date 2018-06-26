@@ -22,25 +22,25 @@
 //lua:require("dnsjit.core.object_h")
 
 typedef struct core_object_dns_label {
-    unsigned short is_end : 1;
-    unsigned short have_length : 1;
-    unsigned short have_offset : 1;
-    unsigned short have_extension_bits : 1;
-    unsigned short have_dn : 1;
-    unsigned short extension_bits : 2;
+    uint8_t is_end;
+    uint8_t have_length;
+    uint8_t have_offset;
+    uint8_t have_extension_bits;
+    uint8_t have_dn;
+    uint8_t extension_bits;
 
     uint8_t  length;
     uint16_t offset;
 } core_object_dns_label_t;
 
 typedef struct core_object_dns_rr {
-    unsigned short have_type : 1;
-    unsigned short have_class : 1;
-    unsigned short have_ttl : 1;
-    unsigned short have_rdlength : 1;
-    unsigned short have_rdata : 1;
-    unsigned short have_rdata_labels : 1;
-    unsigned short have_padding : 1;
+    uint8_t have_type;
+    uint8_t have_class;
+    uint8_t have_ttl;
+    uint8_t have_rdlength;
+    uint8_t have_rdata;
+    uint8_t have_rdata_labels;
+    uint8_t have_padding;
 
     uint16_t type;
     uint16_t class;
@@ -55,8 +55,8 @@ typedef struct core_object_dns_rr {
 } core_object_dns_rr_t;
 
 typedef struct core_object_dns_q {
-    unsigned short have_type : 1;
-    unsigned short have_class : 1;
+    uint8_t have_type;
+    uint8_t have_class;
 
     uint16_t type;
     uint16_t class;
@@ -71,37 +71,37 @@ typedef struct core_object_dns {
     const uint8_t *payload, *at;
     size_t         len, left;
 
-    unsigned short have_id : 1;
-    unsigned short have_qr : 1;
-    unsigned short have_opcode : 1;
-    unsigned short have_aa : 1;
-    unsigned short have_tc : 1;
-    unsigned short have_rd : 1;
-    unsigned short have_ra : 1;
-    unsigned short have_z : 1;
-    unsigned short have_ad : 1;
-    unsigned short have_cd : 1;
-    unsigned short have_rcode : 1;
-    unsigned short have_qdcount : 1;
-    unsigned short have_ancount : 1;
-    unsigned short have_nscount : 1;
-    unsigned short have_arcount : 1;
+    uint8_t have_id;
+    uint8_t have_qr;
+    uint8_t have_opcode;
+    uint8_t have_aa;
+    uint8_t have_tc;
+    uint8_t have_rd;
+    uint8_t have_ra;
+    uint8_t have_z;
+    uint8_t have_ad;
+    uint8_t have_cd;
+    uint8_t have_rcode;
+    uint8_t have_qdcount;
+    uint8_t have_ancount;
+    uint8_t have_nscount;
+    uint8_t have_arcount;
 
-    uint16_t       id;
-    unsigned short qr : 1;
-    unsigned short opcode : 4;
-    unsigned short aa : 1;
-    unsigned short tc : 1;
-    unsigned short rd : 1;
-    unsigned short ra : 1;
-    unsigned short z : 1;
-    unsigned short ad : 1;
-    unsigned short cd : 1;
-    unsigned short rcode : 4;
-    uint16_t       qdcount;
-    uint16_t       ancount;
-    uint16_t       nscount;
-    uint16_t       arcount;
+    uint16_t id;
+    int8_t   qr;
+    uint8_t  opcode;
+    uint8_t  aa;
+    uint8_t  tc;
+    uint8_t  rd;
+    uint8_t  ra;
+    uint8_t  z;
+    uint8_t  ad;
+    uint8_t  cd;
+    uint8_t  rcode;
+    uint16_t qdcount;
+    uint16_t ancount;
+    uint16_t nscount;
+    uint16_t arcount;
 } core_object_dns_t;
 
 core_log_t* core_object_dns_log();

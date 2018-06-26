@@ -28,9 +28,9 @@ typedef struct input_mmpcap {
     core_receiver_t recv;
     void*           ctx;
 
-    unsigned short is_swapped : 1;
-    unsigned short is_nanosec : 1;
-    unsigned short is_broken : 1;
+    uint8_t is_swapped;
+    uint8_t is_nanosec;
+    uint8_t is_broken;
 
     core_object_pcap_t prod_pkt;
 

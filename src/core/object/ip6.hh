@@ -31,11 +31,11 @@ typedef struct core_object_ip6 {
     uint8_t  src[16];
     uint8_t  dst[16];
 
-    unsigned short is_frag : 1;
-    unsigned short have_rtdst : 1;
-    uint16_t       frag_offlg;
-    uint16_t       frag_ident;
-    uint8_t        rtdst[16];
+    uint8_t  is_frag;
+    uint8_t  have_rtdst;
+    uint16_t frag_offlg;
+    uint16_t frag_ident;
+    uint8_t  rtdst[16];
 } core_object_ip6_t;
 
 core_object_ip6_t* core_object_ip6_copy(const core_object_ip6_t* self);
