@@ -24,16 +24,16 @@ typedef struct core_object_ip {
     const core_object_t* obj_prev;
     int32_t              obj_type;
 
-    unsigned int v : 4;
-    unsigned int hl : 4;
-    uint8_t      tos;
-    uint16_t     len;
-    uint16_t     id;
-    uint16_t     off;
-    uint8_t      ttl;
-    uint8_t      p;
-    uint16_t     sum;
-    uint8_t      src[4], dst[4];
+    uint8_t  v;
+    uint8_t  hl;
+    uint8_t  tos;
+    uint16_t len;
+    uint16_t id;
+    uint16_t off;
+    uint8_t  ttl;
+    uint8_t  p;
+    uint16_t sum;
+    uint8_t  src[4], dst[4];
 } core_object_ip_t;
 
 core_object_ip_t* core_object_ip_copy(const core_object_ip_t* self);

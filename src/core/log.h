@@ -23,6 +23,7 @@
 
 #include <stdlib.h>
 #include <errno.h>
+#include <stdint.h>
 
 #define LOG_SETTINGS_T_INIT \
     {                       \

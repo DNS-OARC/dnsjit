@@ -79,13 +79,15 @@ end
 
 -- Put an object into the channel, if the channel is full then it will
 -- stall and wait until space becomes available.
+-- Object may be nil.
 function Channel:put(obj)
     C.core_channel_put(self, obj)
 end
 
 -- Get an object from the channel, if the channel is empty it will wait until
 -- an object is available.
--- Returns nil if the channel is closed.
+-- Returns nil if the channel is closed or if a nil object was explicitly put
+-- into the channel.
 function Channel:get()
     return C.core_channel_get(self)
 end

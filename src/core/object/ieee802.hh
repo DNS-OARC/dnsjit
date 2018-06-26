@@ -24,11 +24,11 @@ typedef struct core_object_ieee802 {
     const core_object_t* obj_prev;
     int32_t              obj_type;
 
-    uint16_t       tpid;
-    unsigned short pcp : 3;
-    unsigned short dei : 1;
-    unsigned short vid : 12;
-    uint16_t       ether_type;
+    uint16_t tpid;
+    uint8_t  pcp;
+    uint8_t  dei;
+    uint8_t  vid;
+    uint16_t ether_type;
 } core_object_ieee802_t;
 
 core_object_ieee802_t* core_object_ieee802_copy(const core_object_ieee802_t* self);
