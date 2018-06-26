@@ -76,6 +76,12 @@ function Timing:multiply(factor)
     self.obj.mul = factor
 end
 
+-- Set the timing mode to a fixed number of nanoseconds between packets.
+function Timing:fixed(ns)
+    self.obj.mode = "TIMING_MODE_FIXED"
+    self.obj.fixed = ns
+end
+
 -- Return the C functions and context for receiving objects.
 function Timing:receive()
     return C.filter_timing_receiver(), self.obj
@@ -85,6 +91,17 @@ end
 function Timing:receiver(o)
     self.obj.recv, self.obj.ctx = o:receive()
     self._receiver = o
+end
+
+-- Return the C functions and context for producing objects.
+function Timing:produce()
+    return C.filter_timing_producer(self.obj), self.obj
+end
+
+-- Set the producer to get objects from.
+function Timing:producer(o)
+    self.obj.prod, self.obj.prod_ctx = o:produce()
+    self._producer = o
 end
 
 return Timing

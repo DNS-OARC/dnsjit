@@ -177,9 +177,8 @@ void output_respdiff_commit(output_respdiff_t* self, const char* origname, const
 }
 
 #ifdef HAVE_LMDB_H
-static void _receive(void* ctx, const core_object_t* obj)
+static void _receive(output_respdiff_t* self, const core_object_t* obj)
 {
-    output_respdiff_t*           self = (output_respdiff_t*)ctx;
     const core_object_payload_t *query, *original, *response;
     MDB_val                      k, v;
     uint8_t                      responses[132096];
@@ -241,7 +240,7 @@ core_receiver_t output_respdiff_receiver(output_respdiff_t* self)
         lfatal("no LMDB opened");
     }
 
-    return _receive;
+    return (core_receiver_t)_receive;
 }
 #else
 core_receiver_t output_respdiff_receiver(output_respdiff_t* self)

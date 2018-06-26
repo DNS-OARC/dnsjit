@@ -131,9 +131,8 @@ int input_pcap_dispatch(input_pcap_t* self, int cnt)
     return pcap_dispatch(self->pcap, cnt, _handler, (void*)self);
 }
 
-static const core_object_t* _produce(void* ctx)
+static const core_object_t* _produce(input_pcap_t* self)
 {
-    input_pcap_t*       self = (input_pcap_t*)ctx;
     struct pcap_pkthdr* h;
     const u_char*       bytes;
     int                 ret = 0;
@@ -161,5 +160,5 @@ core_producer_t input_pcap_producer(input_pcap_t* self)
         lfatal("no PCAP opened");
     }
 
-    return _produce;
+    return (core_producer_t)_produce;
 }

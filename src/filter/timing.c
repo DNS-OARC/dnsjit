@@ -36,7 +36,7 @@ typedef struct _filter_timing {
     struct timespec diff;
     core_timespec_t last_pkthdr_ts;
     struct timespec last_ts;
-    int (*timing_callback)(filter_timing_t*, const core_object_pcap_t*, const core_object_t*);
+    void (*timing_callback)(filter_timing_t*, const core_object_pcap_t*);
     struct timespec mod_ts;
 } _filter_timing_t;
 
@@ -45,6 +45,7 @@ static filter_timing_t _defaults = {
     LOG_T_INIT_OBJ("filter.timing"),
     0, 0,
     TIMING_MODE_KEEP, 0, 0, 0.0,
+    0, 0
 };
 
 #define _self ((_filter_timing_t*)self)
@@ -54,7 +55,7 @@ core_log_t* filter_timing_log()
     return &_log;
 }
 
-static int _keep(filter_timing_t* self, const core_object_pcap_t* pkt, const core_object_t* obj)
+static void _keep(filter_timing_t* self, const core_object_pcap_t* pkt)
 {
 #if HAVE_CLOCK_NANOSLEEP
     struct timespec to = {
@@ -72,10 +73,10 @@ static int _keep(filter_timing_t* self, const core_object_pcap_t* pkt, const cor
     }
 
     while (ret) {
-        ldebug("keep mode, sleep to %ld.%ld", to.tv_sec, to.tv_nsec);
+        ldebug("keep mode, sleep to %ld.%09ld", to.tv_sec, to.tv_nsec);
         ret = clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &to, 0);
         if (ret && ret != EINTR) {
-            lfatal("clock_nanosleep(%ld.%ld) %d", to.tv_sec, to.tv_nsec, ret);
+            lfatal("clock_nanosleep(%ld.%09ld) %d", to.tv_sec, to.tv_nsec, ret);
         }
     }
 #elif HAVE_NANOSLEEP
@@ -95,11 +96,11 @@ static int _keep(filter_timing_t* self, const core_object_pcap_t* pkt, const cor
 
     if (diff.tv_sec > -1 && diff.tv_nsec > -1) {
         while (ret) {
-            ldebug("keep mode, sleep for %ld.%ld", diff.tv_sec, diff.tv_nsec);
+            ldebug("keep mode, sleep for %ld.%09ld", diff.tv_sec, diff.tv_nsec);
             if ((ret = nanosleep(&diff, &diff))) {
                 ret = errno;
                 if (ret != EINTR) {
-                    lfatal("nanosleep(%ld.%ld) %d", diff.tv_sec, diff.tv_nsec, ret);
+                    lfatal("nanosleep(%ld.%09ld) %d", diff.tv_sec, diff.tv_nsec, ret);
                 }
             }
         }
@@ -107,13 +108,9 @@ static int _keep(filter_timing_t* self, const core_object_pcap_t* pkt, const cor
 
     _self->last_pkthdr_ts = pkt->ts;
 #endif
-
-    self->recv(self->ctx, obj);
-
-    return 0;
 }
 
-static int _increase(filter_timing_t* self, const core_object_pcap_t* pkt, const core_object_t* obj)
+static void _increase(filter_timing_t* self, const core_object_pcap_t* pkt)
 {
     struct timespec diff = {
         pkt->ts.sec - _self->last_pkthdr_ts.sec,
@@ -152,19 +149,19 @@ static int _increase(filter_timing_t* self, const core_object_pcap_t* pkt, const
         }
 
         while (ret) {
-            ldebug("increase mode, sleep to %ld.%ld", to.tv_sec, to.tv_nsec);
+            ldebug("increase mode, sleep to %ld.%09ld", to.tv_sec, to.tv_nsec);
             ret = clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &to, 0);
             if (ret && ret != EINTR) {
-                lfatal("clock_nanosleep(%ld.%ld) %d", to.tv_sec, to.tv_nsec, ret);
+                lfatal("clock_nanosleep(%ld.%09ld) %d", to.tv_sec, to.tv_nsec, ret);
             }
         }
 #elif HAVE_NANOSLEEP
         while (ret) {
-            ldebug("increase mode, sleep for %ld.%ld", diff.tv_sec, diff.tv_nsec);
+            ldebug("increase mode, sleep for %ld.%09ld", diff.tv_sec, diff.tv_nsec);
             if ((ret = nanosleep(&diff, &diff))) {
                 ret = errno;
                 if (ret != EINTR) {
-                    lfatal("nanosleep(%ld.%ld) %d", diff.tv_sec, diff.tv_nsec, ret);
+                    lfatal("nanosleep(%ld.%09ld) %d", diff.tv_sec, diff.tv_nsec, ret);
                 }
             }
         }
@@ -178,13 +175,9 @@ static int _increase(filter_timing_t* self, const core_object_pcap_t* pkt, const
         lfatal("clock_gettime()");
     }
 #endif
-
-    self->recv(self->ctx, obj);
-
-    return 0;
 }
 
-static int _reduce(filter_timing_t* self, const core_object_pcap_t* pkt, const core_object_t* obj)
+static void _reduce(filter_timing_t* self, const core_object_pcap_t* pkt)
 {
     struct timespec diff = {
         pkt->ts.sec - _self->last_pkthdr_ts.sec,
@@ -223,19 +216,19 @@ static int _reduce(filter_timing_t* self, const core_object_pcap_t* pkt, const c
         }
 
         while (ret) {
-            ldebug("reduce mode, sleep to %ld.%ld", to.tv_sec, to.tv_nsec);
+            ldebug("reduce mode, sleep to %ld.%09ld", to.tv_sec, to.tv_nsec);
             ret = clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &to, 0);
             if (ret && ret != EINTR) {
-                lfatal("clock_nanosleep(%ld.%ld) %d", to.tv_sec, to.tv_nsec, ret);
+                lfatal("clock_nanosleep(%ld.%09ld) %d", to.tv_sec, to.tv_nsec, ret);
             }
         }
 #elif HAVE_NANOSLEEP
         while (ret) {
-            ldebug("reduce mode, sleep for %ld.%ld", diff.tv_sec, diff.tv_nsec);
+            ldebug("reduce mode, sleep for %ld.%09ld", diff.tv_sec, diff.tv_nsec);
             if ((ret = nanosleep(&diff, &diff))) {
                 ret = errno;
                 if (ret != EINTR) {
-                    lfatal("nanosleep(%ld.%ld) %d", diff.tv_sec, diff.tv_nsec, ret);
+                    lfatal("nanosleep(%ld.%09ld) %d", diff.tv_sec, diff.tv_nsec, ret);
                 }
             }
         }
@@ -249,13 +242,9 @@ static int _reduce(filter_timing_t* self, const core_object_pcap_t* pkt, const c
         lfatal("clock_gettime()");
     }
 #endif
-
-    self->recv(self->ctx, obj);
-
-    return 0;
 }
 
-static int _multiply(filter_timing_t* self, const core_object_pcap_t* pkt, const core_object_t* obj)
+static void _multiply(filter_timing_t* self, const core_object_pcap_t* pkt)
 {
     struct timespec diff = {
         pkt->ts.sec - _self->last_pkthdr_ts.sec,
@@ -294,19 +283,19 @@ static int _multiply(filter_timing_t* self, const core_object_pcap_t* pkt, const
         }
 
         while (ret) {
-            ldebug("multiply mode, sleep to %ld.%ld", to.tv_sec, to.tv_nsec);
+            ldebug("multiply mode, sleep to %ld.%09ld", to.tv_sec, to.tv_nsec);
             ret = clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &to, 0);
             if (ret && ret != EINTR) {
-                lfatal("clock_nanosleep(%ld.%ld) %d", to.tv_sec, to.tv_nsec, ret);
+                lfatal("clock_nanosleep(%ld.%09ld) %d", to.tv_sec, to.tv_nsec, ret);
             }
         }
 #elif HAVE_NANOSLEEP
         while (ret) {
-            ldebug("multiply mode, sleep for %ld.%ld", diff.tv_sec, diff.tv_nsec);
+            ldebug("multiply mode, sleep for %ld.%09ld", diff.tv_sec, diff.tv_nsec);
             if ((ret = nanosleep(&diff, &diff))) {
                 ret = errno;
                 if (ret != EINTR) {
-                    lfatal("nanosleep(%ld.%ld) %d", diff.tv_sec, diff.tv_nsec, ret);
+                    lfatal("nanosleep(%ld.%09ld) %d", diff.tv_sec, diff.tv_nsec, ret);
                 }
             }
         }
@@ -320,13 +309,61 @@ static int _multiply(filter_timing_t* self, const core_object_pcap_t* pkt, const
         lfatal("clock_gettime()");
     }
 #endif
-
-    self->recv(self->ctx, obj);
-
-    return 0;
 }
 
-static int _init(filter_timing_t* self, const core_object_pcap_t* pkt, const core_object_t* obj)
+static void _fixed(filter_timing_t* self, const core_object_pcap_t* pkt)
+{
+    struct timespec diff = {
+        _self->mod_ts.tv_sec,
+        _self->mod_ts.tv_nsec
+    };
+    int ret = EINTR;
+
+    if (diff.tv_sec > -1 && diff.tv_nsec > -1) {
+#if HAVE_CLOCK_NANOSLEEP
+        struct timespec to = {
+            _self->last_ts.tv_sec + diff.tv_sec,
+            _self->last_ts.tv_nsec + diff.tv_nsec
+        };
+
+        if (to.tv_nsec >= N1e9) {
+            to.tv_sec += 1;
+            to.tv_nsec -= N1e9;
+        } else if (to.tv_nsec < 0) {
+            to.tv_sec -= 1;
+            to.tv_nsec += N1e9;
+        }
+
+        while (ret) {
+            ldebug("fixed mode, sleep to %ld.%09ld", to.tv_sec, to.tv_nsec);
+            ret = clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &to, 0);
+            if (ret && ret != EINTR) {
+                lfatal("clock_nanosleep(%ld.%09ld) %d", to.tv_sec, to.tv_nsec, ret);
+            }
+        }
+#elif HAVE_NANOSLEEP
+        while (ret) {
+            ldebug("fixed mode, sleep for %ld.%09ld", diff.tv_sec, diff.tv_nsec);
+            if ((ret = nanosleep(&diff, &diff))) {
+                ret = errno;
+                if (ret != EINTR) {
+                    lfatal("nanosleep(%ld.%09ld) %d", diff.tv_sec, diff.tv_nsec, ret);
+                }
+            }
+        }
+#endif
+    }
+
+    _self->last_pkthdr_ts = pkt->ts;
+
+#if HAVE_CLOCK_NANOSLEEP
+    if (clock_gettime(CLOCK_MONOTONIC, &_self->last_ts)) {
+        lfatal("clock_gettime()");
+    }
+#endif
+}
+
+static void _init(filter_timing_t* self, const core_object_pcap_t* pkt)
 {
 #if HAVE_CLOCK_NANOSLEEP
     if (clock_gettime(CLOCK_MONOTONIC, &_self->last_ts)) {
@@ -335,7 +372,7 @@ static int _init(filter_timing_t* self, const core_object_pcap_t* pkt, const cor
     _self->diff = _self->last_ts;
     _self->diff.tv_sec -= pkt->ts.sec;
     _self->diff.tv_nsec -= pkt->ts.nsec;
-    ldebug("init with clock_nanosleep() now is %ld.%ld, diff of first pkt %ld.%ld",
+    ldebug("init with clock_nanosleep() now is %ld.%09ld, diff of first pkt %ld.%09ld",
         _self->last_ts.tv_sec, _self->last_ts.tv_nsec,
         _self->diff.tv_sec, _self->diff.tv_nsec);
 #elif HAVE_NANOSLEEP
@@ -355,26 +392,27 @@ static int _init(filter_timing_t* self, const core_object_pcap_t* pkt, const cor
         _self->timing_callback = _increase;
         _self->mod_ts.tv_sec   = self->inc / N1e9;
         _self->mod_ts.tv_nsec  = self->inc % N1e9;
-        ldebug("init mode increase by %ld.%ld", _self->mod_ts.tv_sec, _self->mod_ts.tv_nsec);
+        ldebug("init mode increase by %ld.%09ld", _self->mod_ts.tv_sec, _self->mod_ts.tv_nsec);
         break;
     case TIMING_MODE_REDUCE:
         _self->timing_callback = _reduce;
         _self->mod_ts.tv_sec   = self->red / N1e9;
         _self->mod_ts.tv_nsec  = self->red % N1e9;
-        ldebug("init mode reduce by %ld.%ld", _self->mod_ts.tv_sec, _self->mod_ts.tv_nsec);
+        ldebug("init mode reduce by %ld.%09ld", _self->mod_ts.tv_sec, _self->mod_ts.tv_nsec);
         break;
     case TIMING_MODE_MULTIPLY:
         _self->timing_callback = _multiply;
         ldebug("init mode multiply by %f", self->mul);
         break;
+    case TIMING_MODE_FIXED:
+        _self->timing_callback = _fixed;
+        _self->mod_ts.tv_sec   = self->fixed / N1e9;
+        _self->mod_ts.tv_nsec  = self->fixed % N1e9;
+        ldebug("init mode fixed by %ld.%09ld", _self->mod_ts.tv_sec, _self->mod_ts.tv_nsec);
+        break;
     default:
         lfatal("invalid timing mode %d", self->mode);
-        return 1;
     }
-
-    self->recv(self->ctx, obj);
-
-    return 0;
 }
 
 filter_timing_t* filter_timing_new()
@@ -393,9 +431,8 @@ void filter_timing_free(filter_timing_t* self)
     free(self);
 }
 
-static void _receive(void* ctx, const core_object_t* obj)
+static void _receive(filter_timing_t* self, const core_object_t* obj)
 {
-    filter_timing_t* self = (filter_timing_t*)ctx;
     mlassert_self();
     lassert(obj, "obj is nil");
 
@@ -403,7 +440,8 @@ static void _receive(void* ctx, const core_object_t* obj)
         lfatal("obj is not CORE_OBJECT_PCAP");
     }
 
-    _self->timing_callback(self, (core_object_pcap_t*)obj, obj);
+    _self->timing_callback(self, (core_object_pcap_t*)obj);
+    self->recv(self->ctx, obj);
 }
 
 core_receiver_t filter_timing_receiver(filter_timing_t* self)
@@ -414,5 +452,30 @@ core_receiver_t filter_timing_receiver(filter_timing_t* self)
         lfatal("no receiver set");
     }
 
-    return _receive;
+    return (core_receiver_t)_receive;
+}
+
+static const core_object_t* _produce(filter_timing_t* self)
+{
+    const core_object_t* obj;
+    mlassert_self();
+
+    obj = self->prod(self->prod_ctx);
+    if (!obj || obj->obj_type != CORE_OBJECT_PCAP) {
+        return 0;
+    }
+
+    _self->timing_callback(self, (core_object_pcap_t*)obj);
+    return obj;
+}
+
+core_producer_t filter_timing_producer(filter_timing_t* self)
+{
+    mlassert_self();
+
+    if (!self->prod) {
+        lfatal("no producer set");
+    }
+
+    return (core_producer_t)_produce;
 }

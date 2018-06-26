@@ -205,9 +205,8 @@ int input_fpcap_run(input_fpcap_t* self)
     return 0;
 }
 
-static const core_object_t* _produce(void* ctx)
+static const core_object_t* _produce(input_fpcap_t* self)
 {
-    input_fpcap_t* self = (input_fpcap_t*)ctx;
     struct {
         uint32_t ts_sec;
         uint32_t ts_usec;
@@ -269,5 +268,5 @@ core_producer_t input_fpcap_producer(input_fpcap_t* self)
         lfatal("no PCAP opened");
     }
 
-    return _produce;
+    return (core_producer_t)_produce;
 }
