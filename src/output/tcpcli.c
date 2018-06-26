@@ -146,12 +146,11 @@ int output_tcpcli_set_nonblocking(output_tcpcli_t* self, int nonblocking)
     return 0;
 }
 
-static void _receive(void* ctx, const core_object_t* obj)
+static void _receive(output_tcpcli_t* self, const core_object_t* obj)
 {
-    output_tcpcli_t* self = (output_tcpcli_t*)ctx;
-    const uint8_t*   payload;
-    size_t           len, sent;
-    uint16_t         dnslen;
+    const uint8_t* payload;
+    size_t         len, sent;
+    uint16_t       dnslen;
     mlassert_self();
 
     for (; obj;) {
@@ -230,14 +229,13 @@ core_receiver_t output_tcpcli_receiver(output_tcpcli_t* self)
         lfatal("not connected");
     }
 
-    return _receive;
+    return (core_receiver_t)_receive;
 }
 
-static const core_object_t* _produce(void* ctx)
+static const core_object_t* _produce(output_tcpcli_t* self)
 {
-    output_tcpcli_t* self = (output_tcpcli_t*)ctx;
-    ssize_t          n, recv;
-    uint16_t         dnslen;
+    ssize_t  n, recv;
+    uint16_t dnslen;
     mlassert_self();
 
     if (!self->have_dnslen) {
@@ -312,5 +310,5 @@ core_producer_t output_tcpcli_producer(output_tcpcli_t* self)
         lfatal("not connected");
     }
 
-    return _produce;
+    return (core_producer_t)_produce;
 }

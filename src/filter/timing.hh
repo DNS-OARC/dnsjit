@@ -20,6 +20,7 @@
 
 //lua:require("dnsjit.core.log")
 //lua:require("dnsjit.core.receiver_h")
+//lua:require("dnsjit.core.producer_h")
 //lua:require("dnsjit.core.timespec_h")
 
 typedef struct filter_timing {
@@ -30,10 +31,14 @@ typedef struct filter_timing {
         TIMING_MODE_KEEP     = 0,
         TIMING_MODE_INCREASE = 1,
         TIMING_MODE_REDUCE   = 2,
-        TIMING_MODE_MULTIPLY = 3
+        TIMING_MODE_MULTIPLY = 3,
+        TIMING_MODE_FIXED    = 4
     } mode;
-    size_t inc, red;
+    size_t inc, red, fixed;
     float  mul;
+
+    core_producer_t prod;
+    void*           prod_ctx;
 } filter_timing_t;
 
 core_log_t* filter_timing_log();
@@ -42,3 +47,4 @@ filter_timing_t* filter_timing_new();
 void filter_timing_free(filter_timing_t* self);
 
 core_receiver_t filter_timing_receiver(filter_timing_t* self);
+core_producer_t filter_timing_producer(filter_timing_t* self);

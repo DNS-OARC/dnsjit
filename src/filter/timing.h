@@ -20,6 +20,7 @@
 
 #include "core/log.h"
 #include "core/receiver.h"
+#include "core/producer.h"
 
 #ifndef __dnsjit_filter_timing_h
 #define __dnsjit_filter_timing_h

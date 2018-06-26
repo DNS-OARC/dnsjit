@@ -220,9 +220,8 @@ int input_mmpcap_run(input_mmpcap_t* self)
     return 0;
 }
 
-static const core_object_t* _produce(void* ctx)
+static const core_object_t* _produce(input_mmpcap_t* self)
 {
-    input_mmpcap_t* self = (input_mmpcap_t*)ctx;
     struct {
         uint32_t ts_sec;
         uint32_t ts_usec;
@@ -287,5 +286,5 @@ core_producer_t input_mmpcap_producer(input_mmpcap_t* self)
         lfatal("no PCAP opened");
     }
 
-    return _produce;
+    return (core_producer_t)_produce;
 }

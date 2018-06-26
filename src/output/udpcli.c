@@ -139,11 +139,10 @@ int output_udpcli_set_nonblocking(output_udpcli_t* self, int nonblocking)
     return 0;
 }
 
-static void _receive(void* ctx, const core_object_t* obj)
+static void _receive(output_udpcli_t* self, const core_object_t* obj)
 {
-    output_udpcli_t* self = (output_udpcli_t*)ctx;
-    const uint8_t*   payload;
-    size_t           len, sent;
+    const uint8_t* payload;
+    size_t         len, sent;
     mlassert_self();
 
     for (; obj;) {
@@ -197,13 +196,12 @@ core_receiver_t output_udpcli_receiver(output_udpcli_t* self)
         lfatal("not connected");
     }
 
-    return _receive;
+    return (core_receiver_t)_receive;
 }
 
-static const core_object_t* _produce(void* ctx)
+static const core_object_t* _produce(output_udpcli_t* self)
 {
-    output_udpcli_t* self = (output_udpcli_t*)ctx;
-    ssize_t          n;
+    ssize_t n;
     mlassert_self();
 
     for (;;) {
@@ -240,5 +238,5 @@ core_producer_t output_udpcli_producer(output_udpcli_t* self)
         lfatal("not connected");
     }
 
-    return _produce;
+    return (core_producer_t)_produce;
 }

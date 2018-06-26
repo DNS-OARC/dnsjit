@@ -74,18 +74,16 @@ void filter_split_add(filter_split_t* self, core_receiver_t recv, void* ctx)
     }
 }
 
-static void _roundrobin(void* ctx, const core_object_t* obj)
+static void _roundrobin(filter_split_t* self, const core_object_t* obj)
 {
-    filter_split_t* self = (filter_split_t*)ctx;
     mlassert_self();
 
     self->recv->recv(self->recv->ctx, obj);
     self->recv = self->recv->next;
 }
 
-static void _sendall(void* ctx, const core_object_t* obj)
+static void _sendall(filter_split_t* self, const core_object_t* obj)
 {
-    filter_split_t*      self = (filter_split_t*)ctx;
     filter_split_recv_t* r;
     mlassert_self();
 
@@ -106,9 +104,9 @@ core_receiver_t filter_split_receiver(filter_split_t* self)
 
     switch (self->mode) {
     case FILTER_SPLIT_MODE_ROUNDROBIN:
-        return _roundrobin;
+        return (core_receiver_t)_roundrobin;
     case FILTER_SPLIT_MODE_SENDALL:
-        return _sendall;
+        return (core_receiver_t)_sendall;
     default:
         lfatal("invalid split mode");
     }

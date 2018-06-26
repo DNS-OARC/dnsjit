@@ -47,9 +47,8 @@ void output_null_destroy(output_null_t* self)
     mlassert_self();
 }
 
-static void _receive(void* ctx, const core_object_t* obj)
+static void _receive(output_null_t* self, const core_object_t* obj)
 {
-    output_null_t* self = (output_null_t*)ctx;
     mlassert_self();
 
     self->pkts++;
@@ -57,7 +56,7 @@ static void _receive(void* ctx, const core_object_t* obj)
 
 core_receiver_t output_null_receiver()
 {
-    return _receive;
+    return (core_receiver_t)_receive;
 }
 
 void output_null_run(output_null_t* self, int64_t num)

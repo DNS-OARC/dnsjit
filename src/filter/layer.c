@@ -642,9 +642,8 @@ static inline int _link(filter_layer_t* self, const core_object_pcap_t* pcap)
     return 0;
 }
 
-static void _receive(void* ctx, const core_object_t* obj)
+static void _receive(filter_layer_t* self, const core_object_t* obj)
 {
-    filter_layer_t* self = (filter_layer_t*)ctx;
     mlassert_self();
     lassert(obj, "obj is nil");
 
@@ -662,12 +661,11 @@ static void _receive(void* ctx, const core_object_t* obj)
 
 core_receiver_t filter_layer_receiver()
 {
-    return _receive;
+    return (core_receiver_t)_receive;
 }
 
-static const core_object_t* _produce(void* ctx)
+static const core_object_t* _produce(filter_layer_t* self)
 {
-    filter_layer_t*      self = (filter_layer_t*)ctx;
     const core_object_t* obj;
     mlassert_self();
 
@@ -687,5 +685,5 @@ core_producer_t filter_layer_producer(filter_layer_t* self)
         lfatal("no producer set");
     }
 
-    return _produce;
+    return (core_producer_t)_produce;
 }
