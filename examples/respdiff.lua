@@ -66,14 +66,14 @@ while true do
         dns.obj_prev = obj
         if dns:parse_header() == 0 then
             local transport = obj.obj_prev
-            while transport do
+            while transport ~= nil do
                 if transport.obj_type == object.IP or transport.obj_type == object.IP6 then
                     break
                 end
                 transport = transport.obj_prev
             end
             local protocol = obj.obj_prev
-            while protocol do
+            while protocol ~= nil do
                 if protocol.obj_type == object.UDP or protocol.obj_type == object.TCP then
                     break
                 end
@@ -102,7 +102,8 @@ while true do
                         clipayload.payload = q.payload
                         clipayload.len = q.len
 
-                        local responses, response = {}, nil
+                        local prod, pctx
+
                         if q.proto == "udp" then
                             if not udpcli then
                                 udpcli = require("dnsjit.output.udpcli").new()
@@ -111,13 +112,8 @@ while true do
                                 udpprod, _ = udpcli:produce()
                             end
                             udprecv(udpctx, cliobject)
-                            while response == nil do
-                                response = udpprod(udpctx)
-                            end
-                            while response ~= nil do
-                                table.insert(responses, response)
-                                response = udpprod(udpctx)
-                            end
+                            prod = udpprod
+                            pctx = udpctx
                         elseif q.proto == "tcp" then
                             if not tcpcli then
                                 tcpcli = require("dnsjit.output.tcpcli").new()
@@ -126,27 +122,31 @@ while true do
                                 tcpprod, _ = tcpcli:produce()
                             end
                             tcprecv(tcpctx, cliobject)
-                            while response == nil do
-                                response = tcpprod(tcpctx)
-                            end
-                            while response ~= nil do
-                                table.insert(responses, response)
-                                response = tcpprod(tcpctx)
-                            end
+                            prod = tcpprod
+                            pctx = tcpctx
                         end
 
-                        for _, response in pairs(responses) do
-                            dns.obj_prev = response
-                            if dns:parse_header() == 0 and dns.id == q.id then
-                                query_payload.payload = q.payload
-                                query_payload.len = q.len
-                                original_payload.payload = payload.payload
-                                original_payload.len = payload.len
-                                response = response:cast()
-                                response_payload.payload = response.payload
-                                response_payload.len = response.len
+                        while true do
+                            local response = prod(pctx)
+                            if response == nil then
+                                log.fatal("producer error")
+                            end
+                            local rpl = response:cast()
+                            if rpl.len == 0 then
+                                log.info("timed out")
+                            else
+                                dns.obj_prev = response
+                                if dns:parse_header() == 0 and dns.id == q.id then
+                                    query_payload.payload = q.payload
+                                    query_payload.len = q.len
+                                    original_payload.payload = payload.payload
+                                    original_payload.len = payload.len
+                                    response_payload.payload = rpl.payload
+                                    response_payload.len = rpl.len
 
-                                resprecv(respctx, query_payload_obj)
+                                    resprecv(respctx, query_payload_obj)
+                                    break
+                                end
                             end
                         end
                     end

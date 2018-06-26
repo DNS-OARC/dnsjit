@@ -29,13 +29,15 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <string.h>
+#include <poll.h>
 
 static core_log_t      _log      = LOG_T_INIT("output.udpcli");
 static output_udpcli_t _defaults = {
     LOG_T_INIT_OBJ("output.udpcli"),
     0, 0, -1,
     { 0 }, 0,
-    { 0 }, CORE_OBJECT_PAYLOAD_INIT(0)
+    { 0 }, CORE_OBJECT_PAYLOAD_INIT(0), 0,
+    { 5, 0 }, 1
 };
 
 core_log_t* output_udpcli_log()
@@ -127,8 +129,10 @@ int output_udpcli_set_nonblocking(output_udpcli_t* self, int nonblocking)
 
     if (nonblocking) {
         flags |= O_NONBLOCK;
+        self->blocking = 0;
     } else {
         flags &= ~O_NONBLOCK;
+        self->blocking = 1;
     }
 
     if (fcntl(self->fd, F_SETFL, flags | O_NONBLOCK)) {
@@ -158,18 +162,14 @@ static void _receive(output_udpcli_t* self, const core_object_t* obj)
             return;
         }
 
-        if (len < 3 || payload[2] & 0x80) {
-            return;
-        }
-
         sent = 0;
-        self->pkts++;
         for (;;) {
             ssize_t ret = sendto(self->fd, payload + sent, len - sent, 0, (struct sockaddr*)&self->addr, self->addr_len);
             if (ret > -1) {
                 sent += ret;
                 if (sent < len)
                     continue;
+                self->pkts++;
                 return;
             }
             switch (errno) {
@@ -181,9 +181,9 @@ static void _receive(output_udpcli_t* self, const core_object_t* obj)
             default:
                 break;
             }
-            self->errs++;
             break;
         }
+        self->errs++;
         break;
     }
 }
@@ -214,11 +214,12 @@ static const core_object_t* _produce(output_udpcli_t* self)
 #if EAGAIN != EWOULDBLOCK
         case EWOULDBLOCK:
 #endif
-            n = 0;
-            break;
+            self->pkt.len = 0;
+            return (core_object_t*)&self->pkt;
         default:
             break;
         }
+        self->errs++;
         break;
     }
 
@@ -226,6 +227,60 @@ static const core_object_t* _produce(output_udpcli_t* self)
         return 0;
     }
 
+    self->pkts_recv++;
+    self->pkt.len = n;
+    return (core_object_t*)&self->pkt;
+}
+
+static const core_object_t* _produce_block(output_udpcli_t* self)
+{
+    ssize_t       n;
+    struct pollfd p;
+    int           to;
+    mlassert_self();
+
+    p.fd      = self->fd;
+    p.events  = POLLIN;
+    p.revents = 0;
+    to        = (self->timeout.sec * 1e3) + (self->timeout.nsec / 1e6);
+    if (!to) {
+        to = 1;
+    }
+
+    n = poll(&p, 1, to);
+    if (n < 0 || (p.revents & (POLLERR | POLLHUP | POLLNVAL))) {
+        self->errs++;
+        return 0;
+    }
+    if (!n || !(p.revents & POLLIN)) {
+        self->pkt.len = 0;
+        return (core_object_t*)&self->pkt;
+    }
+
+    for (;;) {
+        n = recvfrom(self->fd, self->recvbuf, sizeof(self->recvbuf), 0, 0, 0);
+        if (n > -1) {
+            break;
+        }
+        switch (errno) {
+        case EAGAIN:
+#if EAGAIN != EWOULDBLOCK
+        case EWOULDBLOCK:
+#endif
+            self->pkt.len = 0;
+            return (core_object_t*)&self->pkt;
+        default:
+            break;
+        }
+        self->errs++;
+        break;
+    }
+
+    if (n < 1) {
+        return 0;
+    }
+
+    self->pkts_recv++;
     self->pkt.len = n;
     return (core_object_t*)&self->pkt;
 }
@@ -238,5 +293,8 @@ core_producer_t output_udpcli_producer(output_udpcli_t* self)
         lfatal("not connected");
     }
 
+    if (self->blocking) {
+        return (core_producer_t)_produce_block;
+    }
     return (core_producer_t)_produce;
 }

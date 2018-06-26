@@ -671,44 +671,52 @@ function Dns:print(num_labels)
     print("", "nscount:", self.nscount)
     print("", "arcount:", self.arcount)
 
-    print("", "questions:")
-    for n = 1, self.qdcount do
-        if C.core_object_dns_parse_q(self, q, labels, num_labels) ~= 0 then
-            return
-        end
-        print("", "", Dns.class_tostring(q.class), Dns.type_tostring(q.type), label.tooffstr(self, labels, num_labels))
-    end
-    print("", "answers:")
-    for n = 1, self.ancount do
-        if C.core_object_dns_parse_rr(self, rr, labels, num_labels) ~= 0 then
-            return
-        end
-        if rr.rdata_labels == 0 then
-            print("", "", Dns.class_tostring(rr.class), Dns.type_tostring(rr.type), rr.ttl, label.tooffstr(self, labels, rr.labels))
-        else
-            print("", "", Dns.class_tostring(rr.class), Dns.type_tostring(rr.type), rr.ttl, label.tooffstr(self, labels, rr.labels), label.tooffstr(self, labels, rr.rdata_labels, rr.labels))
+    if self.qdcount > 0 then
+        print("questions:", "class", "type", "labels")
+        for n = 1, self.qdcount do
+            if C.core_object_dns_parse_q(self, q, labels, num_labels) ~= 0 then
+                return
+            end
+            print("", Dns.class_tostring(q.class), Dns.type_tostring(q.type), label.tooffstr(self, labels, num_labels))
         end
     end
-    print("", "authorities:")
-    for n = 1, self.nscount do
-        if C.core_object_dns_parse_rr(self, rr, labels, num_labels) ~= 0 then
-            return
-        end
-        if rr.rdata_labels == 0 then
-            print("", "", Dns.class_tostring(rr.class), Dns.type_tostring(rr.type), rr.ttl, label.tooffstr(self, labels, rr.labels))
-        else
-            print("", "", Dns.class_tostring(rr.class), Dns.type_tostring(rr.type), rr.ttl, label.tooffstr(self, labels, rr.labels), label.tooffstr(self, labels, rr.rdata_labels, rr.labels))
+    if self.ancount > 0 then
+        print("answers:", "class", "type", "ttl", "labels", "RR labels")
+        for n = 1, self.ancount do
+            if C.core_object_dns_parse_rr(self, rr, labels, num_labels) ~= 0 then
+                return
+            end
+            if rr.rdata_labels == 0 then
+                print("", Dns.class_tostring(rr.class), Dns.type_tostring(rr.type), rr.ttl, label.tooffstr(self, labels, rr.labels))
+            else
+                print("", Dns.class_tostring(rr.class), Dns.type_tostring(rr.type), rr.ttl, label.tooffstr(self, labels, rr.labels), label.tooffstr(self, labels, rr.rdata_labels, rr.labels))
+            end
         end
     end
-    print("", "additionals:")
-    for n = 1, self.arcount do
-        if C.core_object_dns_parse_rr(self, rr, labels, num_labels) ~= 0 then
-            return
+    if self.nscount > 0 then
+        print("authorities:", "class", "type", "ttl", "labels", "RR labels")
+        for n = 1, self.nscount do
+            if C.core_object_dns_parse_rr(self, rr, labels, num_labels) ~= 0 then
+                return
+            end
+            if rr.rdata_labels == 0 then
+                print("", Dns.class_tostring(rr.class), Dns.type_tostring(rr.type), rr.ttl, label.tooffstr(self, labels, rr.labels))
+            else
+                print("", Dns.class_tostring(rr.class), Dns.type_tostring(rr.type), rr.ttl, label.tooffstr(self, labels, rr.labels), label.tooffstr(self, labels, rr.rdata_labels, rr.labels))
+            end
         end
-        if rr.rdata_labels == 0 then
-            print("", "", Dns.class_tostring(rr.class), Dns.type_tostring(rr.type), rr.ttl, label.tooffstr(self, labels, rr.labels))
-        else
-            print("", "", Dns.class_tostring(rr.class), Dns.type_tostring(rr.type), rr.ttl, label.tooffstr(self, labels, rr.labels), label.tooffstr(self, labels, rr.rdata_labels, rr.labels))
+    end
+    if self.arcount > 0 then
+        print("additionals:", "class", "type", "ttl", "labels", "RR labels")
+        for n = 1, self.arcount do
+            if C.core_object_dns_parse_rr(self, rr, labels, num_labels) ~= 0 then
+                return
+            end
+            if rr.rdata_labels == 0 then
+                print("", Dns.class_tostring(rr.class), Dns.type_tostring(rr.type), rr.ttl, label.tooffstr(self, labels, rr.labels))
+            else
+                print("", Dns.class_tostring(rr.class), Dns.type_tostring(rr.type), rr.ttl, label.tooffstr(self, labels, rr.labels), label.tooffstr(self, labels, rr.rdata_labels, rr.labels))
+            end
         end
     end
 end

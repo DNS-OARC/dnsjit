@@ -20,9 +20,14 @@
 -- Simple and dumb UDP DNS client
 --   local output = require("dnsjit.output.udpcli").new("127.0.0.1", "53")
 --
--- Simple and rather dumb DNS client that takes any payload you give it,
--- look for the bit in the payload that says it's a DNS query and sends
--- the full payload over UDP if it is.
+-- Simple and rather dumb DNS client that takes any payload you give it and
+-- sends the full payload over UDP.
+-- .SS Attributes
+-- .TP
+-- timeout
+-- A
+-- .I core.timespec
+-- that is used when producing objects.
 module(...,package.seeall)
 
 require("dnsjit.output.udpcli_h")
@@ -33,25 +38,20 @@ local t_name = "output_udpcli_t"
 local output_udpcli_t = ffi.typeof(t_name)
 local Udpcli = {}
 
--- Create a new Udpcli output. Optinally connect to the
--- .I host
--- and
--- .IR port right away or use
--- .BR connect ()
--- later on.
-function Udpcli.new(host, port)
+-- Create a new Udpcli output.
+function Udpcli.new()
     local self = {
         obj = output_udpcli_t(),
     }
     C.output_udpcli_init(self.obj)
     ffi.gc(self.obj, C.output_udpcli_destroy)
-    self = setmetatable(self, { __index = Udpcli })
-    if host and port then
-        if self:connect(host, port) ~= 0 then
-            return
-        end
-    end
-    return self
+    return setmetatable(self, { __index = Udpcli })
+end
+
+-- Set the timeout when producing objects.
+function Udpcli:timeout(seconds, nanoseconds)
+    self.obj.timeout.sec = seconds
+    self.obj.timeout.nsec = nanoseconds
 end
 
 -- Connect to the
@@ -60,11 +60,7 @@ end
 -- .I port
 -- and return 0 if successful.
 function Udpcli:connect(host, port)
-    local ret = C.output_udpcli_connect(self.obj, host, port)
-    if ret == 0 then
-        ret = self:nonblocking(true)
-    end
-    return ret
+    return C.output_udpcli_connect(self.obj, host, port)
 end
 
 -- Enable (true) or disable (false) nonblocking mode and
@@ -92,16 +88,32 @@ end
 
 -- Return the C functions and context for producing objects, these objects
 -- are received.
+-- If nonblocking mode is enabled the producer will return a payload object
+-- with length zero if there was nothing to receive.
+-- If nonblocking mode is disabled the producer will wait for data and if
+-- timed out (see
+-- .IR timeout )
+-- it will return a payload object with length zero.
+-- The producer returns nil on error.
 function Udpcli:produce()
     return C.output_udpcli_producer(self.obj), self.obj
 end
 
--- Return the number of queries we sent.
+-- Return the number of "packets" sent, actually the number of completely sent
+-- payloads.
 function Udpcli:packets()
     return tonumber(self.obj.pkts)
 end
 
--- Return the number of errors when sending.
+-- Return the number of "packets" received, actually the number of successful
+-- calls to
+-- .IR recvfrom (2)
+-- that returned data.
+function Udpcli:received()
+    return tonumber(self.obj.pkts_recv)
+end
+
+-- Return the number of errors when sending or receiving.
 function Udpcli:errors()
     return tonumber(self.obj.errs)
 end

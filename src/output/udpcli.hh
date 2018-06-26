@@ -23,6 +23,7 @@
 //lua:require("dnsjit.core.receiver_h")
 //lua:require("dnsjit.core.producer_h")
 //lua:require("dnsjit.core.object.payload_h")
+//lua:require("dnsjit.core.timespec_h")
 
 typedef struct output_udpcli {
     core_log_t _log;
@@ -34,6 +35,10 @@ typedef struct output_udpcli {
 
     uint8_t               recvbuf[4 * 1024];
     core_object_payload_t pkt;
+    size_t                pkts_recv;
+
+    core_timespec_t timeout;
+    int8_t          blocking;
 } output_udpcli_t;
 
 core_log_t* output_udpcli_log();

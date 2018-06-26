@@ -22,7 +22,7 @@ while true do
     local pl = obj:cast()
     if obj:type() == "payload" and pl.len > 0 then
         local transport = obj.obj_prev
-        while transport do
+        while transport ~= nil do
             if transport.obj_type == object.IP or transport.obj_type == object.IP6 then
                 break
             end

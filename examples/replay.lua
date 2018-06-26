@@ -67,15 +67,17 @@ if printdns then
 
                 recv(rctx, obj)
 
-                local resp = nil
-                while resp == nil do
-                    resp = oprod(opctx)
+                local response = oprod(opctx)
+                if response == nil then
+                    log.fatal("producer error")
                 end
-                while resp ~= nil do
+                local payload = response:cast()
+                if payload.len == 0 then
+                    print("timed out")
+                else
                     dns.obj_prev = resp
                     print("response:")
                     dns:print()
-                    resp = oprod(opctx)
                 end
             end
         end
