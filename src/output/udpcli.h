@@ -22,6 +22,7 @@
 #include "core/receiver.h"
 #include "core/producer.h"
 #include "core/object/payload.h"
+#include "core/timespec.h"
 
 #ifndef __dnsjit_output_udpcli_h
 #define __dnsjit_output_udpcli_h

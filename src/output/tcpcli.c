@@ -32,13 +32,15 @@
 #include <fcntl.h>
 #include <string.h>
 #include <arpa/inet.h>
+#include <poll.h>
 
 static core_log_t      _log      = LOG_T_INIT("output.tcpcli");
 static output_tcpcli_t _defaults = {
     LOG_T_INIT_OBJ("output.tcpcli"),
     0, 0, -1,
     { 0 }, CORE_OBJECT_PAYLOAD_INIT(0),
-    0, 0, 0
+    0, 0, 0, 0,
+    { 5, 0 }, 1
 };
 
 core_log_t* output_tcpcli_log()
@@ -134,8 +136,10 @@ int output_tcpcli_set_nonblocking(output_tcpcli_t* self, int nonblocking)
 
     if (nonblocking) {
         flags |= O_NONBLOCK;
+        self->blocking = 0;
     } else {
         flags &= ~O_NONBLOCK;
+        self->blocking = 1;
     }
 
     if (fcntl(self->fd, F_SETFL, flags | O_NONBLOCK)) {
@@ -166,13 +170,7 @@ static void _receive(output_tcpcli_t* self, const core_object_t* obj)
             return;
         }
 
-        if (len < 3 || payload[2] & 0x80) {
-            return;
-        }
-
-        sent = 0;
-        self->pkts++;
-
+        sent   = 0;
         dnslen = htons(len);
 
         for (;;) {
@@ -189,6 +187,7 @@ static void _receive(output_tcpcli_t* self, const core_object_t* obj)
                         sent += ret;
                         if (sent < len)
                             continue;
+                        self->pkts++;
                         return;
                     }
                     switch (errno) {
@@ -200,10 +199,10 @@ static void _receive(output_tcpcli_t* self, const core_object_t* obj)
                     default:
                         break;
                     }
-                    self->errs++;
                     break;
                 }
-                break;
+                self->errs++;
+                return;
             }
             switch (errno) {
             case EAGAIN:
@@ -214,9 +213,9 @@ static void _receive(output_tcpcli_t* self, const core_object_t* obj)
             default:
                 break;
             }
-            self->errs++;
             break;
         }
+        self->errs++;
         break;
     }
 }
@@ -234,18 +233,72 @@ core_receiver_t output_tcpcli_receiver(output_tcpcli_t* self)
 
 static const core_object_t* _produce(output_tcpcli_t* self)
 {
-    ssize_t  n, recv;
-    uint16_t dnslen;
+    ssize_t       n, recv = 0;
+    uint16_t      dnslen;
+    struct pollfd p;
+    int           to = 0;
     mlassert_self();
 
+    // Check if last recvfrom() got more then we needed
+    if (!self->have_dnslen && self->recv > self->dnslen) {
+        recv = self->recv - self->dnslen;
+        if (recv < sizeof(dnslen)) {
+            memcpy(((uint8_t*)&dnslen), self->recvbuf + self->dnslen, recv);
+        } else {
+            memcpy(((uint8_t*)&dnslen), self->recvbuf + self->dnslen, sizeof(dnslen));
+
+            self->dnslen      = ntohs(dnslen);
+            self->have_dnslen = 1;
+
+            if (recv > sizeof(dnslen)) {
+                self->recv = recv - sizeof(dnslen);
+                memmove(self->recvbuf, self->recvbuf + self->dnslen + sizeof(dnslen), self->recv);
+
+                if (self->recv > self->dnslen) {
+                    self->pkts_recv++;
+                    self->pkt.len = self->dnslen;
+                    return (core_object_t*)&self->pkt;
+                }
+            } else {
+                self->recv = 0;
+            }
+        }
+    }
+
+    if (self->blocking) {
+        p.fd      = self->fd;
+        p.events  = POLLIN;
+        p.revents = 0;
+        to        = (self->timeout.sec * 1e3) + (self->timeout.nsec / 1e6);
+        if (!to) {
+            to = 1;
+        }
+    }
+
     if (!self->have_dnslen) {
-        recv = 0;
         for (;;) {
+            n = poll(&p, 1, to);
+            if (n < 0 || (p.revents & (POLLERR | POLLHUP | POLLNVAL))) {
+                self->errs++;
+                return 0;
+            }
+            if (!n || !(p.revents & POLLIN)) {
+                if (recv) {
+                    self->errs++;
+                    return 0;
+                }
+                self->pkt.len = 0;
+                return (core_object_t*)&self->pkt;
+            }
+
             n = recvfrom(self->fd, ((uint8_t*)&dnslen) + recv, sizeof(dnslen) - recv, 0, 0, 0);
-            if (n > -1) {
+            if (n > 0) {
                 recv += n;
                 if (recv < sizeof(dnslen))
                     continue;
+                break;
+            }
+            if (!n) {
                 break;
             }
             switch (errno) {
@@ -253,11 +306,11 @@ static const core_object_t* _produce(output_tcpcli_t* self)
 #if EAGAIN != EWOULDBLOCK
             case EWOULDBLOCK:
 #endif
-                n = 0;
-                break;
+                continue;
             default:
                 break;
             }
+            self->errs++;
             break;
         }
 
@@ -271,11 +324,24 @@ static const core_object_t* _produce(output_tcpcli_t* self)
     }
 
     for (;;) {
-        n = recvfrom(self->fd, self->recvbuf, sizeof(self->recvbuf), 0, 0, 0);
-        if (n > -1) {
+        n = poll(&p, 1, to);
+        if (n < 0 || (p.revents & (POLLERR | POLLHUP | POLLNVAL))) {
+            self->errs++;
+            return 0;
+        }
+        if (!n || !(p.revents & POLLIN)) {
+            self->pkt.len = 0;
+            return (core_object_t*)&self->pkt;
+        }
+
+        n = recvfrom(self->fd, self->recvbuf + self->recv, sizeof(self->recvbuf) - self->recv, 0, 0, 0);
+        if (n > 0) {
             self->recv += n;
             if (self->recv < self->dnslen)
                 continue;
+            break;
+        }
+        if (!n) {
             break;
         }
         switch (errno) {
@@ -283,11 +349,12 @@ static const core_object_t* _produce(output_tcpcli_t* self)
 #if EAGAIN != EWOULDBLOCK
         case EWOULDBLOCK:
 #endif
-            n = 0;
-            break;
+            self->pkt.len = 0;
+            return (core_object_t*)&self->pkt;
         default:
             break;
         }
+        self->errs++;
         break;
     }
 
@@ -295,10 +362,8 @@ static const core_object_t* _produce(output_tcpcli_t* self)
         return 0;
     }
 
-    // TODO: recv more then dnslen
-
-    self->pkt.len     = self->dnslen;
-    self->have_dnslen = 0;
+    self->pkts_recv++;
+    self->pkt.len = self->dnslen;
     return (core_object_t*)&self->pkt;
 }
 

@@ -232,6 +232,96 @@ if getopt:val("s") then
 
         print(run, "runtime", runtime, num/runtime, "/sec", o1:packets() + o2:packets() + o3:packets() + o4:packets(), o1:packets(), o2:packets(), o3:packets(), o4:packets())
     end
+
+    print("zero:receiver() -> lua split table -> null:receive() x4")
+    local run
+    for run = 1, runs do
+        local i = require("dnsjit.input.zero").new()
+        local o1 = require("dnsjit.output.null").new()
+        local o2 = require("dnsjit.output.null").new()
+        local o3 = require("dnsjit.output.null").new()
+        local o4 = require("dnsjit.output.null").new()
+
+        local prod, pctx = i:produce()
+        local recv, rctx = {}, {}
+
+        local f, c = o1:receive()
+        table.insert(recv, f)
+        table.insert(rctx, c)
+        f, c = o2:receive()
+        table.insert(recv, f)
+        table.insert(rctx, c)
+        f, c = o3:receive()
+        table.insert(recv, f)
+        table.insert(rctx, c)
+        f, c = o4:receive()
+        table.insert(recv, f)
+        table.insert(rctx, c)
+
+        local start_sec, start_nsec = clock:monotonic()
+        local idx = 1
+        for n = 1, num do
+            local f, c = recv[idx], rctx[idx]
+            if not f then
+                idx = 1
+                f, c = recv[1], rctx[1]
+            end
+            f(c, prod(pctx))
+            idx = idx + 1
+        end
+        local end_sec, end_nsec = clock:monotonic()
+
+        local runtime = 0
+        if end_sec > start_sec then
+            runtime = ((end_sec - start_sec) - 1) + ((1000000000 - start_nsec + end_nsec)/1000000000)
+        elseif end_sec == start_sec and end_nsec > start_nsec then
+            runtime = (end_nsec - start_nsec) / 1000000000
+        end
+
+        print(run, "runtime", runtime, num/runtime, "/sec", o1:packets() + o2:packets() + o3:packets() + o4:packets(), o1:packets(), o2:packets(), o3:packets(), o4:packets())
+    end
+
+    print("zero:receiver() -> lua split gen code -> null:receive() x4")
+    local run
+    for run = 1, runs do
+        local i = require("dnsjit.input.zero").new()
+        local o1 = require("dnsjit.output.null").new()
+        local o2 = require("dnsjit.output.null").new()
+        local o3 = require("dnsjit.output.null").new()
+        local o4 = require("dnsjit.output.null").new()
+
+        local prod, pctx = i:produce()
+        local f1, c1 = o1:receive()
+        local f2, c2 = o2:receive()
+        local f3, c3 = o3:receive()
+        local f4, c4 = o4:receive()
+
+        local code = "return function (num, prod, pctx, f1, c1, f2, c2, f3, c3, f4, c4)\nlocal n = 0\nwhile n < num do\n"
+        code = code .. "f1(c1,prod(pctx))\n"
+        code = code .. "n = n + 1\n"
+        code = code .. "f2(c2,prod(pctx))\n"
+        code = code .. "n = n + 1\n"
+        code = code .. "f3(c3,prod(pctx))\n"
+        code = code .. "n = n + 1\n"
+        code = code .. "f4(c4,prod(pctx))\n"
+        code = code .. "n = n + 1\n"
+        code = code .. "end\n"
+        code = code .. "end"
+        local f = assert(loadstring(code))()
+
+        local start_sec, start_nsec = clock:monotonic()
+        f(num, prod, pctx, f1, c1, f2, c2, f3, c3, f4, c4)
+        local end_sec, end_nsec = clock:monotonic()
+
+        local runtime = 0
+        if end_sec > start_sec then
+            runtime = ((end_sec - start_sec) - 1) + ((1000000000 - start_nsec + end_nsec)/1000000000)
+        elseif end_sec == start_sec and end_nsec > start_nsec then
+            runtime = (end_nsec - start_nsec) / 1000000000
+        end
+
+        print(run, "runtime", runtime, num/runtime, "/sec", o1:packets() + o2:packets() + o3:packets() + o4:packets(), o1:packets(), o2:packets(), o3:packets(), o4:packets())
+    end
 end
 
 if getopt:val("t") then

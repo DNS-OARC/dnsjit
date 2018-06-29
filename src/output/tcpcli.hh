@@ -22,17 +22,21 @@
 //lua:require("dnsjit.core.receiver_h")
 //lua:require("dnsjit.core.producer_h")
 //lua:require("dnsjit.core.object.payload_h")
+//lua:require("dnsjit.core.timespec_h")
 
 typedef struct output_tcpcli {
     core_log_t _log;
     size_t     pkts, errs;
     int        fd;
 
-    uint8_t               recvbuf[4 * 1024];
+    uint8_t               recvbuf[64 * 1024];
     core_object_payload_t pkt;
     uint16_t              dnslen;
-    unsigned short        have_dnslen;
-    size_t                recv;
+    uint8_t               have_dnslen;
+    size_t                recv, pkts_recv;
+
+    core_timespec_t timeout;
+    int8_t          blocking;
 } output_tcpcli_t;
 
 core_log_t* output_tcpcli_log();
