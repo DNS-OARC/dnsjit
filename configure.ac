@@ -103,6 +103,7 @@ AC_CHECK_SIZEOF([ck_ring_buffer_t],,[#if defined(__GNUC__) || defined(__SUNPRO_C
 AC_CONFIG_FILES([
   Makefile
   src/Makefile
+  src/test/Makefile
   examples/Makefile
 ])
 AC_OUTPUT

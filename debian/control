@@ -2,9 +2,10 @@ Source: dnsjit
 Section: net
 Priority: optional
 Maintainer: Jerry Lundström <lundstrom.jerry@gmail.com>
-Build-Depends: debhelper (>= 8.0.0), build-essential, automake, autoconf,
- libpcap-dev, netbase, libev-dev, libtool, libluajit-5.1-dev, luajit,
- pkg-config
+Build-Depends: debhelper (>= 8.0.0), build-essential, automake,
+ autoconf (>= 2.64), libpcap-dev, netbase, libtool,
+ libluajit-5.1-dev (>= 2.0.0), luajit (>= 2.0.0), pkg-config, liblmdb-dev,
+ libck-dev, gcc (>= 4:5.0.0) | gcc-5
 Standards-Version: 3.9.4
 Homepage: https://www.dns-oarc.net/tools/dnsjit
 Vcs-Git: https://github.com/DNS-OARC/dnsjit.git

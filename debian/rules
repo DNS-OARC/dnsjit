@@ -2,11 +2,11 @@
 # -*- makefile -*-
 
 # Uncomment this to turn on verbose mode.
-#export DH_VERBOSE=1
+# export DH_VERBOSE=1
 
 %:
 	dh $@
 
 override_dh_auto_configure:
 	./autogen.sh
-	dh_auto_configure
+	CC=`which gcc-5 gcc|head -n 1` dh_auto_configure
