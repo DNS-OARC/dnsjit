@@ -1,0 +1,1493 @@
+udp 172.17.0.10:53199 -> 8.8.8.8:53
+id:	59311
+	qr:	0
+	opcode:	QUERY
+	flags:	RD
+	rcode:	NOERROR
+	qdcount:	1
+	ancount:	0
+	nscount:	0
+	arcount:	0
+questions:	class	type	labels
+	IN	A	<12>google.<19>com.
+udp 8.8.8.8:53 -> 172.17.0.10:53199
+id:	59311
+	qr:	1
+	opcode:	QUERY
+	flags:	RD RA
+	rcode:	NOERROR
+	qdcount:	1
+	ancount:	1
+	nscount:	4
+	arcount:	4
+questions:	class	type	labels
+	IN	A	<12>google.<19>com.
+answers:	class	type	ttl	labels	RR labels
+	IN	A	44	<12>
+authorities:	class	type	ttl	labels	RR labels
+	IN	NS	157880	<12>	<56>ns4.<12>
+	IN	NS	157880	<12>	<74>ns3.<12>
+	IN	NS	157880	<12>	<92>ns1.<12>
+	IN	NS	157880	<12>	<110>ns2.<12>
+additionals:	class	type	ttl	labels	RR labels
+	IN	A	157880	<110>
+	IN	A	331882	<92>
+	IN	A	157880	<74>
+	IN	A	157880	<56>
+udp 172.17.0.10:57822 -> 8.8.8.8:53
+id:	35665
+	qr:	0
+	opcode:	QUERY
+	flags:	RD
+	rcode:	NOERROR
+	qdcount:	1
+	ancount:	0
+	nscount:	0
+	arcount:	0
+questions:	class	type	labels
+	IN	PTR	<12>206.<16>218.<20>58.<23>216.<27>in-addr.<35>arpa.
+udp 8.8.8.8:53 -> 172.17.0.10:57822
+id:	35665
+	qr:	1
+	opcode:	QUERY
+	flags:	RD RA
+	rcode:	NOERROR
+	qdcount:	1
+	ancount:	2
+	nscount:	4
+	arcount:	4
+questions:	class	type	labels
+	IN	PTR	<12>206.<16>218.<20>58.<23>216.<27>in-addr.<35>arpa.
+answers:	class	type	ttl	labels	RR labels
+	IN	PTR	72125	<12>	<57>dfw06s47-in-f14.<73>1e100.<79>net.
+	IN	PTR	72125	<12>	<96>dfw06s47-in-f206.<73>
+authorities:	class	type	ttl	labels	RR labels
+	IN	NS	71608	<16>	<127>ns2.<131>google.<138>com.
+	IN	NS	71608	<16>	<155>ns3.<131>
+	IN	NS	71608	<16>	<173>ns1.<131>
+	IN	NS	71608	<16>	<191>ns4.<131>
+additionals:	class	type	ttl	labels	RR labels
+	IN	A	331882	<173>
+	IN	A	157880	<155>
+	IN	A	157880	<191>
+	IN	A	157880	<127>
+udp 172.17.0.10:40043 -> 8.8.8.8:53
+id:	5337
+	qr:	0
+	opcode:	QUERY
+	flags:	RD
+	rcode:	NOERROR
+	qdcount:	1
+	ancount:	0
+	nscount:	0
+	arcount:	0
+questions:	class	type	labels
+	IN	A	<12>google.<19>com.
+udp 8.8.8.8:53 -> 172.17.0.10:40043
+id:	5337
+	qr:	1
+	opcode:	QUERY
+	flags:	RD RA
+	rcode:	NOERROR
+	qdcount:	1
+	ancount:	1
+	nscount:	4
+	arcount:	4
+questions:	class	type	labels
+	IN	A	<12>google.<19>com.
+answers:	class	type	ttl	labels	RR labels
+	IN	A	44	<12>
+authorities:	class	type	ttl	labels	RR labels
+	IN	NS	157880	<12>	<56>ns1.<12>
+	IN	NS	157880	<12>	<74>ns2.<12>
+	IN	NS	157880	<12>	<92>ns3.<12>
+	IN	NS	157880	<12>	<110>ns4.<12>
+additionals:	class	type	ttl	labels	RR labels
+	IN	A	157880	<74>
+	IN	A	331882	<56>
+	IN	A	157880	<92>
+	IN	A	157880	<110>
+udp 172.17.0.10:37953 -> 8.8.8.8:53
+id:	22982
+	qr:	0
+	opcode:	QUERY
+	flags:	RD
+	rcode:	NOERROR
+	qdcount:	1
+	ancount:	0
+	nscount:	0
+	arcount:	0
+questions:	class	type	labels
+	IN	A	<12>google.<19>com.
+udp 8.8.8.8:53 -> 172.17.0.10:37953
+id:	22982
+	qr:	1
+	opcode:	QUERY
+	flags:	RD RA
+	rcode:	NOERROR
+	qdcount:	1
+	ancount:	1
+	nscount:	4
+	arcount:	4
+questions:	class	type	labels
+	IN	A	<12>google.<19>com.
+answers:	class	type	ttl	labels	RR labels
+	IN	A	34	<12>
+authorities:	class	type	ttl	labels	RR labels
+	IN	NS	157870	<12>	<56>ns4.<12>
+	IN	NS	157870	<12>	<74>ns1.<12>
+	IN	NS	157870	<12>	<92>ns2.<12>
+	IN	NS	157870	<12>	<110>ns3.<12>
+additionals:	class	type	ttl	labels	RR labels
+	IN	A	157870	<92>
+	IN	A	331872	<74>
+	IN	A	157870	<110>
+	IN	A	157870	<56>
+udp 172.17.0.10:48658 -> 8.8.8.8:53
+id:	18718
+	qr:	0
+	opcode:	QUERY
+	flags:	RD
+	rcode:	NOERROR
+	qdcount:	1
+	ancount:	0
+	nscount:	0
+	arcount:	0
+questions:	class	type	labels
+	IN	PTR	<12>206.<16>218.<20>58.<23>216.<27>in-addr.<35>arpa.
+udp 8.8.8.8:53 -> 172.17.0.10:48658
+id:	18718
+	qr:	1
+	opcode:	QUERY
+	flags:	RD RA
+	rcode:	NOERROR
+	qdcount:	1
+	ancount:	2
+	nscount:	4
+	arcount:	4
+questions:	class	type	labels
+	IN	PTR	<12>206.<16>218.<20>58.<23>216.<27>in-addr.<35>arpa.
+answers:	class	type	ttl	labels	RR labels
+	IN	PTR	72115	<12>	<57>dfw06s47-in-f206.<74>1e100.<80>net.
+	IN	PTR	72115	<12>	<97>dfw06s47-in-f14.<74>
+authorities:	class	type	ttl	labels	RR labels
+	IN	NS	71598	<16>	<127>ns2.<131>google.<138>com.
+	IN	NS	71598	<16>	<155>ns3.<131>
+	IN	NS	71598	<16>	<173>ns4.<131>
+	IN	NS	71598	<16>	<191>ns1.<131>
+additionals:	class	type	ttl	labels	RR labels
+	IN	A	331872	<191>
+	IN	A	157870	<155>
+	IN	A	157870	<173>
+	IN	A	157870	<127>
+udp 172.17.0.10:40953 -> 8.8.8.8:53
+id:	22531
+	qr:	0
+	opcode:	QUERY
+	flags:	RD
+	rcode:	NOERROR
+	qdcount:	1
+	ancount:	0
+	nscount:	0
+	arcount:	0
+questions:	class	type	labels
+	IN	A	<12>google.<19>com.
+udp 8.8.8.8:53 -> 172.17.0.10:40953
+id:	22531
+	qr:	1
+	opcode:	QUERY
+	flags:	RD RA
+	rcode:	NOERROR
+	qdcount:	1
+	ancount:	1
+	nscount:	4
+	arcount:	4
+questions:	class	type	labels
+	IN	A	<12>google.<19>com.
+answers:	class	type	ttl	labels	RR labels
+	IN	A	297	<12>
+authorities:	class	type	ttl	labels	RR labels
+	IN	NS	157828	<12>	<56>ns2.<12>
+	IN	NS	157828	<12>	<74>ns4.<12>
+	IN	NS	157828	<12>	<92>ns1.<12>
+	IN	NS	157828	<12>	<110>ns3.<12>
+additionals:	class	type	ttl	labels	RR labels
+	IN	A	157828	<56>
+	IN	A	331830	<92>
+	IN	A	157828	<110>
+	IN	A	157828	<74>
+udp 172.17.0.10:45174 -> 8.8.8.8:53
+id:	58510
+	qr:	0
+	opcode:	QUERY
+	flags:	RD
+	rcode:	NOERROR
+	qdcount:	1
+	ancount:	0
+	nscount:	0
+	arcount:	0
+questions:	class	type	labels
+	IN	A	<12>google.<19>com.
+udp 8.8.8.8:53 -> 172.17.0.10:45174
+id:	58510
+	qr:	1
+	opcode:	QUERY
+	flags:	RD RA
+	rcode:	NOERROR
+	qdcount:	1
+	ancount:	1
+	nscount:	4
+	arcount:	4
+questions:	class	type	labels
+	IN	A	<12>google.<19>com.
+answers:	class	type	ttl	labels	RR labels
+	IN	A	291	<12>
+authorities:	class	type	ttl	labels	RR labels
+	IN	NS	157822	<12>	<56>ns2.<12>
+	IN	NS	157822	<12>	<74>ns3.<12>
+	IN	NS	157822	<12>	<92>ns1.<12>
+	IN	NS	157822	<12>	<110>ns4.<12>
+additionals:	class	type	ttl	labels	RR labels
+	IN	A	157822	<56>
+	IN	A	331824	<92>
+	IN	A	157822	<74>
+	IN	A	157822	<110>
+udp 172.17.0.10:33916 -> 8.8.8.8:53
+id:	45248
+	qr:	0
+	opcode:	QUERY
+	flags:	RD
+	rcode:	NOERROR
+	qdcount:	1
+	ancount:	0
+	nscount:	0
+	arcount:	0
+questions:	class	type	labels
+	IN	PTR	<12>206.<16>218.<20>58.<23>216.<27>in-addr.<35>arpa.
+udp 8.8.8.8:53 -> 172.17.0.10:33916
+id:	45248
+	qr:	1
+	opcode:	QUERY
+	flags:	RD RA
+	rcode:	NOERROR
+	qdcount:	1
+	ancount:	2
+	nscount:	4
+	arcount:	4
+questions:	class	type	labels
+	IN	PTR	<12>206.<16>218.<20>58.<23>216.<27>in-addr.<35>arpa.
+answers:	class	type	ttl	labels	RR labels
+	IN	PTR	72067	<12>	<57>dfw06s47-in-f14.<73>1e100.<79>net.
+	IN	PTR	72067	<12>	<96>dfw06s47-in-f206.<73>
+authorities:	class	type	ttl	labels	RR labels
+	IN	NS	71550	<16>	<127>ns3.<131>google.<138>com.
+	IN	NS	71550	<16>	<155>ns4.<131>
+	IN	NS	71550	<16>	<173>ns2.<131>
+	IN	NS	71550	<16>	<191>ns1.<131>
+additionals:	class	type	ttl	labels	RR labels
+	IN	A	331824	<191>
+	IN	A	157822	<127>
+	IN	A	157822	<155>
+	IN	A	157822	<173>
+udp 172.17.0.10:43559 -> 8.8.8.8:53
+id:	49483
+	qr:	0
+	opcode:	QUERY
+	flags:	RD
+	rcode:	NOERROR
+	qdcount:	1
+	ancount:	0
+	nscount:	0
+	arcount:	0
+questions:	class	type	labels
+	IN	A	<12>google.<19>com.
+udp 8.8.8.8:53 -> 172.17.0.10:43559
+id:	49483
+	qr:	1
+	opcode:	QUERY
+	flags:	RD RA
+	rcode:	NOERROR
+	qdcount:	1
+	ancount:	1
+	nscount:	4
+	arcount:	4
+questions:	class	type	labels
+	IN	A	<12>google.<19>com.
+answers:	class	type	ttl	labels	RR labels
+	IN	A	285	<12>
+authorities:	class	type	ttl	labels	RR labels
+	IN	NS	157816	<12>	<56>ns4.<12>
+	IN	NS	157816	<12>	<74>ns3.<12>
+	IN	NS	157816	<12>	<92>ns1.<12>
+	IN	NS	157816	<12>	<110>ns2.<12>
+additionals:	class	type	ttl	labels	RR labels
+	IN	A	157816	<110>
+	IN	A	331818	<92>
+	IN	A	157816	<74>
+	IN	A	157816	<56>
+udp 172.17.0.10:54859 -> 8.8.8.8:53
+id:	31669
+	qr:	0
+	opcode:	QUERY
+	flags:	RD
+	rcode:	NOERROR
+	qdcount:	1
+	ancount:	0
+	nscount:	0
+	arcount:	0
+questions:	class	type	labels
+	IN	A	<12>google.<19>com.
+udp 8.8.8.8:53 -> 172.17.0.10:54859
+id:	31669
+	qr:	1
+	opcode:	QUERY
+	flags:	RD RA
+	rcode:	NOERROR
+	qdcount:	1
+	ancount:	1
+	nscount:	4
+	arcount:	4
+questions:	class	type	labels
+	IN	A	<12>google.<19>com.
+answers:	class	type	ttl	labels	RR labels
+	IN	A	283	<12>
+authorities:	class	type	ttl	labels	RR labels
+	IN	NS	157814	<12>	<56>ns2.<12>
+	IN	NS	157814	<12>	<74>ns1.<12>
+	IN	NS	157814	<12>	<92>ns4.<12>
+	IN	NS	157814	<12>	<110>ns3.<12>
+additionals:	class	type	ttl	labels	RR labels
+	IN	A	157814	<56>
+	IN	A	331816	<74>
+	IN	A	157814	<110>
+	IN	A	157814	<92>
+udp 172.17.0.10:58176 -> 8.8.8.8:53
+id:	25433
+	qr:	0
+	opcode:	QUERY
+	flags:	RD
+	rcode:	NOERROR
+	qdcount:	1
+	ancount:	0
+	nscount:	0
+	arcount:	0
+questions:	class	type	labels
+	IN	PTR	<12>206.<16>218.<20>58.<23>216.<27>in-addr.<35>arpa.
+udp 8.8.8.8:53 -> 172.17.0.10:58176
+id:	25433
+	qr:	1
+	opcode:	QUERY
+	flags:	RD RA
+	rcode:	NOERROR
+	qdcount:	1
+	ancount:	2
+	nscount:	4
+	arcount:	4
+questions:	class	type	labels
+	IN	PTR	<12>206.<16>218.<20>58.<23>216.<27>in-addr.<35>arpa.
+answers:	class	type	ttl	labels	RR labels
+	IN	PTR	72059	<12>	<57>dfw06s47-in-f206.<74>1e100.<80>net.
+	IN	PTR	72059	<12>	<97>dfw06s47-in-f14.<74>
+authorities:	class	type	ttl	labels	RR labels
+	IN	NS	71542	<16>	<127>ns4.<131>google.<138>com.
+	IN	NS	71542	<16>	<155>ns1.<131>
+	IN	NS	71542	<16>	<173>ns3.<131>
+	IN	NS	71542	<16>	<191>ns2.<131>
+additionals:	class	type	ttl	labels	RR labels
+	IN	A	331816	<155>
+	IN	A	157814	<173>
+	IN	A	157814	<127>
+	IN	A	157814	<191>
+udp 172.17.0.10:41266 -> 8.8.8.8:53
+id:	63798
+	qr:	0
+	opcode:	QUERY
+	flags:	RD
+	rcode:	NOERROR
+	qdcount:	1
+	ancount:	0
+	nscount:	0
+	arcount:	0
+questions:	class	type	labels
+	IN	A	<12>google.<19>com.
+udp 8.8.8.8:53 -> 172.17.0.10:41266
+id:	63798
+	qr:	1
+	opcode:	QUERY
+	flags:	RD RA
+	rcode:	NOERROR
+	qdcount:	1
+	ancount:	1
+	nscount:	4
+	arcount:	4
+questions:	class	type	labels
+	IN	A	<12>google.<19>com.
+answers:	class	type	ttl	labels	RR labels
+	IN	A	282	<12>
+authorities:	class	type	ttl	labels	RR labels
+	IN	NS	157813	<12>	<56>ns4.<12>
+	IN	NS	157813	<12>	<74>ns1.<12>
+	IN	NS	157813	<12>	<92>ns3.<12>
+	IN	NS	157813	<12>	<110>ns2.<12>
+additionals:	class	type	ttl	labels	RR labels
+	IN	A	157813	<110>
+	IN	A	331815	<74>
+	IN	A	157813	<92>
+	IN	A	157813	<56>
+udp 172.17.0.10:34607 -> 8.8.8.8:53
+id:	8470
+	qr:	0
+	opcode:	QUERY
+	flags:	RD
+	rcode:	NOERROR
+	qdcount:	1
+	ancount:	0
+	nscount:	0
+	arcount:	0
+questions:	class	type	labels
+	IN	PTR	<12>206.<16>218.<20>58.<23>216.<27>in-addr.<35>arpa.
+udp 8.8.8.8:53 -> 172.17.0.10:34607
+id:	8470
+	qr:	1
+	opcode:	QUERY
+	flags:	RD RA
+	rcode:	NOERROR
+	qdcount:	1
+	ancount:	2
+	nscount:	4
+	arcount:	4
+questions:	class	type	labels
+	IN	PTR	<12>206.<16>218.<20>58.<23>216.<27>in-addr.<35>arpa.
+answers:	class	type	ttl	labels	RR labels
+	IN	PTR	72058	<12>	<57>dfw06s47-in-f14.<73>1e100.<79>net.
+	IN	PTR	72058	<12>	<96>dfw06s47-in-f206.<73>
+authorities:	class	type	ttl	labels	RR labels
+	IN	NS	71541	<16>	<127>ns1.<131>google.<138>com.
+	IN	NS	71541	<16>	<155>ns2.<131>
+	IN	NS	71541	<16>	<173>ns4.<131>
+	IN	NS	71541	<16>	<191>ns3.<131>
+additionals:	class	type	ttl	labels	RR labels
+	IN	A	331815	<127>
+	IN	A	157813	<191>
+	IN	A	157813	<173>
+	IN	A	157813	<155>
+udp 172.17.0.10:60437 -> 8.8.8.8:53
+id:	60258
+	qr:	0
+	opcode:	QUERY
+	flags:	RD
+	rcode:	NOERROR
+	qdcount:	1
+	ancount:	0
+	nscount:	0
+	arcount:	0
+questions:	class	type	labels
+	IN	A	<12>google.<19>com.
+udp 8.8.8.8:53 -> 172.17.0.10:60437
+id:	60258
+	qr:	1
+	opcode:	QUERY
+	flags:	RD RA
+	rcode:	NOERROR
+	qdcount:	1
+	ancount:	1
+	nscount:	4
+	arcount:	4
+questions:	class	type	labels
+	IN	A	<12>google.<19>com.
+answers:	class	type	ttl	labels	RR labels
+	IN	A	281	<12>
+authorities:	class	type	ttl	labels	RR labels
+	IN	NS	157812	<12>	<56>ns3.<12>
+	IN	NS	157812	<12>	<74>ns2.<12>
+	IN	NS	157812	<12>	<92>ns4.<12>
+	IN	NS	157812	<12>	<110>ns1.<12>
+additionals:	class	type	ttl	labels	RR labels
+	IN	A	157812	<74>
+	IN	A	331814	<110>
+	IN	A	157812	<56>
+	IN	A	157812	<92>
+udp 172.17.0.10:37149 -> 8.8.8.8:53
+id:	44985
+	qr:	0
+	opcode:	QUERY
+	flags:	RD
+	rcode:	NOERROR
+	qdcount:	1
+	ancount:	0
+	nscount:	0
+	arcount:	0
+questions:	class	type	labels
+	IN	PTR	<12>206.<16>218.<20>58.<23>216.<27>in-addr.<35>arpa.
+udp 8.8.8.8:53 -> 172.17.0.10:37149
+id:	44985
+	qr:	1
+	opcode:	QUERY
+	flags:	RD RA
+	rcode:	NOERROR
+	qdcount:	1
+	ancount:	2
+	nscount:	4
+	arcount:	4
+questions:	class	type	labels
+	IN	PTR	<12>206.<16>218.<20>58.<23>216.<27>in-addr.<35>arpa.
+answers:	class	type	ttl	labels	RR labels
+	IN	PTR	72057	<12>	<57>dfw06s47-in-f206.<74>1e100.<80>net.
+	IN	PTR	72057	<12>	<97>dfw06s47-in-f14.<74>
+authorities:	class	type	ttl	labels	RR labels
+	IN	NS	71540	<16>	<127>ns4.<131>google.<138>com.
+	IN	NS	71540	<16>	<155>ns3.<131>
+	IN	NS	71540	<16>	<173>ns1.<131>
+	IN	NS	71540	<16>	<191>ns2.<131>
+additionals:	class	type	ttl	labels	RR labels
+	IN	A	331814	<173>
+	IN	A	157812	<155>
+	IN	A	157812	<127>
+	IN	A	157812	<191>
+udp 172.17.0.10:53820 -> 8.8.8.8:53
+id:	45512
+	qr:	0
+	opcode:	QUERY
+	flags:	RD
+	rcode:	NOERROR
+	qdcount:	1
+	ancount:	0
+	nscount:	0
+	arcount:	0
+questions:	class	type	labels
+	IN	A	<12>google.<19>com.
+udp 8.8.8.8:53 -> 172.17.0.10:53820
+id:	45512
+	qr:	1
+	opcode:	QUERY
+	flags:	RD RA
+	rcode:	NOERROR
+	qdcount:	1
+	ancount:	1
+	nscount:	4
+	arcount:	4
+questions:	class	type	labels
+	IN	A	<12>google.<19>com.
+answers:	class	type	ttl	labels	RR labels
+	IN	A	280	<12>
+authorities:	class	type	ttl	labels	RR labels
+	IN	NS	157811	<12>	<56>ns3.<12>
+	IN	NS	157811	<12>	<74>ns4.<12>
+	IN	NS	157811	<12>	<92>ns1.<12>
+	IN	NS	157811	<12>	<110>ns2.<12>
+additionals:	class	type	ttl	labels	RR labels
+	IN	A	157811	<110>
+	IN	A	331813	<92>
+	IN	A	157811	<56>
+	IN	A	157811	<74>
+udp 172.17.0.10:52368 -> 8.8.8.8:53
+id:	22980
+	qr:	0
+	opcode:	QUERY
+	flags:	RD
+	rcode:	NOERROR
+	qdcount:	1
+	ancount:	0
+	nscount:	0
+	arcount:	0
+questions:	class	type	labels
+	IN	PTR	<12>206.<16>218.<20>58.<23>216.<27>in-addr.<35>arpa.
+udp 8.8.8.8:53 -> 172.17.0.10:52368
+id:	22980
+	qr:	1
+	opcode:	QUERY
+	flags:	RD RA
+	rcode:	NOERROR
+	qdcount:	1
+	ancount:	2
+	nscount:	4
+	arcount:	4
+questions:	class	type	labels
+	IN	PTR	<12>206.<16>218.<20>58.<23>216.<27>in-addr.<35>arpa.
+answers:	class	type	ttl	labels	RR labels
+	IN	PTR	72056	<12>	<57>dfw06s47-in-f14.<73>1e100.<79>net.
+	IN	PTR	72056	<12>	<96>dfw06s47-in-f206.<73>
+authorities:	class	type	ttl	labels	RR labels
+	IN	NS	71539	<16>	<127>ns2.<131>google.<138>com.
+	IN	NS	71539	<16>	<155>ns3.<131>
+	IN	NS	71539	<16>	<173>ns4.<131>
+	IN	NS	71539	<16>	<191>ns1.<131>
+additionals:	class	type	ttl	labels	RR labels
+	IN	A	331813	<191>
+	IN	A	157811	<155>
+	IN	A	157811	<173>
+	IN	A	157811	<127>
+udp 172.17.0.10:47637 -> 8.8.8.8:53
+id:	1834
+	qr:	0
+	opcode:	QUERY
+	flags:	RD
+	rcode:	NOERROR
+	qdcount:	1
+	ancount:	0
+	nscount:	0
+	arcount:	0
+questions:	class	type	labels
+	IN	A	<12>google.<19>com.
+udp 8.8.8.8:53 -> 172.17.0.10:47637
+id:	1834
+	qr:	1
+	opcode:	QUERY
+	flags:	RD RA
+	rcode:	NOERROR
+	qdcount:	1
+	ancount:	1
+	nscount:	4
+	arcount:	4
+questions:	class	type	labels
+	IN	A	<12>google.<19>com.
+answers:	class	type	ttl	labels	RR labels
+	IN	A	279	<12>
+authorities:	class	type	ttl	labels	RR labels
+	IN	NS	157810	<12>	<56>ns1.<12>
+	IN	NS	157810	<12>	<74>ns2.<12>
+	IN	NS	157810	<12>	<92>ns4.<12>
+	IN	NS	157810	<12>	<110>ns3.<12>
+additionals:	class	type	ttl	labels	RR labels
+	IN	A	157810	<74>
+	IN	A	331812	<56>
+	IN	A	157810	<110>
+	IN	A	157810	<92>
+udp 172.17.0.10:34426 -> 8.8.8.8:53
+id:	25431
+	qr:	0
+	opcode:	QUERY
+	flags:	RD
+	rcode:	NOERROR
+	qdcount:	1
+	ancount:	0
+	nscount:	0
+	arcount:	0
+questions:	class	type	labels
+	IN	PTR	<12>206.<16>218.<20>58.<23>216.<27>in-addr.<35>arpa.
+udp 8.8.8.8:53 -> 172.17.0.10:34426
+id:	25431
+	qr:	1
+	opcode:	QUERY
+	flags:	RD RA
+	rcode:	NOERROR
+	qdcount:	1
+	ancount:	2
+	nscount:	4
+	arcount:	4
+questions:	class	type	labels
+	IN	PTR	<12>206.<16>218.<20>58.<23>216.<27>in-addr.<35>arpa.
+answers:	class	type	ttl	labels	RR labels
+	IN	PTR	72055	<12>	<57>dfw06s47-in-f206.<74>1e100.<80>net.
+	IN	PTR	72055	<12>	<97>dfw06s47-in-f14.<74>
+authorities:	class	type	ttl	labels	RR labels
+	IN	NS	71538	<16>	<127>ns1.<131>google.<138>com.
+	IN	NS	71538	<16>	<155>ns4.<131>
+	IN	NS	71538	<16>	<173>ns3.<131>
+	IN	NS	71538	<16>	<191>ns2.<131>
+additionals:	class	type	ttl	labels	RR labels
+	IN	A	331812	<127>
+	IN	A	157810	<173>
+	IN	A	157810	<155>
+	IN	A	157810	<191>
+udp 172.17.0.10:41059 -> 8.8.8.8:53
+id:	48432
+	qr:	0
+	opcode:	QUERY
+	flags:	RD
+	rcode:	NOERROR
+	qdcount:	1
+	ancount:	0
+	nscount:	0
+	arcount:	0
+questions:	class	type	labels
+	IN	A	<12>google.<19>com.
+udp 8.8.8.8:53 -> 172.17.0.10:41059
+id:	48432
+	qr:	1
+	opcode:	QUERY
+	flags:	RD RA
+	rcode:	NOERROR
+	qdcount:	1
+	ancount:	1
+	nscount:	4
+	arcount:	4
+questions:	class	type	labels
+	IN	A	<12>google.<19>com.
+answers:	class	type	ttl	labels	RR labels
+	IN	A	278	<12>
+authorities:	class	type	ttl	labels	RR labels
+	IN	NS	157809	<12>	<56>ns3.<12>
+	IN	NS	157809	<12>	<74>ns4.<12>
+	IN	NS	157809	<12>	<92>ns2.<12>
+	IN	NS	157809	<12>	<110>ns1.<12>
+additionals:	class	type	ttl	labels	RR labels
+	IN	A	157809	<92>
+	IN	A	331811	<110>
+	IN	A	157809	<56>
+	IN	A	157809	<74>
+udp 172.17.0.10:51181 -> 8.8.8.8:53
+id:	47411
+	qr:	0
+	opcode:	QUERY
+	flags:	RD
+	rcode:	NOERROR
+	qdcount:	1
+	ancount:	0
+	nscount:	0
+	arcount:	0
+questions:	class	type	labels
+	IN	PTR	<12>206.<16>218.<20>58.<23>216.<27>in-addr.<35>arpa.
+udp 8.8.8.8:53 -> 172.17.0.10:51181
+id:	47411
+	qr:	1
+	opcode:	QUERY
+	flags:	RD RA
+	rcode:	NOERROR
+	qdcount:	1
+	ancount:	2
+	nscount:	4
+	arcount:	4
+questions:	class	type	labels
+	IN	PTR	<12>206.<16>218.<20>58.<23>216.<27>in-addr.<35>arpa.
+answers:	class	type	ttl	labels	RR labels
+	IN	PTR	72054	<12>	<57>dfw06s47-in-f14.<73>1e100.<79>net.
+	IN	PTR	72054	<12>	<96>dfw06s47-in-f206.<73>
+authorities:	class	type	ttl	labels	RR labels
+	IN	NS	71537	<16>	<127>ns2.<131>google.<138>com.
+	IN	NS	71537	<16>	<155>ns1.<131>
+	IN	NS	71537	<16>	<173>ns3.<131>
+	IN	NS	71537	<16>	<191>ns4.<131>
+additionals:	class	type	ttl	labels	RR labels
+	IN	A	331811	<155>
+	IN	A	157809	<173>
+	IN	A	157809	<191>
+	IN	A	157809	<127>
+udp 172.17.0.10:32976 -> 8.8.8.8:53
+id:	12038
+	qr:	0
+	opcode:	QUERY
+	flags:	RD
+	rcode:	NOERROR
+	qdcount:	1
+	ancount:	0
+	nscount:	0
+	arcount:	0
+questions:	class	type	labels
+	IN	A	<12>google.<19>com.
+udp 8.8.8.8:53 -> 172.17.0.10:32976
+id:	12038
+	qr:	1
+	opcode:	QUERY
+	flags:	RD RA
+	rcode:	NOERROR
+	qdcount:	1
+	ancount:	1
+	nscount:	4
+	arcount:	4
+questions:	class	type	labels
+	IN	A	<12>google.<19>com.
+answers:	class	type	ttl	labels	RR labels
+	IN	A	277	<12>
+authorities:	class	type	ttl	labels	RR labels
+	IN	NS	157808	<12>	<56>ns2.<12>
+	IN	NS	157808	<12>	<74>ns3.<12>
+	IN	NS	157808	<12>	<92>ns1.<12>
+	IN	NS	157808	<12>	<110>ns4.<12>
+additionals:	class	type	ttl	labels	RR labels
+	IN	A	157808	<56>
+	IN	A	331810	<92>
+	IN	A	157808	<74>
+	IN	A	157808	<110>
+udp 172.17.0.10:53467 -> 8.8.8.8:53
+id:	11614
+	qr:	0
+	opcode:	QUERY
+	flags:	RD
+	rcode:	NOERROR
+	qdcount:	1
+	ancount:	0
+	nscount:	0
+	arcount:	0
+questions:	class	type	labels
+	IN	A	<12>google.<19>com.
+udp 8.8.8.8:53 -> 172.17.0.10:53467
+id:	11614
+	qr:	1
+	opcode:	QUERY
+	flags:	RD RA
+	rcode:	NOERROR
+	qdcount:	1
+	ancount:	1
+	nscount:	4
+	arcount:	4
+questions:	class	type	labels
+	IN	A	<12>google.<19>com.
+answers:	class	type	ttl	labels	RR labels
+	IN	A	275	<12>
+authorities:	class	type	ttl	labels	RR labels
+	IN	NS	157806	<12>	<56>ns3.<12>
+	IN	NS	157806	<12>	<74>ns1.<12>
+	IN	NS	157806	<12>	<92>ns4.<12>
+	IN	NS	157806	<12>	<110>ns2.<12>
+additionals:	class	type	ttl	labels	RR labels
+	IN	A	157806	<110>
+	IN	A	331808	<74>
+	IN	A	157806	<56>
+	IN	A	157806	<92>
+udp 172.17.0.10:41532 -> 8.8.8.8:53
+id:	59173
+	qr:	0
+	opcode:	QUERY
+	flags:	RD
+	rcode:	NOERROR
+	qdcount:	1
+	ancount:	0
+	nscount:	0
+	arcount:	0
+questions:	class	type	labels
+	IN	A	<12>google.<19>com.
+udp 8.8.8.8:53 -> 172.17.0.10:41532
+id:	59173
+	qr:	1
+	opcode:	QUERY
+	flags:	RD RA
+	rcode:	NOERROR
+	qdcount:	1
+	ancount:	1
+	nscount:	4
+	arcount:	4
+questions:	class	type	labels
+	IN	A	<12>google.<19>com.
+answers:	class	type	ttl	labels	RR labels
+	IN	A	273	<12>
+authorities:	class	type	ttl	labels	RR labels
+	IN	NS	157804	<12>	<56>ns1.<12>
+	IN	NS	157804	<12>	<74>ns3.<12>
+	IN	NS	157804	<12>	<92>ns2.<12>
+	IN	NS	157804	<12>	<110>ns4.<12>
+additionals:	class	type	ttl	labels	RR labels
+	IN	A	157804	<92>
+	IN	A	331806	<56>
+	IN	A	157804	<74>
+	IN	A	157804	<110>
+udp 172.17.0.10:44982 -> 8.8.8.8:53
+id:	45535
+	qr:	0
+	opcode:	QUERY
+	flags:	RD
+	rcode:	NOERROR
+	qdcount:	1
+	ancount:	0
+	nscount:	0
+	arcount:	0
+questions:	class	type	labels
+	IN	A	<12>google.<19>com.
+udp 8.8.8.8:53 -> 172.17.0.10:44982
+id:	45535
+	qr:	1
+	opcode:	QUERY
+	flags:	RD RA
+	rcode:	NOERROR
+	qdcount:	1
+	ancount:	1
+	nscount:	4
+	arcount:	4
+questions:	class	type	labels
+	IN	A	<12>google.<19>com.
+answers:	class	type	ttl	labels	RR labels
+	IN	A	271	<12>
+authorities:	class	type	ttl	labels	RR labels
+	IN	NS	157802	<12>	<56>ns4.<12>
+	IN	NS	157802	<12>	<74>ns2.<12>
+	IN	NS	157802	<12>	<92>ns1.<12>
+	IN	NS	157802	<12>	<110>ns3.<12>
+additionals:	class	type	ttl	labels	RR labels
+	IN	A	157802	<74>
+	IN	A	331804	<92>
+	IN	A	157802	<110>
+	IN	A	157802	<56>
+udp 172.17.0.10:40224 -> 8.8.8.8:53
+id:	60808
+	qr:	0
+	opcode:	QUERY
+	flags:	RD
+	rcode:	NOERROR
+	qdcount:	1
+	ancount:	0
+	nscount:	0
+	arcount:	0
+questions:	class	type	labels
+	IN	PTR	<12>206.<16>218.<20>58.<23>216.<27>in-addr.<35>arpa.
+udp 8.8.8.8:53 -> 172.17.0.10:40224
+id:	60808
+	qr:	1
+	opcode:	QUERY
+	flags:	RD RA
+	rcode:	NOERROR
+	qdcount:	1
+	ancount:	2
+	nscount:	4
+	arcount:	4
+questions:	class	type	labels
+	IN	PTR	<12>206.<16>218.<20>58.<23>216.<27>in-addr.<35>arpa.
+answers:	class	type	ttl	labels	RR labels
+	IN	PTR	72047	<12>	<57>dfw06s47-in-f206.<74>1e100.<80>net.
+	IN	PTR	72047	<12>	<97>dfw06s47-in-f14.<74>
+authorities:	class	type	ttl	labels	RR labels
+	IN	NS	71530	<16>	<127>ns3.<131>google.<138>com.
+	IN	NS	71530	<16>	<155>ns4.<131>
+	IN	NS	71530	<16>	<173>ns2.<131>
+	IN	NS	71530	<16>	<191>ns1.<131>
+additionals:	class	type	ttl	labels	RR labels
+	IN	A	331804	<191>
+	IN	A	157802	<127>
+	IN	A	157802	<155>
+	IN	A	157802	<173>
+udp 172.17.0.10:45658 -> 8.8.8.8:53
+id:	64325
+	qr:	0
+	opcode:	QUERY
+	flags:	RD
+	rcode:	NOERROR
+	qdcount:	1
+	ancount:	0
+	nscount:	0
+	arcount:	0
+questions:	class	type	labels
+	IN	A	<12>google.<19>com.
+udp 8.8.8.8:53 -> 172.17.0.10:45658
+id:	64325
+	qr:	1
+	opcode:	QUERY
+	flags:	RD RA
+	rcode:	NOERROR
+	qdcount:	1
+	ancount:	1
+	nscount:	4
+	arcount:	4
+questions:	class	type	labels
+	IN	A	<12>google.<19>com.
+answers:	class	type	ttl	labels	RR labels
+	IN	A	270	<12>
+authorities:	class	type	ttl	labels	RR labels
+	IN	NS	157801	<12>	<56>ns1.<12>
+	IN	NS	157801	<12>	<74>ns3.<12>
+	IN	NS	157801	<12>	<92>ns4.<12>
+	IN	NS	157801	<12>	<110>ns2.<12>
+additionals:	class	type	ttl	labels	RR labels
+	IN	A	157801	<110>
+	IN	A	331803	<56>
+	IN	A	157801	<74>
+	IN	A	157801	<92>
+udp 172.17.0.10:60457 -> 8.8.8.8:53
+id:	25543
+	qr:	0
+	opcode:	QUERY
+	flags:	RD
+	rcode:	NOERROR
+	qdcount:	1
+	ancount:	0
+	nscount:	0
+	arcount:	0
+questions:	class	type	labels
+	IN	PTR	<12>206.<16>218.<20>58.<23>216.<27>in-addr.<35>arpa.
+udp 8.8.8.8:53 -> 172.17.0.10:60457
+id:	25543
+	qr:	1
+	opcode:	QUERY
+	flags:	RD RA
+	rcode:	NOERROR
+	qdcount:	1
+	ancount:	2
+	nscount:	4
+	arcount:	4
+questions:	class	type	labels
+	IN	PTR	<12>206.<16>218.<20>58.<23>216.<27>in-addr.<35>arpa.
+answers:	class	type	ttl	labels	RR labels
+	IN	PTR	72046	<12>	<57>dfw06s47-in-f14.<73>1e100.<79>net.
+	IN	PTR	72046	<12>	<96>dfw06s47-in-f206.<73>
+authorities:	class	type	ttl	labels	RR labels
+	IN	NS	71529	<16>	<127>ns2.<131>google.<138>com.
+	IN	NS	71529	<16>	<155>ns3.<131>
+	IN	NS	71529	<16>	<173>ns4.<131>
+	IN	NS	71529	<16>	<191>ns1.<131>
+additionals:	class	type	ttl	labels	RR labels
+	IN	A	331803	<191>
+	IN	A	157801	<155>
+	IN	A	157801	<173>
+	IN	A	157801	<127>
+udp 172.17.0.10:59762 -> 8.8.8.8:53
+id:	20736
+	qr:	0
+	opcode:	QUERY
+	flags:	RD
+	rcode:	NOERROR
+	qdcount:	1
+	ancount:	0
+	nscount:	0
+	arcount:	0
+questions:	class	type	labels
+	IN	A	<12>google.<19>com.
+udp 8.8.8.8:53 -> 172.17.0.10:59762
+id:	20736
+	qr:	1
+	opcode:	QUERY
+	flags:	RD RA
+	rcode:	NOERROR
+	qdcount:	1
+	ancount:	1
+	nscount:	4
+	arcount:	4
+questions:	class	type	labels
+	IN	A	<12>google.<19>com.
+answers:	class	type	ttl	labels	RR labels
+	IN	A	269	<12>
+authorities:	class	type	ttl	labels	RR labels
+	IN	NS	157800	<12>	<56>ns3.<12>
+	IN	NS	157800	<12>	<74>ns1.<12>
+	IN	NS	157800	<12>	<92>ns4.<12>
+	IN	NS	157800	<12>	<110>ns2.<12>
+additionals:	class	type	ttl	labels	RR labels
+	IN	A	157800	<110>
+	IN	A	331802	<74>
+	IN	A	157800	<56>
+	IN	A	157800	<92>
+udp 172.17.0.10:56022 -> 8.8.8.8:53
+id:	25911
+	qr:	0
+	opcode:	QUERY
+	flags:	RD
+	rcode:	NOERROR
+	qdcount:	1
+	ancount:	0
+	nscount:	0
+	arcount:	0
+questions:	class	type	labels
+	IN	PTR	<12>206.<16>218.<20>58.<23>216.<27>in-addr.<35>arpa.
+udp 8.8.8.8:53 -> 172.17.0.10:56022
+id:	25911
+	qr:	1
+	opcode:	QUERY
+	flags:	RD RA
+	rcode:	NOERROR
+	qdcount:	1
+	ancount:	2
+	nscount:	4
+	arcount:	4
+questions:	class	type	labels
+	IN	PTR	<12>206.<16>218.<20>58.<23>216.<27>in-addr.<35>arpa.
+answers:	class	type	ttl	labels	RR labels
+	IN	PTR	72045	<12>	<57>dfw06s47-in-f206.<74>1e100.<80>net.
+	IN	PTR	72045	<12>	<97>dfw06s47-in-f14.<74>
+authorities:	class	type	ttl	labels	RR labels
+	IN	NS	71528	<16>	<127>ns1.<131>google.<138>com.
+	IN	NS	71528	<16>	<155>ns4.<131>
+	IN	NS	71528	<16>	<173>ns2.<131>
+	IN	NS	71528	<16>	<191>ns3.<131>
+additionals:	class	type	ttl	labels	RR labels
+	IN	A	331802	<127>
+	IN	A	157800	<191>
+	IN	A	157800	<155>
+	IN	A	157800	<173>
+udp 172.17.0.10:37669 -> 8.8.8.8:53
+id:	64358
+	qr:	0
+	opcode:	QUERY
+	flags:	RD
+	rcode:	NOERROR
+	qdcount:	1
+	ancount:	0
+	nscount:	0
+	arcount:	0
+questions:	class	type	labels
+	IN	A	<12>google.<19>com.
+udp 8.8.8.8:53 -> 172.17.0.10:37669
+id:	64358
+	qr:	1
+	opcode:	QUERY
+	flags:	RD RA
+	rcode:	NOERROR
+	qdcount:	1
+	ancount:	1
+	nscount:	4
+	arcount:	4
+questions:	class	type	labels
+	IN	A	<12>google.<19>com.
+answers:	class	type	ttl	labels	RR labels
+	IN	A	268	<12>
+authorities:	class	type	ttl	labels	RR labels
+	IN	NS	157799	<12>	<56>ns2.<12>
+	IN	NS	157799	<12>	<74>ns1.<12>
+	IN	NS	157799	<12>	<92>ns4.<12>
+	IN	NS	157799	<12>	<110>ns3.<12>
+additionals:	class	type	ttl	labels	RR labels
+	IN	A	157799	<56>
+	IN	A	331801	<74>
+	IN	A	157799	<110>
+	IN	A	157799	<92>
+udp 172.17.0.10:42978 -> 8.8.8.8:53
+id:	37698
+	qr:	0
+	opcode:	QUERY
+	flags:	RD
+	rcode:	NOERROR
+	qdcount:	1
+	ancount:	0
+	nscount:	0
+	arcount:	0
+questions:	class	type	labels
+	IN	PTR	<12>206.<16>218.<20>58.<23>216.<27>in-addr.<35>arpa.
+udp 8.8.8.8:53 -> 172.17.0.10:42978
+id:	37698
+	qr:	1
+	opcode:	QUERY
+	flags:	RD RA
+	rcode:	NOERROR
+	qdcount:	1
+	ancount:	2
+	nscount:	4
+	arcount:	4
+questions:	class	type	labels
+	IN	PTR	<12>206.<16>218.<20>58.<23>216.<27>in-addr.<35>arpa.
+answers:	class	type	ttl	labels	RR labels
+	IN	PTR	72044	<12>	<57>dfw06s47-in-f14.<73>1e100.<79>net.
+	IN	PTR	72044	<12>	<96>dfw06s47-in-f206.<73>
+authorities:	class	type	ttl	labels	RR labels
+	IN	NS	71527	<16>	<127>ns1.<131>google.<138>com.
+	IN	NS	71527	<16>	<155>ns4.<131>
+	IN	NS	71527	<16>	<173>ns3.<131>
+	IN	NS	71527	<16>	<191>ns2.<131>
+additionals:	class	type	ttl	labels	RR labels
+	IN	A	331801	<127>
+	IN	A	157799	<173>
+	IN	A	157799	<155>
+	IN	A	157799	<191>
+udp 172.17.0.10:49829 -> 8.8.8.8:53
+id:	54706
+	qr:	0
+	opcode:	QUERY
+	flags:	RD
+	rcode:	NOERROR
+	qdcount:	1
+	ancount:	0
+	nscount:	0
+	arcount:	0
+questions:	class	type	labels
+	IN	A	<12>google.<19>com.
+udp 8.8.8.8:53 -> 172.17.0.10:49829
+id:	54706
+	qr:	1
+	opcode:	QUERY
+	flags:	RD RA
+	rcode:	NOERROR
+	qdcount:	1
+	ancount:	1
+	nscount:	4
+	arcount:	4
+questions:	class	type	labels
+	IN	A	<12>google.<19>com.
+answers:	class	type	ttl	labels	RR labels
+	IN	A	267	<12>
+authorities:	class	type	ttl	labels	RR labels
+	IN	NS	157798	<12>	<56>ns2.<12>
+	IN	NS	157798	<12>	<74>ns4.<12>
+	IN	NS	157798	<12>	<92>ns3.<12>
+	IN	NS	157798	<12>	<110>ns1.<12>
+additionals:	class	type	ttl	labels	RR labels
+	IN	A	157798	<56>
+	IN	A	331800	<110>
+	IN	A	157798	<92>
+	IN	A	157798	<74>
+udp 172.17.0.10:50599 -> 8.8.8.8:53
+id:	32142
+	qr:	0
+	opcode:	QUERY
+	flags:	RD
+	rcode:	NOERROR
+	qdcount:	1
+	ancount:	0
+	nscount:	0
+	arcount:	0
+questions:	class	type	labels
+	IN	PTR	<12>206.<16>218.<20>58.<23>216.<27>in-addr.<35>arpa.
+udp 8.8.8.8:53 -> 172.17.0.10:50599
+id:	32142
+	qr:	1
+	opcode:	QUERY
+	flags:	RD RA
+	rcode:	NOERROR
+	qdcount:	1
+	ancount:	2
+	nscount:	4
+	arcount:	4
+questions:	class	type	labels
+	IN	PTR	<12>206.<16>218.<20>58.<23>216.<27>in-addr.<35>arpa.
+answers:	class	type	ttl	labels	RR labels
+	IN	PTR	72043	<12>	<57>dfw06s47-in-f206.<74>1e100.<80>net.
+	IN	PTR	72043	<12>	<97>dfw06s47-in-f14.<74>
+authorities:	class	type	ttl	labels	RR labels
+	IN	NS	71526	<16>	<127>ns3.<131>google.<138>com.
+	IN	NS	71526	<16>	<155>ns1.<131>
+	IN	NS	71526	<16>	<173>ns2.<131>
+	IN	NS	71526	<16>	<191>ns4.<131>
+additionals:	class	type	ttl	labels	RR labels
+	IN	A	331800	<155>
+	IN	A	157798	<127>
+	IN	A	157798	<191>
+	IN	A	157798	<173>
+udp 172.17.0.10:44980 -> 8.8.8.8:53
+id:	41808
+	qr:	0
+	opcode:	QUERY
+	flags:	RD
+	rcode:	NOERROR
+	qdcount:	1
+	ancount:	0
+	nscount:	0
+	arcount:	0
+questions:	class	type	labels
+	IN	A	<12>google.<19>com.
+udp 8.8.8.8:53 -> 172.17.0.10:44980
+id:	41808
+	qr:	1
+	opcode:	QUERY
+	flags:	RD RA
+	rcode:	NOERROR
+	qdcount:	1
+	ancount:	1
+	nscount:	4
+	arcount:	4
+questions:	class	type	labels
+	IN	A	<12>google.<19>com.
+answers:	class	type	ttl	labels	RR labels
+	IN	A	266	<12>
+authorities:	class	type	ttl	labels	RR labels
+	IN	NS	157797	<12>	<56>ns2.<12>
+	IN	NS	157797	<12>	<74>ns4.<12>
+	IN	NS	157797	<12>	<92>ns1.<12>
+	IN	NS	157797	<12>	<110>ns3.<12>
+additionals:	class	type	ttl	labels	RR labels
+	IN	A	157797	<56>
+	IN	A	331799	<92>
+	IN	A	157797	<110>
+	IN	A	157797	<74>
+udp 172.17.0.10:60063 -> 8.8.8.8:53
+id:	18886
+	qr:	0
+	opcode:	QUERY
+	flags:	RD
+	rcode:	NOERROR
+	qdcount:	1
+	ancount:	0
+	nscount:	0
+	arcount:	0
+questions:	class	type	labels
+	IN	PTR	<12>206.<16>218.<20>58.<23>216.<27>in-addr.<35>arpa.
+udp 8.8.8.8:53 -> 172.17.0.10:60063
+id:	18886
+	qr:	1
+	opcode:	QUERY
+	flags:	RD RA
+	rcode:	NOERROR
+	qdcount:	1
+	ancount:	2
+	nscount:	4
+	arcount:	4
+questions:	class	type	labels
+	IN	PTR	<12>206.<16>218.<20>58.<23>216.<27>in-addr.<35>arpa.
+answers:	class	type	ttl	labels	RR labels
+	IN	PTR	72042	<12>	<57>dfw06s47-in-f14.<73>1e100.<79>net.
+	IN	PTR	72042	<12>	<96>dfw06s47-in-f206.<73>
+authorities:	class	type	ttl	labels	RR labels
+	IN	NS	71525	<16>	<127>ns3.<131>google.<138>com.
+	IN	NS	71525	<16>	<155>ns1.<131>
+	IN	NS	71525	<16>	<173>ns4.<131>
+	IN	NS	71525	<16>	<191>ns2.<131>
+additionals:	class	type	ttl	labels	RR labels
+	IN	A	331799	<155>
+	IN	A	157797	<127>
+	IN	A	157797	<173>
+	IN	A	157797	<191>
+udp 172.17.0.10:42042 -> 8.8.8.8:53
+id:	10624
+	qr:	0
+	opcode:	QUERY
+	flags:	RD
+	rcode:	NOERROR
+	qdcount:	1
+	ancount:	0
+	nscount:	0
+	arcount:	0
+questions:	class	type	labels
+	IN	A	<12>google.<19>com.
+udp 8.8.8.8:53 -> 172.17.0.10:42042
+id:	10624
+	qr:	1
+	opcode:	QUERY
+	flags:	RD RA
+	rcode:	NOERROR
+	qdcount:	1
+	ancount:	1
+	nscount:	4
+	arcount:	4
+questions:	class	type	labels
+	IN	A	<12>google.<19>com.
+answers:	class	type	ttl	labels	RR labels
+	IN	A	265	<12>
+authorities:	class	type	ttl	labels	RR labels
+	IN	NS	157796	<12>	<56>ns3.<12>
+	IN	NS	157796	<12>	<74>ns4.<12>
+	IN	NS	157796	<12>	<92>ns1.<12>
+	IN	NS	157796	<12>	<110>ns2.<12>
+additionals:	class	type	ttl	labels	RR labels
+	IN	A	157796	<110>
+	IN	A	331798	<92>
+	IN	A	157796	<56>
+	IN	A	157796	<74>
+udp 172.17.0.10:60469 -> 8.8.8.8:53
+id:	33139
+	qr:	0
+	opcode:	QUERY
+	flags:	RD
+	rcode:	NOERROR
+	qdcount:	1
+	ancount:	0
+	nscount:	0
+	arcount:	0
+questions:	class	type	labels
+	IN	PTR	<12>206.<16>218.<20>58.<23>216.<27>in-addr.<35>arpa.
+udp 8.8.8.8:53 -> 172.17.0.10:60469
+id:	33139
+	qr:	1
+	opcode:	QUERY
+	flags:	RD RA
+	rcode:	NOERROR
+	qdcount:	1
+	ancount:	2
+	nscount:	4
+	arcount:	4
+questions:	class	type	labels
+	IN	PTR	<12>206.<16>218.<20>58.<23>216.<27>in-addr.<35>arpa.
+answers:	class	type	ttl	labels	RR labels
+	IN	PTR	72041	<12>	<57>dfw06s47-in-f206.<74>1e100.<80>net.
+	IN	PTR	72041	<12>	<97>dfw06s47-in-f14.<74>
+authorities:	class	type	ttl	labels	RR labels
+	IN	NS	71524	<16>	<127>ns2.<131>google.<138>com.
+	IN	NS	71524	<16>	<155>ns4.<131>
+	IN	NS	71524	<16>	<173>ns3.<131>
+	IN	NS	71524	<16>	<191>ns1.<131>
+additionals:	class	type	ttl	labels	RR labels
+	IN	A	331798	<191>
+	IN	A	157796	<173>
+	IN	A	157796	<155>
+	IN	A	157796	<127>
+udp 172.17.0.10:45703 -> 8.8.8.8:53
+id:	61415
+	qr:	0
+	opcode:	QUERY
+	flags:	RD
+	rcode:	NOERROR
+	qdcount:	1
+	ancount:	0
+	nscount:	0
+	arcount:	0
+questions:	class	type	labels
+	IN	A	<12>google.<19>com.
+udp 8.8.8.8:53 -> 172.17.0.10:45703
+id:	61415
+	qr:	1
+	opcode:	QUERY
+	flags:	RD RA
+	rcode:	NOERROR
+	qdcount:	1
+	ancount:	1
+	nscount:	4
+	arcount:	4
+questions:	class	type	labels
+	IN	A	<12>google.<19>com.
+answers:	class	type	ttl	labels	RR labels
+	IN	A	264	<12>
+authorities:	class	type	ttl	labels	RR labels
+	IN	NS	157795	<12>	<56>ns3.<12>
+	IN	NS	157795	<12>	<74>ns4.<12>
+	IN	NS	157795	<12>	<92>ns2.<12>
+	IN	NS	157795	<12>	<110>ns1.<12>
+additionals:	class	type	ttl	labels	RR labels
+	IN	A	157795	<92>
+	IN	A	331797	<110>
+	IN	A	157795	<56>
+	IN	A	157795	<74>
+udp 172.17.0.10:33507 -> 8.8.8.8:53
+id:	59258
+	qr:	0
+	opcode:	QUERY
+	flags:	RD
+	rcode:	NOERROR
+	qdcount:	1
+	ancount:	0
+	nscount:	0
+	arcount:	0
+questions:	class	type	labels
+	IN	PTR	<12>206.<16>218.<20>58.<23>216.<27>in-addr.<35>arpa.
+udp 8.8.8.8:53 -> 172.17.0.10:33507
+id:	59258
+	qr:	1
+	opcode:	QUERY
+	flags:	RD RA
+	rcode:	NOERROR
+	qdcount:	1
+	ancount:	2
+	nscount:	4
+	arcount:	4
+questions:	class	type	labels
+	IN	PTR	<12>206.<16>218.<20>58.<23>216.<27>in-addr.<35>arpa.
+answers:	class	type	ttl	labels	RR labels
+	IN	PTR	72040	<12>	<57>dfw06s47-in-f14.<73>1e100.<79>net.
+	IN	PTR	72040	<12>	<96>dfw06s47-in-f206.<73>
+authorities:	class	type	ttl	labels	RR labels
+	IN	NS	71523	<16>	<127>ns1.<131>google.<138>com.
+	IN	NS	71523	<16>	<155>ns4.<131>
+	IN	NS	71523	<16>	<173>ns3.<131>
+	IN	NS	71523	<16>	<191>ns2.<131>
+additionals:	class	type	ttl	labels	RR labels
+	IN	A	331797	<127>
+	IN	A	157795	<173>
+	IN	A	157795	<155>
+	IN	A	157795	<191>
+udp 172.17.0.10:46798 -> 8.8.8.8:53
+id:	17700
+	qr:	0
+	opcode:	QUERY
+	flags:	RD
+	rcode:	NOERROR
+	qdcount:	1
+	ancount:	0
+	nscount:	0
+	arcount:	0
+questions:	class	type	labels
+	IN	A	<12>google.<19>com.
+udp 8.8.8.8:53 -> 172.17.0.10:46798
+id:	17700
+	qr:	1
+	opcode:	QUERY
+	flags:	RD RA
+	rcode:	NOERROR
+	qdcount:	1
+	ancount:	1
+	nscount:	4
+	arcount:	4
+questions:	class	type	labels
+	IN	A	<12>google.<19>com.
+answers:	class	type	ttl	labels	RR labels
+	IN	A	263	<12>
+authorities:	class	type	ttl	labels	RR labels
+	IN	NS	157794	<12>	<56>ns1.<12>
+	IN	NS	157794	<12>	<74>ns4.<12>
+	IN	NS	157794	<12>	<92>ns3.<12>
+	IN	NS	157794	<12>	<110>ns2.<12>
+additionals:	class	type	ttl	labels	RR labels
+	IN	A	157794	<110>
+	IN	A	331796	<56>
+	IN	A	157794	<92>
+	IN	A	157794	<74>

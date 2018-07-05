@@ -27,3 +27,4 @@ script:
   - cd build
   - ../configure --enable-warn-all
   - make
+  - make test

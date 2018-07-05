@@ -1,6 +1,6 @@
 Name:           dnsjit
-Version:        0.9.3
-Release:        1%{?dist}
+Version:        0.9.4
+Release:        7%{?dist}
 Summary:        Engine for capturing, parsing and replaying DNS
 Group:          Productivity/Networking/DNS/Utilities
 
@@ -8,8 +8,11 @@ License:        GPLv3
 URL:            https://github.com/DNS-OARC/dnsjit
 Source0:        %{name}_%{version}.orig.tar.gz
 
-BuildRequires:  libpcap-devel libev-devel luajit-devel
-BuildRequires:  autoconf
+BuildRequires:  libpcap-devel
+BuildRequires:  luajit-devel >= 2.0.0
+BuildRequires:  lmdb-devel
+BuildRequires:  ck-devel
+BuildRequires:  autoconf >= 2.64
 BuildRequires:  automake
 BuildRequires:  libtool
 
@@ -52,5 +55,5 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
-* Wed Feb 14 2018 Jerry Lundström <lundstrom.jerry@gmail.com> 0.9.3-1
-- Initial SPEC file
+* Wed Jul 04 2018 Jerry Lundström <lundstrom.jerry@gmail.com> 0.9.4-7
+- Alpha release 0.9.4

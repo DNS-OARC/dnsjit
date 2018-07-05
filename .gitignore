@@ -82,10 +82,17 @@ libtool
 src/config.h
 src/stamp-h1
 build
+.dirstamp
 
 # Project specific files
+*.luao
+*.luaho
 src/dnsjit
 src/dnsjit.1
+src/dnsjit.*.3in
+src/dnsjit.*.3
+src/core/compat.hh
+src/core/log_errstr.c
 src/test/test-suite.log
 src/test/test*.sh.log
 src/test/test*.sh.trs
