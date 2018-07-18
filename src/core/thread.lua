@@ -21,7 +21,9 @@
 --   local thr = require("dnsjit.core.thread").new()
 --   thr:start(function(thr)
 --       print("Hello from thread")
+--       print("got:", thr:pop(), " = ", thr:pop(3))
 --   end)
+--   thr:push("value from main", 1, 2, 3)
 --   thr:stop()
 --
 -- Start a new POSIX thread with it's own Lua state.
@@ -74,39 +76,63 @@ function Thread:stop()
     return C.core_thread_stop(self)
 end
 
--- Push a string, number or sharable object onto the thread stack so it can
--- be retrieved inside the thread using
+-- Push string(s), number(s) or sharable object(s) onto the thread stack so
+-- they can be retrieved inside the thread using
 -- .IR pop() .
--- The object needs to be kept alive as long as the thread is running, strings
--- and numbers are copied.
-function Thread:push(obj)
-    local t = type(obj)
-    if t == "string" then
-        C.core_thread_push_string(self, obj, #obj)
-    elseif t == "number" then
-        C.core_thread_push_int64(self, obj)
-    else
-        local ptr, type, module = obj:share()
-        C.core_thread_push(self, ptr, type, #type, module, #module)
+-- The sharable object(s) needs to be kept alive as long as the thread is
+-- running, strings and numbers are copied.
+function Thread:push(...)
+    for _, obj in pairs({...}) do
+        local t = type(obj)
+        if t == "string" then
+            C.core_thread_push_string(self, obj, #obj)
+        elseif t == "number" then
+            C.core_thread_push_int64(self, obj)
+        else
+            local ptr, type, module = obj:share()
+            C.core_thread_push(self, ptr, type, #type, module, #module)
+        end
     end
 end
 
--- Pop a shared value off the thread stack, should only be called within the
--- thread.
--- Returns nil if no shared values are left on the stack.
-function Thread:pop()
-    local item = C.core_thread_pop(self)
-    if item == nil then
-        return
-    end
-    if item.ptr == nil then
-        if item.str == nil then
-            return tonumber(item.i64)
+-- Pop value(s) off the thread stack, should only be called within the thread.
+-- If
+-- .I num
+-- is not given then one value is poped.
+-- Returns nil if no values are left on the stack.
+function Thread:pop(num)
+    if num == nil or num == 1 then
+        local item = C.core_thread_pop(self)
+        if item == nil then
+            return
         end
-        return ffi.string(item.str)
+        if item.ptr == nil then
+            if item.str == nil then
+                return tonumber(item.i64)
+            end
+            return ffi.string(item.str)
+        end
+        require(ffi.string(item.module))
+        return ffi.cast(ffi.string(item.type), item.ptr)
     end
-    require(ffi.string(item.module))
-    return ffi.cast(ffi.string(item.type), item.ptr)
+
+    local ret = {}
+    for n = 1, num do
+        local item = C.core_thread_pop(self)
+        if item == nil then break end
+
+        if item.ptr == nil then
+            if item.str == nil then
+                table.insert(ret, tonumber(item.i64))
+            else
+                table.insert(ret, ffi.string(item.str))
+            end
+        else
+            require(ffi.string(item.module))
+            table.insert(ret, ffi.cast(ffi.string(item.type), item.ptr))
+        end
+    end
+    return unpack(ret)
 end
 
 core_thread_t = ffi.metatype(t_name, { __index = Thread })
