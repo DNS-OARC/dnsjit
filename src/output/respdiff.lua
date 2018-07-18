@@ -20,12 +20,15 @@
 -- Output to respdiff LMDB
 --   local output = require("dnsjit.output.respdiff").new("/path/to/lmdb")
 --
--- Output to an LMDB database that can be used by respdiff to compare the
--- responses found in the input data with the responses received. The receive
--- function expects to get a chain of 3
--- .IR core.object.payload ,
--- at the top in the chain is the query, after it the original response and
--- then the received response.
+-- Output to an LMDB database (format 2018-05-21) that can be used by respdiff
+-- to compare the responses found in the input data with the responses
+-- received.
+-- The receive function expects to get a chain of 2 or 3
+-- .IR core.object.payload .
+-- For a completed query; The top of the chain is the query, after it the
+-- original response and then the received response.
+-- For a timed out query; The top of the chain is the query, after it the
+-- original response.
 module(...,package.seeall)
 
 require("dnsjit.output.respdiff_h")
