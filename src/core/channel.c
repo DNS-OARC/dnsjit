@@ -83,6 +83,19 @@ void* core_channel_get(core_channel_t* self)
     return obj;
 }
 
+void* core_channel_try_get(core_channel_t* self)
+{
+    void* obj = 0;
+    mlassert_self();
+    lassert(self->ring_buf, "ring_buf is nil");
+
+    if (!ck_ring_dequeue_spsc(&self->ring, self->ring_buf, &obj)) {
+        return 0;
+    }
+
+    return obj;
+}
+
 void core_channel_close(core_channel_t* self)
 {
     mlassert_self();
