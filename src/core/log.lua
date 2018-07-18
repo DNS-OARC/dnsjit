@@ -212,10 +212,21 @@ local Log = {}
 -- .I module
 -- Log object.
 function Log.new(name, module)
+    local self
     if ffi.istype(t_name, module) then
-        return core_log_t({ name = name, is_obj = 1, module = module.settings })
+        self = core_log_t({ is_obj = 1, module = module.settings })
+    else
+        self = core_log_t()
     end
-    return core_log_t({ name = name })
+
+    local len = #name
+    if len > 31 then
+        len = 31
+    end
+    ffi.copy(self.name, name, len)
+    self.name[len] = 0
+
+    return self
 end
 
 -- Enable specified log level.
