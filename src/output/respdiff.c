@@ -190,16 +190,18 @@ static void _receive(output_respdiff_t* self, const core_object_t* obj)
         lfatal("invalid first object");
     }
     query = (core_object_payload_t*)obj;
+
     if (!query->obj_prev || query->obj_prev->obj_type != CORE_OBJECT_PAYLOAD) {
         lfatal("invalid second object");
     }
     original = (core_object_payload_t*)query->obj_prev;
-    if (!original->obj_prev || original->obj_prev->obj_type != CORE_OBJECT_PAYLOAD) {
+
+    response = (core_object_payload_t*)original->obj_prev;
+    if (response && response->obj_type != CORE_OBJECT_PAYLOAD) {
         lfatal("invalid third object");
     }
-    response = (core_object_payload_t*)original->obj_prev;
 
-    if (12 + original->len + response->len > sizeof(responses)) {
+    if (12 + original->len + (response ? response->len : 0) > sizeof(responses)) {
         lfatal("mdb_put failed, not enough space");
     }
 
@@ -218,12 +220,19 @@ static void _receive(output_respdiff_t* self, const core_object_t* obj)
     dnslen = original->len;
     memcpy(&responses[4], &dnslen, 2);
     memcpy(&responses[6], original->payload, original->len);
-    memcpy(&responses[6 + original->len], &msec, 4);
-    dnslen = response->len;
-    memcpy(&responses[10 + original->len], &dnslen, 2);
-    memcpy(&responses[12 + original->len], response->payload, response->len);
+    if (response) {
+        memcpy(&responses[6 + original->len], &msec, 4);
+        dnslen = response->len;
+        memcpy(&responses[10 + original->len], &dnslen, 2);
+        memcpy(&responses[12 + original->len], response->payload, response->len);
+    } else {
+        msec = 0xffffffff;
+        memcpy(&responses[6 + original->len], &msec, 4);
+        dnslen = 0;
+        memcpy(&responses[10 + original->len], &dnslen, 2);
+    }
 
-    v.mv_size = 12 + original->len + response->len;
+    v.mv_size = 12 + original->len + (response ? response->len : 0);
     v.mv_data = (void*)responses;
     if (mdb_put((MDB_txn*)self->txn, (MDB_dbi) * ((MDB_dbi*)self->rdb), &k, &v, 0)) {
         lfatal("mdb_put answers failed");
