@@ -27,7 +27,7 @@ typedef struct core_log_settings {
 } core_log_settings_t;
 
 typedef struct core_log {
-    const char*                name;
+    char                       name[32];
     uint8_t                    is_obj;
     core_log_settings_t        settings;
     const core_log_settings_t* module;
