@@ -92,6 +92,12 @@ function Channel:get()
     return C.core_channel_get(self)
 end
 
+-- Try and get an object from the channel.
+-- Returns nil if there was no objects to get.
+function Channel:try_get()
+    return C.core_channel_try_get(self)
+end
+
 -- Close the channel.
 function Channel:close()
     C.core_channel_close(self)
