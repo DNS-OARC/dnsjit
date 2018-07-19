@@ -28,4 +28,33 @@
 
 void dnsjit_globals(lua_State* L)
 {
+#ifdef PACKAGE_VERSION
+    lua_pushstring(L, PACKAGE_VERSION);
+#elif defined(VERSION)
+    lua_pushstring(L, VERSION);
+#else
+#error "No PACKAGE_VERSION or VERSION defined"
+#endif
+    lua_setglobal(L, "DNSJIT_VERSION");
+
+    lua_pushinteger(L, PACKAGE_MAJOR_VERSION);
+    lua_setglobal(L, "DNSJIT_MAJOR_VERSION");
+    lua_pushinteger(L, PACKAGE_MINOR_VERSION);
+    lua_setglobal(L, "DNSJIT_MINOR_VERSION");
+    lua_pushinteger(L, PACKAGE_PATCH_VERSION);
+    lua_setglobal(L, "DNSJIT_PATCH_VERSION");
+
+#ifdef PACKAGE_BUGREPORT
+    lua_pushstring(L, PACKAGE_BUGREPORT);
+#else
+    lua_pushstring(L, "none");
+#endif
+    lua_setglobal(L, "DNSJIT_BUGREPORT");
+
+#ifdef PACKAGE_URL
+    lua_pushstring(L, PACKAGE_URL);
+#else
+    lua_pushstring(L, "none");
+#endif
+    lua_setglobal(L, "DNSJIT_URL");
 }
