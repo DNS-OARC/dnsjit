@@ -51,26 +51,48 @@ current implementation is
 .I ALPHA
 which means functionality are not set and may be changed or removed.
 .LP
+.SH MODULE CATEGORIES
 The following Lua module categories exists:
 .TP
-dnsjit.core
+.B dnsjit.core
 Core modules for handling things like logging, DNS messages and
 receiver/receive functionality.
 .TP
-dnsjit.lib
+.B dnsjit.lib
 Various Lua libraries or C library bindings.
 .TP
-dnsjit.input
+.B dnsjit.input
 Input modules used to read DNS messages in various ways.
 .TP
-dnsjit.filter
+.B dnsjit.filter
 Filter modules to process or manipulate DNS messages.
 .TP
-dnsjit.output
+.B dnsjit.output
 Output modules used to display DNS message, export to various formats or
 replay them against other targets.
 .LP
 See each category's man-page for more information.
+.SH LUA GLOBALS
+The following Lua global variables are defined:
+.TP
+.B DNSJIT_VERSION
+A string with the full version.
+.TP
+.B DNSJIT_MAJOR_VERSION
+An integer with the major version number.
+.TP
+.B DNSJIT_MINOR_VERSION
+An integer with the minor version number.
+.TP
+.B DNSJIT_PATCH_VERSION
+An integer with the patch version number.
+.TP
+.B DNSJIT_BUGREPORT
+A string with the email address to file bug reports to.
+.TP
+.B DNSJIT_URL
+A string with the URL to the repository issue tracker, preferred place to
+file bug reports.
 .SH EXAMPLE
 Following example display the DNS ID found in queries.
 .LP
