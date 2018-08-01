@@ -44,7 +44,7 @@ while true do
         end
 
         dns.obj_prev = obj
-        if transport and protocol and dns:parse_header() == 0 then
+        if transport ~= nil and protocol ~= nil and dns:parse_header() == 0 then
             transport = transport:cast()
             protocol = protocol:cast()
 

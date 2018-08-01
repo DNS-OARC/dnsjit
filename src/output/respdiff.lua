@@ -48,14 +48,20 @@ local Respdiff = {}
 -- are used to populate the meta table, these names should be the same as
 -- what is configured in
 -- .IR respdiff.cfg .
-function Respdiff.new(path, origname, recvname)
+-- Optional
+-- .I mapsize
+-- can be given to increase the database size beyond the default size of 10MB.
+function Respdiff.new(path, origname, recvname, mapsize)
+    if mapsize == nil then
+        mapsize = 10485760
+    end
     local self = {
         obj = output_respdiff_t(),
         path = path,
         origname = origname,
         recvname = recvname,
     }
-    C.output_respdiff_init(self.obj, path)
+    C.output_respdiff_init(self.obj, path, mapsize)
     ffi.gc(self.obj, C.output_respdiff_destroy)
     return setmetatable(self, { __index = Respdiff })
 end
