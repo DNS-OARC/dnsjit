@@ -36,7 +36,7 @@ while true do
         end
 
         dns.obj_prev = obj
-        if transport and protocol then
+        if transport ~= nil and protocol ~= nil then
             transport = transport:cast()
             protocol = protocol:cast()
             print(protocol:type().." "..transport:source()..":"..tonumber(protocol.sport).." -> "..transport:destination()..":"..tonumber(protocol.dport))

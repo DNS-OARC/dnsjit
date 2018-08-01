@@ -80,7 +80,7 @@ while true do
                 protocol = protocol.obj_prev
             end
 
-            if transport and protocol then
+            if transport ~= nil and protocol ~= nil then
                 transport = transport:cast()
                 protocol = protocol:cast()
 

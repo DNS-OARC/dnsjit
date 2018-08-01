@@ -1,5 +1,5 @@
-dnsjit (0.9.5-1~unstable+1) unstable; urgency=low
+dnsjit (0.9.6-1~unstable+1) unstable; urgency=low
 
-  * Alpha release 0.9.5
+  * Alpha release 0.9.6
 
- -- Jerry Lundström <lundstrom.jerry@gmail.com>  Thu, 19 Jul 2018 11:07:58 +0200
+ -- Jerry Lundström <lundstrom.jerry@gmail.com>  Wed, 01 Aug 2018 11:20:22 +0200

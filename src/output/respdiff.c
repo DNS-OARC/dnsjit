@@ -42,7 +42,7 @@ core_log_t* output_respdiff_log()
     return &_log;
 }
 
-void output_respdiff_init(output_respdiff_t* self, const char* path)
+void output_respdiff_init(output_respdiff_t* self, const char* path, size_t mapsize)
 {
     mlassert_self();
 
@@ -58,6 +58,9 @@ void output_respdiff_init(output_respdiff_t* self, const char* path)
     }
     if (mdb_env_create((MDB_env**)&self->env)) {
         lfatal("mdb_env_create failed");
+    }
+    if (mdb_env_set_mapsize((MDB_env*)self->env, mapsize)) {
+        lfatal("mdb_env_set_mapsize(%lu) failed", mapsize);
     }
     if (mdb_env_set_maxdbs((MDB_env*)self->env, 3)) {
         lfatal("mdb_env_set_maxdbs failed");
@@ -112,6 +115,7 @@ void output_respdiff_commit(output_respdiff_t* self, const char* origname, const
 #ifdef HAVE_LMDB_H
     MDB_val  k, v;
     uint32_t i;
+    int      err;
     mlassert_self();
     lassert(origname, "origname is nil");
     lassert(recvname, "recvname is nil");
@@ -120,8 +124,12 @@ void output_respdiff_commit(output_respdiff_t* self, const char* origname, const
     k.mv_data = (void*)_meta_version;
     v.mv_size = strlen(_meta_version_val);
     v.mv_data = (void*)_meta_version_val;
-    if (mdb_put((MDB_txn*)self->txn, (MDB_dbi) * ((MDB_dbi*)self->meta), &k, &v, 0)) {
-        lfatal("mdb_put meta.version failed");
+    if ((err = mdb_put((MDB_txn*)self->txn, (MDB_dbi) * ((MDB_dbi*)self->meta), &k, &v, 0))) {
+        if (err == MDB_MAP_FULL) {
+            lfatal("mdb_put meta.version failed, database is full");
+        } else {
+            lfatal("mdb_put meta.version failed (%d)", err);
+        }
     }
 
     k.mv_size = strlen(_meta_servers);
@@ -129,24 +137,36 @@ void output_respdiff_commit(output_respdiff_t* self, const char* origname, const
     i         = 2;
     v.mv_size = 4;
     v.mv_data = (void*)&i;
-    if (mdb_put((MDB_txn*)self->txn, (MDB_dbi) * ((MDB_dbi*)self->meta), &k, &v, 0)) {
-        lfatal("mdb_put meta.servers failed");
+    if ((err = mdb_put((MDB_txn*)self->txn, (MDB_dbi) * ((MDB_dbi*)self->meta), &k, &v, 0))) {
+        if (err == MDB_MAP_FULL) {
+            lfatal("mdb_put meta.servers failed, database is full");
+        } else {
+            lfatal("mdb_put meta.servers failed (%d)", err);
+        }
     }
 
     k.mv_size = strlen(_meta_name0);
     k.mv_data = (void*)_meta_name0;
     v.mv_size = strlen(origname);
     v.mv_data = (void*)origname;
-    if (mdb_put((MDB_txn*)self->txn, (MDB_dbi) * ((MDB_dbi*)self->meta), &k, &v, 0)) {
-        lfatal("mdb_put meta.name0 failed");
+    if ((err = mdb_put((MDB_txn*)self->txn, (MDB_dbi) * ((MDB_dbi*)self->meta), &k, &v, 0))) {
+        if (err == MDB_MAP_FULL) {
+            lfatal("mdb_put meta.name0 failed, database is full");
+        } else {
+            lfatal("mdb_put meta.name0 failed (%d)", err);
+        }
     }
 
     k.mv_size = strlen(_meta_name1);
     k.mv_data = (void*)_meta_name1;
     v.mv_size = strlen(recvname);
     v.mv_data = (void*)recvname;
-    if (mdb_put((MDB_txn*)self->txn, (MDB_dbi) * ((MDB_dbi*)self->meta), &k, &v, 0)) {
-        lfatal("mdb_put meta.name1 failed");
+    if ((err = mdb_put((MDB_txn*)self->txn, (MDB_dbi) * ((MDB_dbi*)self->meta), &k, &v, 0))) {
+        if (err == MDB_MAP_FULL) {
+            lfatal("mdb_put meta.name1 failed, database is full");
+        } else {
+            lfatal("mdb_put meta.name1 failed (%d)", err);
+        }
     }
 
     k.mv_size = strlen(_meta_start_time);
@@ -154,8 +174,12 @@ void output_respdiff_commit(output_respdiff_t* self, const char* origname, const
     i         = start_time;
     v.mv_size = 4;
     v.mv_data = (void*)&i;
-    if (mdb_put((MDB_txn*)self->txn, (MDB_dbi) * ((MDB_dbi*)self->meta), &k, &v, 0)) {
-        lfatal("mdb_put meta.start_time failed");
+    if ((err = mdb_put((MDB_txn*)self->txn, (MDB_dbi) * ((MDB_dbi*)self->meta), &k, &v, 0))) {
+        if (err == MDB_MAP_FULL) {
+            lfatal("mdb_put meta.start_time failed, database is full");
+        } else {
+            lfatal("mdb_put meta.start_time failed (%d)", err);
+        }
     }
 
     k.mv_size = strlen(_meta_end_time);
@@ -163,8 +187,12 @@ void output_respdiff_commit(output_respdiff_t* self, const char* origname, const
     i         = end_time;
     v.mv_size = 4;
     v.mv_data = (void*)&i;
-    if (mdb_put((MDB_txn*)self->txn, (MDB_dbi) * ((MDB_dbi*)self->meta), &k, &v, 0)) {
-        lfatal("mdb_put meta.end_time failed");
+    if ((err = mdb_put((MDB_txn*)self->txn, (MDB_dbi) * ((MDB_dbi*)self->meta), &k, &v, 0))) {
+        if (err == MDB_MAP_FULL) {
+            lfatal("mdb_put meta.end_time failed, database is full");
+        } else {
+            lfatal("mdb_put meta.end_time failed (%d)", err);
+        }
     }
 
     if (self->txn) {
@@ -184,6 +212,7 @@ static void _receive(output_respdiff_t* self, const core_object_t* obj)
     uint8_t                      responses[132096];
     uint32_t                     msec;
     uint16_t                     dnslen;
+    int                          err;
     mlassert_self();
 
     if (!obj || obj->obj_type != CORE_OBJECT_PAYLOAD) {
@@ -202,7 +231,7 @@ static void _receive(output_respdiff_t* self, const core_object_t* obj)
     }
 
     if (12 + original->len + (response ? response->len : 0) > sizeof(responses)) {
-        lfatal("mdb_put failed, not enough space");
+        lfatal("not enough buffer space for responses");
     }
 
     self->count++;
@@ -211,8 +240,12 @@ static void _receive(output_respdiff_t* self, const core_object_t* obj)
     k.mv_data = (void*)&self->id;
     v.mv_size = query->len;
     v.mv_data = (void*)query->payload;
-    if (mdb_put((MDB_txn*)self->txn, (MDB_dbi) * ((MDB_dbi*)self->qdb), &k, &v, 0)) {
-        lfatal("mdb_put query failed");
+    if ((err = mdb_put((MDB_txn*)self->txn, (MDB_dbi) * ((MDB_dbi*)self->qdb), &k, &v, 0))) {
+        if (err == MDB_MAP_FULL) {
+            lfatal("mdb_put query failed, database is full");
+        } else {
+            lfatal("mdb_put query failed (%d)", err);
+        }
     }
 
     msec = 1; // TODO
@@ -234,8 +267,12 @@ static void _receive(output_respdiff_t* self, const core_object_t* obj)
 
     v.mv_size = 12 + original->len + (response ? response->len : 0);
     v.mv_data = (void*)responses;
-    if (mdb_put((MDB_txn*)self->txn, (MDB_dbi) * ((MDB_dbi*)self->rdb), &k, &v, 0)) {
-        lfatal("mdb_put answers failed");
+    if ((err = mdb_put((MDB_txn*)self->txn, (MDB_dbi) * ((MDB_dbi*)self->rdb), &k, &v, 0))) {
+        if (err == MDB_MAP_FULL) {
+            lfatal("mdb_put answers failed, database is full");
+        } else {
+            lfatal("mdb_put answers failed (%d)", err);
+        }
     }
 
     self->id++;
