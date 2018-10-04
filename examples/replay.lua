@@ -75,7 +75,7 @@ if printdns then
                 if payload.len == 0 then
                     print("timed out")
                 else
-                    dns.obj_prev = resp
+                    dns.obj_prev = response
                     print("response:")
                     dns:print()
                 end
