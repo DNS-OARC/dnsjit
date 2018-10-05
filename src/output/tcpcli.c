@@ -247,20 +247,21 @@ static const core_object_t* _produce(output_tcpcli_t* self)
         } else {
             memcpy(((uint8_t*)&dnslen), self->recvbuf + self->dnslen, sizeof(dnslen));
 
-            self->dnslen      = ntohs(dnslen);
-            self->have_dnslen = 1;
-
             if (recv > sizeof(dnslen)) {
                 self->recv = recv - sizeof(dnslen);
                 memmove(self->recvbuf, self->recvbuf + self->dnslen + sizeof(dnslen), self->recv);
-
-                if (self->recv > self->dnslen) {
-                    self->pkts_recv++;
-                    self->pkt.len = self->dnslen;
-                    return (core_object_t*)&self->pkt;
-                }
             } else {
                 self->recv = 0;
+            }
+
+            self->dnslen      = ntohs(dnslen);
+            self->have_dnslen = 1;
+
+            if (self->recv > self->dnslen) {
+                self->pkts_recv++;
+                self->pkt.len = self->dnslen;
+                self->have_dnslen = 0;
+                return (core_object_t*)&self->pkt;
             }
         }
     }
@@ -364,6 +365,7 @@ static const core_object_t* _produce(output_tcpcli_t* self)
 
     self->pkts_recv++;
     self->pkt.len = self->dnslen;
+    self->have_dnslen = 0;
     return (core_object_t*)&self->pkt;
 }
 
