@@ -77,6 +77,7 @@ PKG_CHECK_MODULES([ck], [ck >= 0], [
   AC_CHECK_HEADERS([ck_ring.h ck_pr.h],, [AC_MSG_ERROR([libck headers not found])])
   AC_CHECK_LIB([ck], [ck_array_init],, [AC_MSG_ERROR([libck not found])])
 ])
+AC_CHECK_LIB([gnutls], [gnutls_init])
 
 # Checks for sizes
 AC_CHECK_SIZEOF([void*])
@@ -101,6 +102,8 @@ AC_CHECK_SIZEOF([ck_ring_buffer_t],,[#if defined(__GNUC__) || defined(__SUNPRO_C
 #endif
 #endif
 #include <ck_ring.h>])
+AC_CHECK_SIZEOF([gnutls_session_t],,[#include <gnutls/gnutls.h>])
+AC_CHECK_SIZEOF([gnutls_certificate_credentials_t],,[#include <gnutls/gnutls.h>])
 
 # Output Makefiles
 AC_CONFIG_FILES([

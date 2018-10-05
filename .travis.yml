@@ -11,6 +11,7 @@ addons:
     - luajit
     - liblmdb-dev
     - libck-dev
+    - libgnutls-dev
 language: c
 compiler:
   - clang
