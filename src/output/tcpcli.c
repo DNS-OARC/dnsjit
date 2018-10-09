@@ -94,9 +94,7 @@ int output_tcpcli_connect(output_tcpcli_t* self, const char* host, const char* p
     }
 
     if (connect(self->fd, addr->ai_addr, addr->ai_addrlen)) {
-        lcritical("connect() error %s", core_log_errstr(errno));
-        freeaddrinfo(addr);
-        return -2;
+        lfatal("connect() error %s", core_log_errstr(errno));
     }
 
     freeaddrinfo(addr);
