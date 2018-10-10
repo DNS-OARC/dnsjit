@@ -235,8 +235,6 @@ static const core_object_t* _produce(output_tlscli_t* self)
 {
     ssize_t  n, recv = 0;
     uint16_t dnslen;
-    // struct pollfd p;
-    // int           to = 0;
     mlassert_self();
 
     // Check if last recvfrom() got more then we needed
@@ -266,30 +264,8 @@ static const core_object_t* _produce(output_tlscli_t* self)
         }
     }
 
-    // p.fd      = self->fd;
-    // p.events  = POLLIN;
-    // p.revents = 0;
-    // to        = (self->timeout.sec * 1e3) + (self->timeout.nsec / 1e6);
-    // if (!to) {
-    //     to = 1;
-    // }
-
     if (!self->have_dnslen) {
         for (;;) {
-            // n = poll(&p, 1, to);
-            // if (n < 0 || (p.revents & (POLLERR | POLLHUP | POLLNVAL))) {
-            //     self->errs++;
-            //     return 0;
-            // }
-            // if (!n || !(p.revents & POLLIN)) {
-            //     if (recv) {
-            //         self->errs++;
-            //         return 0;
-            //     }
-            //     self->pkt.len = 0;
-            //     return (core_object_t*)&self->pkt;
-            // }
-
             n = gnutls_record_recv(self->session, ((uint8_t*)&dnslen) + recv, sizeof(dnslen) - recv);
             if (n > 0) {
                 recv += n;
@@ -303,7 +279,8 @@ static const core_object_t* _produce(output_tlscli_t* self)
             switch (n) {
             case GNUTLS_E_AGAIN:
             case GNUTLS_E_INTERRUPTED:
-                continue;
+                self->pkt.len = 0;
+                return (core_object_t*)&self->pkt;
             default:
                 break;
             }
@@ -321,16 +298,6 @@ static const core_object_t* _produce(output_tlscli_t* self)
     }
 
     for (;;) {
-        // n = poll(&p, 1, to);
-        // if (n < 0 || (p.revents & (POLLERR | POLLHUP | POLLNVAL))) {
-        //     self->errs++;
-        //     return 0;
-        // }
-        // if (!n || !(p.revents & POLLIN)) {
-        //     self->pkt.len = 0;
-        //     return (core_object_t*)&self->pkt;
-        // }
-
         n = gnutls_record_recv(self->session, self->recvbuf + self->recv, sizeof(self->recvbuf) - self->recv);
         if (n > 0) {
             self->recv += n;
