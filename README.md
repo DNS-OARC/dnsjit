@@ -40,16 +40,17 @@ architectures because of LuaJIT.
 - [libpcap](http://www.tcpdump.org/)
 - [liblmdb](https://github.com/LMDB/lmdb)
 - [libck](https://github.com/concurrencykit/ck)
+- [libgnutls](https://www.gnutls.org/)
 - [luajit](http://luajit.org/) (for building)
 - automake/autoconf/libtool/pkg-config (for building)
 
-Debian/Ubuntu: `apt-get install libluajit-5.1-dev libpcap-dev luajit liblmdb-dev libck-dev`
+Debian/Ubuntu: `apt-get install libluajit-5.1-dev libpcap-dev luajit liblmdb-dev libck-dev libgnutls28-dev`
 
-CentOS: `yum install luajit-devel libpcap-devel lmdb-devel ck-devel`
+CentOS: `yum install luajit-devel libpcap-devel lmdb-devel ck-devel gnutls-devel`
 
-FreeBSD: `pkg install luajit libpcap lmdb` + manual install of libck
+FreeBSD: `pkg install luajit libpcap lmdb gnutls` + manual install of libck
 
-OpenBSD: `pkg_add luajit` + manual install of libpcap, liblmdb and libck
+OpenBSD: `pkg_add luajit gnutls` + manual install of libpcap, liblmdb and libck
 
 ## Build
 

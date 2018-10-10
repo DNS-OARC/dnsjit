@@ -77,7 +77,7 @@ PKG_CHECK_MODULES([ck], [ck >= 0], [
   AC_CHECK_HEADERS([ck_ring.h ck_pr.h],, [AC_MSG_ERROR([libck headers not found])])
   AC_CHECK_LIB([ck], [ck_array_init],, [AC_MSG_ERROR([libck not found])])
 ])
-AC_CHECK_LIB([gnutls], [gnutls_init])
+AC_CHECK_LIB([gnutls], [gnutls_init],, [AC_MSG_ERROR([libgnutls not found])])
 
 # Checks for sizes
 AC_CHECK_SIZEOF([void*])
