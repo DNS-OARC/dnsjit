@@ -193,7 +193,7 @@ static void _receive(output_tlscli_t* self, const core_object_t* obj)
                     }
                     switch (ret) {
                     case GNUTLS_E_AGAIN:
-                    case GNUTLS_E_INTERRUPTED:
+                    case GNUTLS_E_TIMEDOUT:
                         continue;
                     default:
                         break;
@@ -205,7 +205,7 @@ static void _receive(output_tlscli_t* self, const core_object_t* obj)
             }
             switch (ret) {
             case GNUTLS_E_AGAIN:
-            case GNUTLS_E_INTERRUPTED:
+            case GNUTLS_E_TIMEDOUT:
                 continue;
             default:
                 break;
@@ -278,7 +278,7 @@ static const core_object_t* _produce(output_tlscli_t* self)
             }
             switch (n) {
             case GNUTLS_E_AGAIN:
-            case GNUTLS_E_INTERRUPTED:
+            case GNUTLS_E_TIMEDOUT:
                 self->pkt.len = 0;
                 return (core_object_t*)&self->pkt;
             default:
@@ -310,7 +310,7 @@ static const core_object_t* _produce(output_tlscli_t* self)
         }
         switch (n) {
         case GNUTLS_E_AGAIN:
-        case GNUTLS_E_INTERRUPTED:
+        case GNUTLS_E_TIMEDOUT:
             self->pkt.len = 0;
             return (core_object_t*)&self->pkt;
         default:
