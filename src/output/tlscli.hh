@@ -27,7 +27,7 @@
 typedef struct output_tlscli {
     core_log_t _log;
     size_t     pkts, errs;
-    int        fd;
+    int        fd, tls_ok;
 
     uint8_t               recvbuf[64 * 1024];
     core_object_payload_t pkt;
@@ -37,7 +37,7 @@ typedef struct output_tlscli {
 
     core_timespec_t timeout;
 
-    gnutls_session_t session;
+    gnutls_session_t                 session;
     gnutls_certificate_credentials_t cred;
 } output_tlscli_t;
 

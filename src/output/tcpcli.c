@@ -259,7 +259,7 @@ static const core_object_t* _produce(output_tcpcli_t* self)
 
             if (self->recv > self->dnslen) {
                 self->pkts_recv++;
-                self->pkt.len = self->dnslen;
+                self->pkt.len     = self->dnslen;
                 self->have_dnslen = 0;
                 return (core_object_t*)&self->pkt;
             }
@@ -364,7 +364,7 @@ static const core_object_t* _produce(output_tcpcli_t* self)
     }
 
     self->pkts_recv++;
-    self->pkt.len = self->dnslen;
+    self->pkt.len     = self->dnslen;
     self->have_dnslen = 0;
     return (core_object_t*)&self->pkt;
 }

@@ -38,7 +38,7 @@
 static core_log_t      _log      = LOG_T_INIT("output.tlscli");
 static output_tlscli_t _defaults = {
     LOG_T_INIT_OBJ("output.tlscli"),
-    0, 0, -1,
+    0, 0, -1, 0,
     { 0 }, CORE_OBJECT_PAYLOAD_INIT(0),
     0, 0, 0, 0,
     { 5, 0 },
@@ -52,10 +52,23 @@ core_log_t* output_tlscli_log()
 
 void output_tlscli_init(output_tlscli_t* self)
 {
+    int err;
     mlassert_self();
 
     *self             = _defaults;
     self->pkt.payload = self->recvbuf;
+
+    if ((err = gnutls_certificate_allocate_credentials(&self->cred)) != GNUTLS_E_SUCCESS) {
+        lfatal("gnutls_certificate_allocate_credentials() error: %s", gnutls_strerror(err));
+    } else if ((err = gnutls_init(&self->session, GNUTLS_CLIENT)) != GNUTLS_E_SUCCESS) {
+        lfatal("gnutls_init() error: %s", gnutls_strerror(err));
+    } else if ((err = gnutls_set_default_priority(self->session)) != GNUTLS_E_SUCCESS) {
+        lfatal("gnutls_set_default_priority() error: %s", gnutls_strerror(err));
+    } else if ((err = gnutls_credentials_set(self->session, GNUTLS_CRD_CERTIFICATE, self->cred)) != GNUTLS_E_SUCCESS) {
+        lfatal("gnutls_credentials_set() error: %s", gnutls_strerror(err));
+    }
+
+    gnutls_handshake_set_timeout(self->session, GNUTLS_DEFAULT_HANDSHAKE_TIMEOUT);
 }
 
 void output_tlscli_destroy(output_tlscli_t* self)
@@ -63,11 +76,15 @@ void output_tlscli_destroy(output_tlscli_t* self)
     mlassert_self();
 
     if (self->fd > -1) {
-        gnutls_bye(self->session, GNUTLS_SHUT_RDWR);
+        if (self->session) {
+            gnutls_bye(self->session, GNUTLS_SHUT_RDWR);
+            gnutls_deinit(self->session);
+        }
         shutdown(self->fd, SHUT_RDWR);
         close(self->fd);
-        gnutls_deinit(self->session);
-        gnutls_certificate_free_credentials(self->cred);
+        if (self->cred) {
+            gnutls_certificate_free_credentials(self->cred);
+        }
     }
 }
 
@@ -75,13 +92,16 @@ int output_tlscli_connect(output_tlscli_t* self, const char* host, const char* p
 {
     struct addrinfo* addr;
     int              err;
-    ssize_t          ret;
+    unsigned int     ms;
     mlassert_self();
     lassert(host, "host is nil");
     lassert(port, "port is nil");
 
     if (self->fd > -1) {
         lfatal("already connected");
+    }
+    if (self->tls_ok) {
+        lfatal("TLS already established");
     }
 
     if ((err = getaddrinfo(host, port, 0, &addr))) {
@@ -107,53 +127,26 @@ int output_tlscli_connect(output_tlscli_t* self, const char* host, const char* p
 
     freeaddrinfo(addr);
 
-    /* Establish TLS */
-    if ((ret = gnutls_certificate_allocate_credentials(&self->cred)) < 0) {
-        lcritical("gnutls error: %s", gnutls_strerror(ret));
-        return -3;
-    }
-
-    if ((ret = gnutls_init(&self->session, GNUTLS_CLIENT)) < 0) {
-        lcritical("gnutls error: %s", gnutls_strerror(ret));
-        gnutls_certificate_free_credentials(self->cred);
-        return -3;
-    }
-
-    if ((ret = gnutls_set_default_priority(self->session)) < 0) {
-        lcritical("gnutls error: %s", gnutls_strerror(ret));
-        gnutls_deinit(self->session);
-        gnutls_certificate_free_credentials(self->cred);
-        return -3;
-    }
-
-    if ((ret = gnutls_credentials_set(self->session, GNUTLS_CRD_CERTIFICATE, self->cred)) < 0) {
-        lcritical("gnutls error: %s", gnutls_strerror(ret));
-        gnutls_deinit(self->session);
-        gnutls_certificate_free_credentials(self->cred);
-        return -3;
-    }
-
     gnutls_transport_set_int(self->session, self->fd);
-    gnutls_handshake_set_timeout(self->session,
-                                 GNUTLS_DEFAULT_HANDSHAKE_TIMEOUT);
+    ms = (self->timeout.sec * 1000) + (self->timeout.nsec / 1000000);
+    if (!ms && self->timeout.nsec) {
+        ms = 1;
+    }
+    gnutls_record_set_timeout(self->session, ms);
 
+    /* Establish TLS */
     do {
-            ret = gnutls_handshake(self->session);
-    } while (ret < 0 && gnutls_error_is_fatal(ret) == 0);
-    if (ret == GNUTLS_E_PREMATURE_TERMINATION) {
-        lcritical("gnutls error: %s", gnutls_strerror(ret));
-        lcritical("Are you using the DNS-over-TLS port?");
-        gnutls_deinit(self->session);
-        gnutls_certificate_free_credentials(self->cred);
+        err = gnutls_handshake(self->session);
+    } while (err < 0 && gnutls_error_is_fatal(err) == 0);
+    if (err == GNUTLS_E_PREMATURE_TERMINATION) {
+        lcritical("gnutls_handshake() error: %s", gnutls_strerror(err));
         return -3;
-    }
-    else if (ret < 0) {
-        lcritical("TLS handshake failed: %s (%d)\n", gnutls_strerror(ret), ret);
-        gnutls_deinit(self->session);
-        gnutls_certificate_free_credentials(self->cred);
+    } else if (err < 0) {
+        lcritical("gnutls_handshake() failed: %s (%d)\n", gnutls_strerror(err), err);
         return -3;
     }
 
+    self->tls_ok = 1;
     return 0;
 }
 
@@ -231,6 +224,9 @@ core_receiver_t output_tlscli_receiver(output_tlscli_t* self)
     if (self->fd < 0) {
         lfatal("not connected");
     }
+    if (!self->tls_ok) {
+        lfatal("TLS is not established");
+    }
 
     return (core_receiver_t)_receive;
 }
@@ -263,7 +259,7 @@ static const core_object_t* _produce(output_tlscli_t* self)
 
             if (self->recv > self->dnslen) {
                 self->pkts_recv++;
-                self->pkt.len = self->dnslen;
+                self->pkt.len     = self->dnslen;
                 self->have_dnslen = 0;
                 return (core_object_t*)&self->pkt;
             }
@@ -294,9 +290,7 @@ static const core_object_t* _produce(output_tlscli_t* self)
                 return (core_object_t*)&self->pkt;
             }
 
-            lassert(sizeof(dnslen) - recv >= 0, "sizeof(dnslen) - recv < 0");
             n = gnutls_record_recv(self->session, ((uint8_t*)&dnslen) + recv, sizeof(dnslen) - recv);
-            ldebug("n: %d", n);
             if (n > 0) {
                 recv += n;
                 if (recv < sizeof(dnslen))
@@ -322,14 +316,11 @@ static const core_object_t* _produce(output_tlscli_t* self)
         }
 
         self->dnslen      = ntohs(dnslen);
-        ldebug("dnslen: %d", self->dnslen);
         self->have_dnslen = 1;
         self->recv        = 0;
     }
 
     for (;;) {
-        // TODO: add timeout support
-        /*
         n = poll(&p, 1, to);
         if (n < 0 || (p.revents & (POLLERR | POLLHUP | POLLNVAL))) {
             self->errs++;
@@ -339,10 +330,8 @@ static const core_object_t* _produce(output_tlscli_t* self)
             self->pkt.len = 0;
             return (core_object_t*)&self->pkt;
         }
-        */
 
-        n = gnutls_record_recv(self->session,self->recvbuf + self->recv, sizeof(self->recvbuf) - self->recv);
-        ldebug("n2: %d", n);
+        n = gnutls_record_recv(self->session, self->recvbuf + self->recv, sizeof(self->recvbuf) - self->recv);
         if (n > 0) {
             self->recv += n;
             if (self->recv < self->dnslen)
@@ -369,7 +358,7 @@ static const core_object_t* _produce(output_tlscli_t* self)
     }
 
     self->pkts_recv++;
-    self->pkt.len = self->dnslen;
+    self->pkt.len     = self->dnslen;
     self->have_dnslen = 0;
     return (core_object_t*)&self->pkt;
 }
@@ -380,6 +369,9 @@ core_producer_t output_tlscli_producer(output_tlscli_t* self)
 
     if (self->fd < 0) {
         lfatal("not connected");
+    }
+    if (!self->tls_ok) {
+        lfatal("TLS is not established");
     }
 
     return (core_producer_t)_produce;
