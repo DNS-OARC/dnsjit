@@ -21,7 +21,7 @@ echo '# Copyright (c) 2018, OARC, Inc.
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 CLEANFILES =
 
-#SUBDIRS = test
+SUBDIRS = test
 
 AM_CFLAGS = -I$(srcdir) \
   -I$(top_srcdir) \

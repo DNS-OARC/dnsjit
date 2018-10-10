@@ -20,7 +20,7 @@
 
 #include "config.h"
 
-#include "output/tcpcli.h"
+#include "output/tlscli.h"
 #include "core/assert.h"
 #include "core/object/dns.h"
 #include "core/object/payload.h"
@@ -34,48 +34,74 @@
 #include <arpa/inet.h>
 #include <poll.h>
 
-static core_log_t      _log      = LOG_T_INIT("output.tcpcli");
-static output_tcpcli_t _defaults = {
-    LOG_T_INIT_OBJ("output.tcpcli"),
-    0, 0, -1,
+static core_log_t      _log      = LOG_T_INIT("output.tlscli");
+static output_tlscli_t _defaults = {
+    LOG_T_INIT_OBJ("output.tlscli"),
+    0, 0, -1, 0,
     { 0 }, CORE_OBJECT_PAYLOAD_INIT(0),
     0, 0, 0, 0,
-    { 5, 0 }, 1
+    { 5, 0 },
+    0, 0
 };
 
-core_log_t* output_tcpcli_log()
+core_log_t* output_tlscli_log()
 {
     return &_log;
 }
 
-void output_tcpcli_init(output_tcpcli_t* self)
+void output_tlscli_init(output_tlscli_t* self)
 {
+    int err;
     mlassert_self();
 
     *self             = _defaults;
     self->pkt.payload = self->recvbuf;
+
+    gnutls_global_init();
+    if ((err = gnutls_certificate_allocate_credentials(&self->cred)) != GNUTLS_E_SUCCESS) {
+        lfatal("gnutls_certificate_allocate_credentials() error: %s", gnutls_strerror(err));
+    } else if ((err = gnutls_init(&self->session, GNUTLS_CLIENT)) != GNUTLS_E_SUCCESS) {
+        lfatal("gnutls_init() error: %s", gnutls_strerror(err));
+    } else if ((err = gnutls_set_default_priority(self->session)) != GNUTLS_E_SUCCESS) {
+        lfatal("gnutls_set_default_priority() error: %s", gnutls_strerror(err));
+    } else if ((err = gnutls_credentials_set(self->session, GNUTLS_CRD_CERTIFICATE, self->cred)) != GNUTLS_E_SUCCESS) {
+        lfatal("gnutls_credentials_set() error: %s", gnutls_strerror(err));
+    }
+
+    gnutls_handshake_set_timeout(self->session, GNUTLS_DEFAULT_HANDSHAKE_TIMEOUT);
 }
 
-void output_tcpcli_destroy(output_tcpcli_t* self)
+void output_tlscli_destroy(output_tlscli_t* self)
 {
     mlassert_self();
 
     if (self->fd > -1) {
+        if (self->session) {
+            gnutls_bye(self->session, GNUTLS_SHUT_RDWR);
+            gnutls_deinit(self->session);
+        }
         shutdown(self->fd, SHUT_RDWR);
         close(self->fd);
+        if (self->cred) {
+            gnutls_certificate_free_credentials(self->cred);
+        }
     }
 }
 
-int output_tcpcli_connect(output_tcpcli_t* self, const char* host, const char* port)
+int output_tlscli_connect(output_tlscli_t* self, const char* host, const char* port)
 {
     struct addrinfo* addr;
     int              err;
+    unsigned int     ms;
     mlassert_self();
     lassert(host, "host is nil");
     lassert(port, "port is nil");
 
     if (self->fd > -1) {
         lfatal("already connected");
+    }
+    if (self->tls_ok) {
+        lfatal("TLS already established");
     }
 
     if ((err = getaddrinfo(host, port, 0, &addr))) {
@@ -100,61 +126,36 @@ int output_tcpcli_connect(output_tcpcli_t* self, const char* host, const char* p
     }
 
     freeaddrinfo(addr);
+
+    gnutls_transport_set_int(self->session, self->fd);
+    ms = (self->timeout.sec * 1000) + (self->timeout.nsec / 1000000);
+    if (!ms && self->timeout.nsec) {
+        ms = 1;
+    }
+    gnutls_record_set_timeout(self->session, ms);
+
+    /* Establish TLS */
+    do {
+        err = gnutls_handshake(self->session);
+    } while (err < 0 && gnutls_error_is_fatal(err) == 0);
+    if (err == GNUTLS_E_PREMATURE_TERMINATION) {
+        lcritical("gnutls_handshake() error: %s", gnutls_strerror(err));
+        return -3;
+    } else if (err < 0) {
+        lcritical("gnutls_handshake() failed: %s (%d)\n", gnutls_strerror(err), err);
+        return -3;
+    }
+
+    self->tls_ok = 1;
     return 0;
 }
 
-int output_tcpcli_nonblocking(output_tcpcli_t* self)
-{
-    int flags;
-    mlassert_self();
-
-    if (self->fd < 0) {
-        lfatal("not connected");
-    }
-
-    flags = fcntl(self->fd, F_GETFL);
-    if (flags != -1) {
-        flags = flags & O_NONBLOCK ? 1 : 0;
-    }
-
-    return flags;
-}
-
-int output_tcpcli_set_nonblocking(output_tcpcli_t* self, int nonblocking)
-{
-    int flags;
-    mlassert_self();
-
-    if (self->fd < 0) {
-        lfatal("not connected");
-    }
-
-    if ((flags = fcntl(self->fd, F_GETFL)) == -1) {
-        lcritical("fcntl(FL_GETFL) error %s", core_log_errstr(errno));
-        return -1;
-    }
-
-    if (nonblocking) {
-        flags |= O_NONBLOCK;
-        self->blocking = 0;
-    } else {
-        flags &= ~O_NONBLOCK;
-        self->blocking = 1;
-    }
-
-    if (fcntl(self->fd, F_SETFL, flags | O_NONBLOCK)) {
-        lcritical("fcntl(FL_SETFL, %x) error %s", flags, core_log_errstr(errno));
-        return -1;
-    }
-
-    return 0;
-}
-
-static void _receive(output_tcpcli_t* self, const core_object_t* obj)
+static void _receive(output_tlscli_t* self, const core_object_t* obj)
 {
     const uint8_t* payload;
     size_t         len, sent;
     uint16_t       dnslen;
+    ssize_t        ret;
     mlassert_self();
 
     for (; obj;) {
@@ -174,7 +175,7 @@ static void _receive(output_tcpcli_t* self, const core_object_t* obj)
         dnslen = htons(len);
 
         for (;;) {
-            ssize_t ret = sendto(self->fd, ((uint8_t*)&dnslen) + sent, sizeof(dnslen) - sent, 0, 0, 0);
+            ret = gnutls_record_send(self->session, ((uint8_t*)&dnslen) + sent, sizeof(dnslen) - sent);
             if (ret > -1) {
                 sent += ret;
                 if (sent < sizeof(dnslen))
@@ -182,7 +183,7 @@ static void _receive(output_tcpcli_t* self, const core_object_t* obj)
 
                 sent = 0;
                 for (;;) {
-                    ssize_t ret = sendto(self->fd, payload + sent, len - sent, 0, 0, 0);
+                    ret = gnutls_record_send(self->session, payload + sent, len - sent);
                     if (ret > -1) {
                         sent += ret;
                         if (sent < len)
@@ -190,11 +191,9 @@ static void _receive(output_tcpcli_t* self, const core_object_t* obj)
                         self->pkts++;
                         return;
                     }
-                    switch (errno) {
-                    case EAGAIN:
-#if EAGAIN != EWOULDBLOCK
-                    case EWOULDBLOCK:
-#endif
+                    switch (ret) {
+                    case GNUTLS_E_AGAIN:
+                    case GNUTLS_E_TIMEDOUT:
                         continue;
                     default:
                         break;
@@ -204,11 +203,9 @@ static void _receive(output_tcpcli_t* self, const core_object_t* obj)
                 self->errs++;
                 return;
             }
-            switch (errno) {
-            case EAGAIN:
-#if EAGAIN != EWOULDBLOCK
-            case EWOULDBLOCK:
-#endif
+            switch (ret) {
+            case GNUTLS_E_AGAIN:
+            case GNUTLS_E_TIMEDOUT:
                 continue;
             default:
                 break;
@@ -220,23 +217,24 @@ static void _receive(output_tcpcli_t* self, const core_object_t* obj)
     }
 }
 
-core_receiver_t output_tcpcli_receiver(output_tcpcli_t* self)
+core_receiver_t output_tlscli_receiver(output_tlscli_t* self)
 {
     mlassert_self();
 
     if (self->fd < 0) {
         lfatal("not connected");
     }
+    if (!self->tls_ok) {
+        lfatal("TLS is not established");
+    }
 
     return (core_receiver_t)_receive;
 }
 
-static const core_object_t* _produce(output_tcpcli_t* self)
+static const core_object_t* _produce(output_tlscli_t* self)
 {
-    ssize_t       n, recv = 0;
-    uint16_t      dnslen;
-    struct pollfd p;
-    int           to = 0;
+    ssize_t  n, recv = 0;
+    uint16_t dnslen;
     mlassert_self();
 
     // Check if last recvfrom() got more then we needed
@@ -266,33 +264,9 @@ static const core_object_t* _produce(output_tcpcli_t* self)
         }
     }
 
-    if (self->blocking) {
-        p.fd      = self->fd;
-        p.events  = POLLIN;
-        p.revents = 0;
-        to        = (self->timeout.sec * 1e3) + (self->timeout.nsec / 1e6);
-        if (!to) {
-            to = 1;
-        }
-    }
-
     if (!self->have_dnslen) {
         for (;;) {
-            n = poll(&p, 1, to);
-            if (n < 0 || (p.revents & (POLLERR | POLLHUP | POLLNVAL))) {
-                self->errs++;
-                return 0;
-            }
-            if (!n || !(p.revents & POLLIN)) {
-                if (recv) {
-                    self->errs++;
-                    return 0;
-                }
-                self->pkt.len = 0;
-                return (core_object_t*)&self->pkt;
-            }
-
-            n = recvfrom(self->fd, ((uint8_t*)&dnslen) + recv, sizeof(dnslen) - recv, 0, 0, 0);
+            n = gnutls_record_recv(self->session, ((uint8_t*)&dnslen) + recv, sizeof(dnslen) - recv);
             if (n > 0) {
                 recv += n;
                 if (recv < sizeof(dnslen))
@@ -302,12 +276,11 @@ static const core_object_t* _produce(output_tcpcli_t* self)
             if (!n) {
                 break;
             }
-            switch (errno) {
-            case EAGAIN:
-#if EAGAIN != EWOULDBLOCK
-            case EWOULDBLOCK:
-#endif
-                continue;
+            switch (n) {
+            case GNUTLS_E_AGAIN:
+            case GNUTLS_E_TIMEDOUT:
+                self->pkt.len = 0;
+                return (core_object_t*)&self->pkt;
             default:
                 break;
             }
@@ -325,17 +298,7 @@ static const core_object_t* _produce(output_tcpcli_t* self)
     }
 
     for (;;) {
-        n = poll(&p, 1, to);
-        if (n < 0 || (p.revents & (POLLERR | POLLHUP | POLLNVAL))) {
-            self->errs++;
-            return 0;
-        }
-        if (!n || !(p.revents & POLLIN)) {
-            self->pkt.len = 0;
-            return (core_object_t*)&self->pkt;
-        }
-
-        n = recvfrom(self->fd, self->recvbuf + self->recv, sizeof(self->recvbuf) - self->recv, 0, 0, 0);
+        n = gnutls_record_recv(self->session, self->recvbuf + self->recv, sizeof(self->recvbuf) - self->recv);
         if (n > 0) {
             self->recv += n;
             if (self->recv < self->dnslen)
@@ -345,11 +308,9 @@ static const core_object_t* _produce(output_tcpcli_t* self)
         if (!n) {
             break;
         }
-        switch (errno) {
-        case EAGAIN:
-#if EAGAIN != EWOULDBLOCK
-        case EWOULDBLOCK:
-#endif
+        switch (n) {
+        case GNUTLS_E_AGAIN:
+        case GNUTLS_E_TIMEDOUT:
             self->pkt.len = 0;
             return (core_object_t*)&self->pkt;
         default:
@@ -369,12 +330,15 @@ static const core_object_t* _produce(output_tcpcli_t* self)
     return (core_object_t*)&self->pkt;
 }
 
-core_producer_t output_tcpcli_producer(output_tcpcli_t* self)
+core_producer_t output_tlscli_producer(output_tlscli_t* self)
 {
     mlassert_self();
 
     if (self->fd < 0) {
         lfatal("not connected");
+    }
+    if (!self->tls_ok) {
+        lfatal("TLS is not established");
     }
 
     return (core_producer_t)_produce;
