@@ -24,10 +24,10 @@
 #include "core/object/payload.h"
 #include "core/timespec.h"
 
-#include <gnutls/gnutls.h>
-
 #ifndef __dnsjit_output_tlscli_h
 #define __dnsjit_output_tlscli_h
+
+#include <gnutls/gnutls.h>
 
 #include "output/tlscli.hh"
 

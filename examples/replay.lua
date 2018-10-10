@@ -5,6 +5,7 @@ local getopt = require("dnsjit.lib.getopt").new({
     { "v", "verbose", 0, "Enable and increase verbosity for each time given", "?+" },
     { "R", "responses", false, "Wait for responses to the queries and print both", "?" },
     { "t", "tcp", false, "Use TCP instead of UDP", "?"},
+    { "T", "tls", false, "Use TLS instead of UDP/TCP", "?"},
 })
 local pcap, host, port = unpack(getopt:parse())
 if getopt:val("help") then
@@ -32,13 +33,16 @@ end
 
 local ffi = require("ffi")
 
+require("dnsjit.core.objects")
 local input = require("dnsjit.input.mmpcap").new()
 local layer = require("dnsjit.filter.layer").new()
 local output = require("dnsjit.output.udpcli").new()
 if getopt:val("t") then
     output = require("dnsjit.output.tcpcli").new()
 end
-require("dnsjit.core.objects")
+if getopt:val("T") then
+    output = require("dnsjit.output.tlscli").new()
+end
 local dns = require("dnsjit.core.object.dns").new()
 
 input:open(pcap)

@@ -18,6 +18,7 @@
  * along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+//lua:require("dnsjit.core.compat_h")
 //lua:require("dnsjit.core.log")
 //lua:require("dnsjit.core.receiver_h")
 //lua:require("dnsjit.core.producer_h")
