@@ -104,6 +104,7 @@ AC_CHECK_SIZEOF([ck_ring_buffer_t],,[#if defined(__GNUC__) || defined(__SUNPRO_C
 #include <ck_ring.h>])
 AC_CHECK_SIZEOF([gnutls_session_t],,[#include <gnutls/gnutls.h>])
 AC_CHECK_SIZEOF([gnutls_certificate_credentials_t],,[#include <gnutls/gnutls.h>])
+AC_CHECK_SIZEOF([struct pollfd],,[#include <poll.h>])
 
 # Output Makefiles
 AC_CONFIG_FILES([

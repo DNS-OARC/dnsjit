@@ -23,6 +23,7 @@
 -- replay them against other targets.
 module(...,package.seeall)
 
+-- dnsjit.output.dnscli (3),
 -- dnsjit.output.null (3),
 -- dnsjit.output.respdiff (3),
 -- dnsjit.output.tcpcli (3),

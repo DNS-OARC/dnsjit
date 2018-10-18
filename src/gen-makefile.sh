@@ -44,18 +44,18 @@ dnsjit_LDADD = $(PTHREAD_LIBS) $(luajit_LIBS)
 
 # C source and headers';
 
-echo "dnsjit_SOURCES +=`find core lib input filter output -type f -name '*.c' -printf ' %p'`"
-echo "dist_dnsjit_SOURCES +=`find core lib input filter output -type f -name '*.h' -printf ' %p'`"
+echo "dnsjit_SOURCES +=`find core lib input filter output -type f -name '*.c' -printf ' %p'|sort`"
+echo "dist_dnsjit_SOURCES +=`find core lib input filter output -type f -name '*.h' -printf ' %p'|sort`"
 
 echo '
 # Lua headers'
-echo "dist_dnsjit_SOURCES +=`find core lib input filter output -type f -name '*.hh' -printf ' %p'`"
-echo "lua_hobjects +=`find core lib input filter output -type f -name '*.hh' -printf ' %p'|sed -e 's%.hh%.luaho%g'`"
+echo "dist_dnsjit_SOURCES +=`find core lib input filter output -type f -name '*.hh' -printf ' %p'|sort`"
+echo "lua_hobjects +=`find core lib input filter output -type f -name '*.hh' -printf ' %p'|sed -e 's%.hh%.luaho%g'|sort`"
 
 echo '
 # Lua sources'
-echo "dist_dnsjit_SOURCES +=`find core lib input filter output -type f -name '*.lua' -printf ' %p'`"
-echo "lua_objects +=`find core lib input filter output -type f -name '*.lua' -printf ' %p '|sed -e 's%.lua %.luao%g'`"
+echo "dist_dnsjit_SOURCES +=`find core lib input filter output -type f -name '*.lua' -printf ' %p'|sort`"
+echo "lua_objects +=`find core lib input filter output -type f -name '*.lua' -printf ' %p '|sed -e 's%.lua %.luao%g'|sort`"
 
 echo '
 dnsjit_LDFLAGS = -Wl,-E
@@ -66,7 +66,7 @@ man1_MANS = dnsjit.1
 CLEANFILES += $(man1_MANS)
 
 man3_MANS = dnsjit.core.3 dnsjit.lib.3 dnsjit.input.3 dnsjit.filter.3 dnsjit.output.3';
-echo "man3_MANS +=`find core lib input filter output -type f -name '*.lua' -printf ' dnsjit.%p'|sed -e 's%.lua%.3%g'|sed -e 's%/%.%g'`"
+echo "man3_MANS +=`find core lib input filter output -type f -name '*.lua' -printf ' dnsjit.%p'|sed -e 's%.lua%.3%g'|sed -e 's%/%.%g'|sort`"
 
 echo 'CLEANFILES += *.3in $(man3_MANS)
 
