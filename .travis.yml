@@ -1,11 +1,8 @@
+dist: xenial
 addons:
   apt:
-    sources:
-    - ubuntu-toolchain-r-test
-    - sourceline: 'ppa:dns-oarc/ck'
     update: true
     packages:
-    - gcc-5
     - libluajit-5.1-dev
     - libpcap-dev
     - luajit
@@ -16,9 +13,7 @@ language: c
 compiler:
   - clang
   - gcc
-install:
-  - if [ "$CC" = "gcc" ]; then export CC="gcc-5"; fi
-  - ./autogen.sh
+install: ./autogen.sh
 script:
   - ./configure --enable-warn-all
   - make dist
