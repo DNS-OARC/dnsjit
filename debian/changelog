@@ -1,3 +1,9 @@
+dnsjit (0.9.7-1~unstable+1) unstable; urgency=low
+
+  * Alpha release 0.9.7
+
+ -- Jerry Lundström <lundstrom.jerry@gmail.com>  Fri, 25 Jan 2019 10:26:25 +0100
+
 dnsjit (0.9.6-1~unstable+1) unstable; urgency=low
 
   * Alpha release 0.9.6
