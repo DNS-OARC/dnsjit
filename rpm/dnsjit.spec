@@ -1,5 +1,5 @@
 Name:           dnsjit
-Version:        0.9.6
+Version:        0.9.7
 Release:        1%{?dist}
 Summary:        Engine for capturing, parsing and replaying DNS
 Group:          Productivity/Networking/DNS/Utilities
@@ -56,5 +56,7 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Fri Jan 25 2019 Jerry Lundström <lundstrom.jerry@gmail.com> 0.9.7-1
+- Alpha release 0.9.7
 * Wed Aug 01 2018 Jerry Lundström <lundstrom.jerry@gmail.com> 0.9.6-1
 - Alpha release 0.9.6
