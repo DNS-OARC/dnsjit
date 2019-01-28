@@ -48,7 +48,7 @@ Debian/Ubuntu: `apt-get install libluajit-5.1-dev libpcap-dev luajit liblmdb-dev
 
 CentOS: `yum install luajit-devel libpcap-devel lmdb-devel ck-devel gnutls-devel`
 
-FreeBSD: `pkg install luajit libpcap lmdb gnutls` + manual install of libck
+FreeBSD: `pkg install luajit libpcap lmdb gnutls concurrencykit`
 
 OpenBSD: `pkg_add luajit gnutls` + manual install of libpcap, liblmdb and libck
 

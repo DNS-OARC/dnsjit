@@ -3,7 +3,7 @@ Upstream-Name: dnsjit
 Source: https://github.com/DNS-OARC/dnsjit
 
 Files: *
-Copyright: 2018 OARC, Inc.
+Copyright: 2018-2019 OARC, Inc.
 License: GPLv3
 
 License: GPLv3
