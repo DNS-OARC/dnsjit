@@ -68,9 +68,11 @@ typedef struct core_object_dns {
     const core_object_t* obj_prev;
     int32_t              obj_type;
 
+    int            includes_dnslen;
     const uint8_t *payload, *at;
     size_t         len, left;
 
+    uint8_t have_dnslen;
     uint8_t have_id;
     uint8_t have_qr;
     uint8_t have_opcode;
@@ -87,6 +89,7 @@ typedef struct core_object_dns {
     uint8_t have_nscount;
     uint8_t have_arcount;
 
+    uint16_t dnslen;
     uint16_t id;
     int8_t   qr;
     uint8_t  opcode;

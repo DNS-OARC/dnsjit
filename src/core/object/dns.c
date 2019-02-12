@@ -165,6 +165,10 @@ int core_object_dns_parse_header(core_object_dns_t* self)
     self->len = self->left = payload->len;
 
     for (;;) {
+        if (self->includes_dnslen) {
+            need16(self->dnslen, self->at, self->left);
+            self->have_dnslen = 1;
+        }
         need16(self->id, self->at, self->left);
         self->have_id = 1;
 

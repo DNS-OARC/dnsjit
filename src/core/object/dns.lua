@@ -43,6 +43,13 @@
 -- The object that describes a DNS message.
 -- .SS Attributes
 -- .TP
+-- includes_dnslen
+-- If non-zero then this indicates that the DNS length is included in the
+-- payload (for example if the transport is TCP) and will affect parsing of it.
+-- .TP
+-- have_dnslen
+-- Set if the dnslen was included in the payload and could be read.
+-- .TP
 -- have_id
 -- Set if there is a DNS ID.
 -- .TP
@@ -87,6 +94,9 @@
 -- .TP
 -- have_arcount
 -- Set if there is an ARCOUNT.
+-- .TP
+-- dnslen
+-- The DNS length found in the payload.
 -- .TP
 -- id
 -- The DNS ID.

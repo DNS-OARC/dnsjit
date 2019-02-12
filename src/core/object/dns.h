@@ -29,13 +29,13 @@
 
 #include "core/object/dns.hh"
 
-#define CORE_OBJECT_DNS_INIT(prev)                       \
-    {                                                    \
-        CORE_OBJECT_INIT(CORE_OBJECT_DNS, prev)          \
-        ,                                                \
-            0, 0, 0, 0,                                  \
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, \
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, \
+#define CORE_OBJECT_DNS_INIT(prev)                          \
+    {                                                       \
+        CORE_OBJECT_INIT(CORE_OBJECT_DNS, prev)             \
+        ,                                                   \
+            0, 0, 0, 0, 0,                                  \
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, \
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, \
     }
 
 /*

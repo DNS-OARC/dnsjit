@@ -36,17 +36,24 @@ local ffi = require("ffi")
 require("dnsjit.core.objects")
 local input = require("dnsjit.input.mmpcap").new()
 local layer = require("dnsjit.filter.layer").new()
-local output = require("dnsjit.output.udpcli").new()
-if getopt:val("t") then
-    output = require("dnsjit.output.tcpcli").new()
-end
-if getopt:val("T") then
-    output = require("dnsjit.output.tlscli").new()
-end
-local dns = require("dnsjit.core.object.dns").new()
 
 input:open(pcap)
 layer:producer(input)
+
+local query = require("dnsjit.core.object.dns").new()
+local response = require("dnsjit.core.object.dns").new()
+
+local dnscli = require("dnsjit.output.dnscli")
+local output
+if getopt:val("t") then
+    output = dnscli.new(dnscli.TCP)
+    response.includes_dnslen = 1
+elseif getopt:val("T") then
+    output = dnscli.new(dnscli.TLS)
+    response.includes_dnslen = 1
+else
+    output = dnscli.new(dnscli.UDP)
+end
 output:connect(host, port)
 
 local printdns = false
@@ -58,47 +65,45 @@ local prod, pctx = layer:produce()
 local recv, rctx = output:receive()
 local oprod, opctx = output:produce()
 local start_sec, start_nsec = clock:monotonic()
-if printdns then
-    while true do
-        local obj = prod(pctx)
-        if obj == nil then break end
-        local pl = obj:cast()
-        if obj:type() == "payload" and pl.len > 0 then
-            dns.obj_prev = obj
-            if dns:parse_header() == 0 and dns.qr == 0 then
+
+while true do
+    local obj = prod(pctx)
+    if obj == nil then break end
+    local pl = obj:cast()
+    if obj:type() == "payload" and pl.len > 0 then
+        query.obj_prev = obj
+
+        local trs = pl.obj_prev:cast()
+        if trs:type() == "tcp" then
+            query.includes_dnslen = 1
+        else
+            query.includes_dnslen = 0
+        end
+
+        if query:parse_header() == 0 and query.qr == 0 then
+            recv(rctx, query:uncast())
+
+            if printdns then
                 print("query:")
-                dns:print()
+                query:print()
 
-                recv(rctx, obj)
-
-                local response = oprod(opctx)
-                if response == nil then
+                local pobj = oprod(opctx)
+                if pobj == nil then
                     log.fatal("producer error")
                 end
-                local payload = response:cast()
-                if payload.len == 0 then
+                local rpl = pobj:cast()
+                if rpl.len == 0 then
                     print("timed out")
                 else
-                    dns.obj_prev = response
+                    response.obj_prev = pobj
                     print("response:")
-                    dns:print()
+                    response:print()
                 end
-            end
-        end
-    end
-else
-    while true do
-        local obj = prod(pctx)
-        if obj == nil then break end
-        local pl = obj:cast()
-        if obj:type() == "payload" and pl.len > 0 then
-            dns.obj_prev = obj
-            if dns:parse_header() == 0 and dns.qr == 0 then
-                recv(rctx, obj)
             end
         end
     end
 end
+
 local end_sec, end_nsec = clock:monotonic()
 
 local runtime = 0

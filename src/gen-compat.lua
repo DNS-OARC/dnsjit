@@ -10,7 +10,7 @@ for line in io.lines("config.h") do
             print("typedef struct "..n:sub(1,-3).." { uint64_t a["..s.."]; } "..n..";")
         elseif n:match("^STRUCT") then
             n = n:match("^STRUCT_(%S*)")
-            if n == "SOCKADDR_STORAGE" then
+            if n == "SOCKADDR_STORAGE" or n == "POLLFD" then
                 print("#if !defined(SIZEOF_STRUCT_"..n..") || SIZEOF_STRUCT_"..n.." == 0")
                 print("#error \""..n.." is undefined or zero\"")
                 print("#endif")
