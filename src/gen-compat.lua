@@ -20,3 +20,15 @@ for line in io.lines("config.h") do
         end
     end
 end
+code, err = pcall(function()
+    local ffi = require("ffi")
+    ffi.cdef[[
+    ssize_t dummy;
+    ]]
+end)
+if code then
+    print("#include <unistd.h>")
+    print("typedef ssize_t luajit_ssize_t;")
+else
+    print("typedef long luajit_ssize_t;")
+end

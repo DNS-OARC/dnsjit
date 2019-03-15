@@ -18,21 +18,15 @@
  * along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "core/log.h"
-#include "core/receiver.h"
-#include "core/producer.h"
-#include "core/object/payload.h"
-#include "core/timespec.h"
-#include "core/compat.h"
+#ifndef __dnsjit_core_compat_h
+#define __dnsjit_core_compat_h
 
-#ifndef __dnsjit_output_dnscli_h
-#define __dnsjit_output_dnscli_h
+#include <unistd.h>
 
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <gnutls/gnutls.h>
-#include <poll.h>
-
-#include "output/dnscli.hh"
+#ifdef __ssize_t_defined
+typedef ssize_t luajit_ssize_t;
+#else
+typedef long luajit_ssize_t;
+#endif
 
 #endif

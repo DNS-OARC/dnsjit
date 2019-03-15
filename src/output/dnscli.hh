@@ -66,7 +66,7 @@ core_log_t* output_dnscli_log();
 void output_dnscli_init(output_dnscli_t* self, output_dnscli_mode_t mode);
 void output_dnscli_destroy(output_dnscli_t* self);
 int output_dnscli_connect(output_dnscli_t* self, const char* host, const char* port);
-ssize_t output_dnscli_send(output_dnscli_t* self, const core_object_t* obj, size_t sent);
+luajit_ssize_t output_dnscli_send(output_dnscli_t* self, const core_object_t* obj, size_t sent);
 
 core_receiver_t output_dnscli_receiver(output_dnscli_t* self);
 core_producer_t output_dnscli_producer(output_dnscli_t* self);

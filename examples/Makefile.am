@@ -17,4 +17,5 @@
 # along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
 
 dist_doc_DATA = dumpdns.lua dumpdns-qr.lua filter_rcode.lua respdiff.lua \
-  readme.lua replay.lua test_pcap_read.lua test_throughput.lua
+  readme.lua replay.lua test_pcap_read.lua test_throughput.lua \
+  replay_multicli.lua
