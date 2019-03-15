@@ -519,7 +519,7 @@ static void _receive_tls(output_dnscli_t* self, const core_object_t* obj)
     self->errs++;
 }
 
-ssize_t output_dnscli_send(output_dnscli_t* self, const core_object_t* obj, size_t sent)
+luajit_ssize_t output_dnscli_send(output_dnscli_t* self, const core_object_t* obj, size_t sent)
 {
     const uint8_t* payload;
     size_t         len;
