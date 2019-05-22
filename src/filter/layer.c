@@ -209,7 +209,7 @@ static inline int _proto(filter_layer_t* self, uint8_t proto, const core_object_
         // switch (gre.ether_type) {
         // case ETHERTYPE_IP:
         // case ETHERTYPE_IPV6:
-        //     return _ip(self, (core_object_t*)&gre, pkt, len);
+        //     return _ip(self, (core_object_t*)gre, pkt, len);
         //
         // default:
         //     break;
@@ -603,7 +603,7 @@ static inline int _link(filter_layer_t* self, const core_object_pcap_t* pcap)
 #ifdef DLT_IPV6
     case DLT_IPV6:
 #endif
-        return _ip(self, (core_object_t*)&pcap, pkt, len);
+        return _ip(self, (core_object_t*)pcap, pkt, len);
     case DLT_LINUX_SLL: {
         core_object_linuxsll_t* linuxsll = &self->linuxsll;
         linuxsll->obj_prev               = (core_object_t*)pcap;
