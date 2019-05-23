@@ -55,7 +55,11 @@
 -- Max length of captured packets, in octets.
 -- .TP
 -- network
--- Data link type.
+-- The link type found in the PCAP header, see https://www.tcpdump.org/linktypes.html .
+-- .TP
+-- linktype
+-- The data link type, mapped from
+-- .IR network .
 module(...,package.seeall)
 
 require("dnsjit.input.mmpcap_h")
