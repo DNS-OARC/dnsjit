@@ -55,6 +55,7 @@
 #define bswap_64(x) bswap64(x)
 #endif
 #endif
+#include <pcap/pcap.h>
 
 static core_log_t     _log      = LOG_T_INIT("input.mmpcap");
 static input_mmpcap_t _defaults = {
@@ -63,7 +64,8 @@ static input_mmpcap_t _defaults = {
     0, 0, 0,
     CORE_OBJECT_PCAP_INIT(0),
     -1, 0, 0, 0, MAP_FAILED,
-    0, 0, 0, 0, 0, 0, 0
+    0, 0, 0, 0, 0, 0, 0,
+    0
 };
 
 core_log_t* input_mmpcap_log()
@@ -147,8 +149,45 @@ int input_mmpcap_open(input_mmpcap_t* self, const char* file)
         return -2;
     }
 
+    /*
+     * Translation taken from https://github.com/the-tcpdump-group/libpcap/blob/90543970fd5fbed261d3637f5ec4811d7dde4e49/pcap-common.c#L1212 .
+     */
+    switch (self->network) {
+    case 101: /* LINKTYPE_RAW */
+        self->linktype = DLT_RAW;
+        break;
+#ifdef DLT_FR
+    case 107: /* LINKTYPE_FRELAY */
+        self->linktype = DLT_FR;
+        break;
+#endif
+    case 100: /* LINKTYPE_ATM_RFC1483 */
+        self->linktype = DLT_ATM_RFC1483;
+        break;
+    case 102: /* LINKTYPE_SLIP_BSDOS */
+        self->linktype = DLT_SLIP_BSDOS;
+        break;
+    case 103: /* LINKTYPE_PPP_BSDOS */
+        self->linktype = DLT_PPP_BSDOS;
+        break;
+    case 104: /* LINKTYPE_C_HDLC */
+        self->linktype = DLT_C_HDLC;
+        break;
+    case 106: /* LINKTYPE_ATM_CLIP */
+        self->linktype = DLT_ATM_CLIP;
+        break;
+    case 50: /* LINKTYPE_PPP_HDLC */
+        self->linktype = DLT_PPP_SERIAL;
+        break;
+    case 51: /* LINKTYPE_PPP_ETHER */
+        self->linktype = DLT_PPP_ETHER;
+        break;
+    default:
+        self->linktype = self->network;
+    }
+
     self->prod_pkt.snaplen    = self->snaplen;
-    self->prod_pkt.linktype   = self->network;
+    self->prod_pkt.linktype   = self->linktype;
     self->prod_pkt.is_swapped = self->is_swapped;
 
     ldebug("pcap v%u.%u snaplen:%lu %s", self->version_major, self->version_minor, self->snaplen, self->is_swapped ? " swapped" : "");
@@ -175,7 +214,7 @@ int input_mmpcap_run(input_mmpcap_t* self)
     }
 
     pkt.snaplen    = self->snaplen;
-    pkt.linktype   = self->network;
+    pkt.linktype   = self->linktype;
     pkt.is_swapped = self->is_swapped;
 
     while (self->len - self->at > 16) {

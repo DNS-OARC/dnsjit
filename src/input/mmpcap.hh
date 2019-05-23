@@ -46,6 +46,8 @@ typedef struct input_mmpcap {
     uint32_t sigfigs;
     uint32_t snaplen;
     uint32_t network;
+
+    uint32_t linktype;
 } input_mmpcap_t;
 
 core_log_t* input_mmpcap_log();
