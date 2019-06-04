@@ -17,10 +17,10 @@
 # along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
 
 AC_PREREQ(2.64)
-AC_INIT([dnsjit], [0.9.7], [admin@dns-oarc.net], [dnsjit], [https://github.com/DNS-OARC/dnsjit/issues])
+AC_INIT([dnsjit], [0.9.8], [admin@dns-oarc.net], [dnsjit], [https://github.com/DNS-OARC/dnsjit/issues])
 AC_DEFINE([PACKAGE_MAJOR_VERSION], [0], [Define to the major version of this package.])
 AC_DEFINE([PACKAGE_MINOR_VERSION], [9], [Define to the minor version of this package.])
-AC_DEFINE([PACKAGE_PATCH_VERSION], [7], [Define to the patch version of this package.])
+AC_DEFINE([PACKAGE_PATCH_VERSION], [8], [Define to the patch version of this package.])
 AM_INIT_AUTOMAKE([-Wall -Werror foreign subdir-objects])
 AC_CONFIG_SRCDIR([src/dnsjit.c])
 AC_CONFIG_HEADER([src/config.h])
