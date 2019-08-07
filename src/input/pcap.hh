@@ -47,6 +47,8 @@ core_log_t* input_pcap_log();
 
 void input_pcap_init(input_pcap_t* self);
 void input_pcap_destroy(input_pcap_t* self);
+int input_pcap_create(input_pcap_t* self, const char* source);
+int input_pcap_activate(input_pcap_t* self);
 int input_pcap_open_offline(input_pcap_t* self, const char* file);
 int input_pcap_loop(input_pcap_t* self, int cnt);
 int input_pcap_dispatch(input_pcap_t* self, int cnt);

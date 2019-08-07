@@ -55,6 +55,44 @@ void input_pcap_destroy(input_pcap_t* self)
     }
 }
 
+int input_pcap_create(input_pcap_t* self, const char* source)
+{
+    char errbuf[PCAP_ERRBUF_SIZE] = { 0 };
+    mlassert_self();
+    lassert(source, "source is nil");
+
+    if (self->pcap) {
+        lfatal("already opened");
+    }
+
+    if (!(self->pcap = pcap_create(source, errbuf))) {
+        lcritical("pcap_create(%s) error: %s", source, errbuf);
+        return -1;
+    }
+
+    self->snaplen    = pcap_snapshot(self->pcap);
+    self->linktype   = pcap_datalink(self->pcap);
+    self->is_swapped = 0;
+
+    self->prod_pkt.snaplen    = self->snaplen;
+    self->prod_pkt.linktype   = self->linktype;
+    self->prod_pkt.is_swapped = self->is_swapped;
+
+    ldebug("pcap v%u.%u snaplen:%lu %s", pcap_major_version(self->pcap), pcap_minor_version(self->pcap), self->snaplen, self->is_swapped ? " swapped" : "");
+
+    return 0;
+}
+
+int input_pcap_activate(input_pcap_t* self)
+{
+    mlassert_self();
+    if (!self->pcap) {
+        lfatal("no PCAP opened");
+    }
+
+    return pcap_activate(self->pcap);
+}
+
 int input_pcap_open_offline(input_pcap_t* self, const char* file)
 {
     char errbuf[PCAP_ERRBUF_SIZE] = { 0 };
