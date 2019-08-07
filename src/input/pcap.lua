@@ -18,7 +18,7 @@
 
 -- dnsjit.input.pcap
 -- Read input from an interface or PCAP file using libpcap
---   local input = require("dnsjit.input.pcapthread").new()
+--   local input = require("dnsjit.input.pcap").new()
 --   input:open_offline("file.pcap")
 --   input:receiver(filter_or_output)
 --   input:run()
@@ -62,6 +62,21 @@ end
 -- Return the C functions and context for producing objects.
 function Pcap:produce()
     return C.input_pcap_producer(self.obj), self.obj
+end
+
+-- Open a live packet capture on
+-- .IR source ,
+-- which is an interface name or "any" (Linux) / "all" (BSD).
+-- Must be activated before use.
+function Pcap:create(source)
+    return C.input_pcap_create(self.obj, source)
+end
+
+-- Activate a live packet capture, see
+-- .BR pcap_activate (3pcap)
+-- for more information and possible return values.
+function Pcap:activate()
+    return C.input_pcap_activate(self.obj)
 end
 
 -- Open a PCAP file for processing.
