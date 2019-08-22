@@ -24,7 +24,7 @@
 #include "core/assert.h"
 #include "core/object/pcap.h"
 
-static core_log_t    _log      = LOG_T_INIT("output.dnssim");
+static core_log_t _log = LOG_T_INIT("output.dnssim");
 static output_dnssim_t _defaults = {
     LOG_T_INIT_OBJ("output.dnssim"),
     0, 0, 0
@@ -50,38 +50,9 @@ void output_dnssim_destroy(output_dnssim_t* self)
 static void _receive(output_dnssim_t* self, const core_object_t* obj)
 {
     mlassert_self();
-
-    self->pkts++;
 }
 
 core_receiver_t output_dnssim_receiver()
 {
     return (core_receiver_t)_receive;
-}
-
-void output_dnssim_run(output_dnssim_t* self, int64_t num)
-{
-    mlassert_self();
-
-    if (!self->prod) {
-        lfatal("no producer set");
-    }
-
-    if (num > 0) {
-        while (num--) {
-            const core_object_t* obj = self->prod(self->ctx);
-            if (!obj)
-                break;
-
-            self->pkts++;
-        }
-    } else {
-        for (;;) {
-            const core_object_t* obj = self->prod(self->ctx);
-            if (!obj)
-                break;
-
-            self->pkts++;
-        }
-    }
 }
