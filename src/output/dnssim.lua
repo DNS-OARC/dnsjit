@@ -35,7 +35,6 @@ local DnsSim = {}
 -- Create a new DnsSim output.
 function DnsSim.new()
     local self = {
-        _producer = nil,
         obj = output_dnssim_t(),
     }
     C.output_dnssim_init(self.obj)
@@ -51,31 +50,9 @@ function DnsSim:log()
     return self.obj._log
 end
 
--- Return the C functions and context for receiving objects.
+-- Return the C function and context for receiving objects.
 function DnsSim:receive()
     return C.output_dnssim_receiver(), self.obj
-end
-
--- Set the producer to get objects from.
-function DnsSim:producer(o)
-    self.obj.prod, self.obj.ctx = o:produce()
-    self._producer = o
-end
-
--- Retrieve all objects from the producer, if the optional
--- .I num
--- is a positive number then stop after that amount of objects have been
--- retrieved.
-function DnsSim:run(num)
-    if num == nil then
-        num = -1
-    end
-    C.output_dnssim_run(self.obj, num)
-end
-
--- Return the number of packets we sent into the void.
-function DnsSim:packets()
-    return tonumber(self.obj.pkts)
 end
 
 return DnsSim

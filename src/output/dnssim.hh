@@ -20,18 +20,13 @@
 
 //lua:require("dnsjit.core.log")
 //lua:require("dnsjit.core.receiver_h")
-//lua:require("dnsjit.core.producer_h")
 
 typedef struct output_dnssim {
     core_log_t      _log;
-    core_producer_t prod;
-    void*           ctx;
-    size_t          pkts;
 } output_dnssim_t;
 
 core_log_t* output_dnssim_log();
 void output_dnssim_init(output_dnssim_t* self);
 void output_dnssim_destroy(output_dnssim_t* self);
-void output_dnssim_run(output_dnssim_t* self, int64_t num);
 
 core_receiver_t output_dnssim_receiver();
