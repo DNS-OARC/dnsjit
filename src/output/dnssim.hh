@@ -22,7 +22,10 @@
 //lua:require("dnsjit.core.receiver_h")
 
 typedef enum output_dnssim_transport {
-    OUTPUT_DNSSIM_TRANSPORT_UDP
+    OUTPUT_DNSSIM_TRANSPORT_UDP_ONLY,
+    OUTPUT_DNSSIM_TRANSPORT_UDP,
+    OUTPUT_DNSSIM_TRANSPORT_TCP,
+    OUTPUT_DNSSIM_TRANSPORT_TLS
 } output_dnssim_transport_t;
 
 typedef struct output_dnssim {

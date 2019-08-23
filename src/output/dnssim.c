@@ -27,7 +27,7 @@
 static core_log_t _log = LOG_T_INIT("output.dnssim");
 static output_dnssim_t _defaults = {
     LOG_T_INIT_OBJ("output.dnssim"),
-    OUTPUT_DNSSIM_TRANSPORT_UDP
+    OUTPUT_DNSSIM_TRANSPORT_UDP_ONLY
 };
 
 core_log_t* output_dnssim_log()
