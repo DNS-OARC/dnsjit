@@ -21,11 +21,17 @@
 //lua:require("dnsjit.core.log")
 //lua:require("dnsjit.core.receiver_h")
 
+typedef enum output_dnssim_transport {
+    OUTPUT_DNSSIM_TRANSPORT_UDP
+} output_dnssim_transport_t;
+
 typedef struct output_dnssim {
-    core_log_t      _log;
+    core_log_t _log;
+    output_dnssim_transport_t transport;
 } output_dnssim_t;
 
 core_log_t* output_dnssim_log();
+
 void output_dnssim_init(output_dnssim_t* self);
 void output_dnssim_destroy(output_dnssim_t* self);
 

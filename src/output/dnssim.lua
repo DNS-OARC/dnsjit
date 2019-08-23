@@ -17,11 +17,11 @@
 -- along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
 
 -- dnsjit.output.dnssim
--- Simulate independent UDP/TCP DNS clients
+-- Simulate independent DNS clients over various transports
 --   TODO
 --
 -- Output module for simulating traffic from huge number of independent,
--- individual DNS clients using UDP and/or TCP.
+-- individual DNS clients.
 module(...,package.seeall)
 
 require("dnsjit.output.dnssim_h")
@@ -48,6 +48,11 @@ function DnsSim:log()
         return C.output_dnssim_log()
     end
     return self.obj._log
+end
+
+-- Set the preffered transport to UDP (falls back to TCP if TC=1).
+function DnsSim:udp()
+    self.obj.transport = "OUTPUT_DNSSIM_TRANSPORT_UDP"
 end
 
 -- Return the C function and context for receiving objects.
