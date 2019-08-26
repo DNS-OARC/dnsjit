@@ -21,7 +21,7 @@
 --   TODO
 --
 -- Output module for simulating traffic from huge number of independent,
--- individual DNS clients.
+-- individual DNS clients. Uses libuv for asynchronous communication.
 module(...,package.seeall)
 
 require("dnsjit.output.dnssim_h")
@@ -74,6 +74,13 @@ end
 -- Return the C function and context for receiving objects.
 function DnsSim:receive()
     return C.output_dnssim_receiver(), self.obj
+end
+
+-- Run the libuv loop once without blocking when there is no I/O. This
+-- should be called repeatedly until 0 is returned and no more data
+-- is expected to be received by DnsSim.
+function DnsSim:run_nowait()
+    return C.output_dnssim_nowait()
 end
 
 return DnsSim

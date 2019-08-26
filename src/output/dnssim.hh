@@ -31,11 +31,13 @@ typedef enum output_dnssim_transport {
 typedef struct output_dnssim {
     core_log_t _log;
     output_dnssim_transport_t transport;
+    uv_loop_t loop;
 } output_dnssim_t;
 
 core_log_t* output_dnssim_log();
 
 void output_dnssim_init(output_dnssim_t* self);
 void output_dnssim_destroy(output_dnssim_t* self);
+int output_dnssim_run_nowait(output_dnssim_t* self);
 
 core_receiver_t output_dnssim_receiver();

@@ -27,7 +27,7 @@
 static core_log_t _log = LOG_T_INIT("output.dnssim");
 static output_dnssim_t _defaults = {
     LOG_T_INIT_OBJ("output.dnssim"),
-    OUTPUT_DNSSIM_TRANSPORT_UDP_ONLY
+    OUTPUT_DNSSIM_TRANSPORT_UDP_ONLY, 0
 };
 
 core_log_t* output_dnssim_log()
@@ -40,11 +40,24 @@ void output_dnssim_init(output_dnssim_t* self)
     mlassert_self();
 
     *self = _defaults;
+
+    if (!uv_loop_init(&self->loop)) {
+        // TODO log errno
+        lfatal("failed to initialize uv_loop");
+    }
+    ldebug("initialized uv_loop");
 }
 
 void output_dnssim_destroy(output_dnssim_t* self)
 {
     mlassert_self();
+
+    if (!uv_loop_close(&self->loop)) {
+        // TODO log errno
+        lcritical("failed to close uv_loop");
+    } else {
+        ldebug("closed uv_loop");
+    }
 }
 
 static void _receive(output_dnssim_t* self, const core_object_t* obj)
@@ -55,4 +68,11 @@ static void _receive(output_dnssim_t* self, const core_object_t* obj)
 core_receiver_t output_dnssim_receiver()
 {
     return (core_receiver_t)_receive;
+}
+
+int output_dnssim_run_nowait(output_dnssim_t* self)
+{
+    mlassert_self();
+
+    return uv_run(&self->loop, UV_RUN_NOWAIT);
 }
