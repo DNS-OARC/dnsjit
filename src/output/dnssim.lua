@@ -28,17 +28,14 @@ require("dnsjit.output.dnssim_h")
 local ffi = require("ffi")
 local C = ffi.C
 
-local t_name = "output_dnssim_t"
-local output_dnssim_t = ffi.typeof(t_name)
 local DnsSim = {}
 
 -- Create a new DnsSim output.
 function DnsSim.new()
     local self = {
-        obj = output_dnssim_t(),
+        obj = C.output_dnssim_new(),
     }
-    C.output_dnssim_init(self.obj)
-    ffi.gc(self.obj, C.output_dnssim_destroy)
+    ffi.gc(self.obj, C.output_dnssim_free)
     return setmetatable(self, { __index = DnsSim })
 end
 
@@ -80,7 +77,7 @@ end
 -- should be called repeatedly until 0 is returned and no more data
 -- is expected to be received by DnsSim.
 function DnsSim:run_nowait()
-    return C.output_dnssim_nowait()
+    return C.output_dnssim_run_nowait(self.obj)
 end
 
 return DnsSim

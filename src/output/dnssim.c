@@ -24,10 +24,16 @@
 #include "core/assert.h"
 #include "core/object/pcap.h"
 
+typedef struct _output_dnssim {
+    output_dnssim_t pub;
+
+    uv_loop_t loop;
+} _output_dnssim_t;
+
 static core_log_t _log = LOG_T_INIT("output.dnssim");
 static output_dnssim_t _defaults = {
     LOG_T_INIT_OBJ("output.dnssim"),
-    OUTPUT_DNSSIM_TRANSPORT_UDP_ONLY, 0
+    OUTPUT_DNSSIM_TRANSPORT_UDP_ONLY
 };
 
 core_log_t* output_dnssim_log()
@@ -35,29 +41,38 @@ core_log_t* output_dnssim_log()
     return &_log;
 }
 
-void output_dnssim_init(output_dnssim_t* self)
-{
-    mlassert_self();
+#define _self ((_output_dnssim_t*)self)
 
+output_dnssim_t* output_dnssim_new()
+{
+    output_dnssim_t* self;
+    int ret;
+
+    mlfatal_oom(self = malloc(sizeof(_output_dnssim_t)));
     *self = _defaults;
 
-    if (!uv_loop_init(&self->loop)) {
-        // TODO log errno
-        lfatal("failed to initialize uv_loop");
+    ret = uv_loop_init(&_self->loop);
+    if (ret < 0) {
+        lfatal("failed to initialize uv_loop (%s)", uv_strerror(ret));
     }
     ldebug("initialized uv_loop");
+
+    return self;
 }
 
-void output_dnssim_destroy(output_dnssim_t* self)
+void output_dnssim_free(output_dnssim_t* self)
 {
     mlassert_self();
+    int ret;
 
-    if (!uv_loop_close(&self->loop)) {
-        // TODO log errno
-        lcritical("failed to close uv_loop");
+    ret = uv_loop_close(&_self->loop);
+    if (ret < 0) {
+        lcritical("failed to close uv_loop (%s)", uv_strerror(ret));
     } else {
         ldebug("closed uv_loop");
     }
+
+    free(self);
 }
 
 static void _receive(output_dnssim_t* self, const core_object_t* obj)
@@ -74,5 +89,5 @@ int output_dnssim_run_nowait(output_dnssim_t* self)
 {
     mlassert_self();
 
-    return uv_run(&self->loop, UV_RUN_NOWAIT);
+    return uv_run(&_self->loop, UV_RUN_NOWAIT);
 }
