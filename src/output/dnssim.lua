@@ -49,23 +49,25 @@ end
 
 -- Set the transport to UDP (without any TCP fallback).
 function DnsSim:udp_only()
-    self.obj.transport = "OUTPUT_DNSSIM_TRANSPORT_UDP_ONLY"
+    C.output_dnssim_set_transport(self.obj, C.OUTPUT_DNSSIM_TRANSPORT_UDP_ONLY)
 end
 
 -- Set the preferred transport to UDP. This transport falls back to TCP
 -- for individual queries if TC bit is set in received answer.
 function DnsSim:udp()
+    C.output_dnssim_set_transport(self.obj, C.OUTPUT_DNSSIM_TRANSPORT_UDP)
     self.obj.transport = "OUTPUT_DNSSIM_TRANSPORT_UDP"
 end
 
 -- Set the transport to TCP.
 function DnsSim:tcp()
+    C.output_dnssim_set_transport(self.obj, C.OUTPUT_DNSSIM_TRANSPORT_TCP)
     self.obj.transport = "OUTPUT_DNSSIM_TRANSPORT_TCP"
 end
 
 -- Set the transport to TLS.
-function DnsSim:udp()
-    self.obj.transport = "OUTPUT_DNSSIM_TRANSPORT_TLS"
+function DnsSim:tls()
+    C.output_dnssim_set_transport(self.obj, C.OUTPUT_DNSSIM_TRANSPORT_TLS)
 end
 
 -- Return the C function and context for receiving objects.
