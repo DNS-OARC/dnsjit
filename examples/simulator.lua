@@ -5,7 +5,7 @@ local getopt = require("dnsjit.lib.getopt").new({
     { "v", "verbose", 0, "Enable and increase verbosity for each time given", "?+" },
 })
 getopt:parse()
-local num = 100000
+local num = 10000
 if getopt:val("help") then
     getopt:usage()
     return
@@ -43,6 +43,8 @@ while running ~= 0 do
     running = output:run_nowait()
 end
 
+print("dropped_pkts: "..output.obj.dropped_pkts)
+
 
 print("zero:receiver() -> thread lua x1 -> dnssim:receive()")
 local input = require("dnsjit.input.zero").new()
@@ -66,6 +68,8 @@ thread:start(function(thread)
     while running ~= 0 do
         running = output:run_nowait()
     end
+
+    print("dropped_pkts: "..output.obj.dropped_pkts)
 end)
 thread:push(channel)
 

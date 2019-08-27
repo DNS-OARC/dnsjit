@@ -28,12 +28,14 @@ typedef struct _output_dnssim {
     output_dnssim_t pub;
 
     uv_loop_t loop;
+    ck_ring_buffer_t* ring_buf;  /* ring buffer for data from receive() */
+    ck_ring_t ring;
 } _output_dnssim_t;
 
 static core_log_t _log = LOG_T_INIT("output.dnssim");
 static output_dnssim_t _defaults = {
     LOG_T_INIT_OBJ("output.dnssim"),
-    OUTPUT_DNSSIM_TRANSPORT_UDP_ONLY
+    OUTPUT_DNSSIM_TRANSPORT_UDP_ONLY, 0
 };
 
 core_log_t* output_dnssim_log()
@@ -42,6 +44,7 @@ core_log_t* output_dnssim_log()
 }
 
 #define _self ((_output_dnssim_t*)self)
+#define RING_BUF_SIZE 8192
 
 output_dnssim_t* output_dnssim_new()
 {
@@ -49,7 +52,11 @@ output_dnssim_t* output_dnssim_new()
     int ret;
 
     mlfatal_oom(self = malloc(sizeof(_output_dnssim_t)));
+    lfatal_oom(_self->ring_buf = calloc(
+        RING_BUF_SIZE, sizeof(ck_ring_buffer_t)));
     *self = _defaults;
+
+    ck_ring_init(&_self->ring, RING_BUF_SIZE);
 
     ret = uv_loop_init(&_self->loop);
     if (ret < 0) {
@@ -65,6 +72,8 @@ void output_dnssim_free(output_dnssim_t* self)
     mlassert_self();
     int ret;
 
+    free(_self->ring_buf);
+
     ret = uv_loop_close(&_self->loop);
     if (ret < 0) {
         lcritical("failed to close uv_loop (%s)", uv_strerror(ret));
@@ -78,6 +87,11 @@ void output_dnssim_free(output_dnssim_t* self)
 static void _receive(output_dnssim_t* self, const core_object_t* obj)
 {
     mlassert_self();
+
+    if (!ck_ring_enqueue_spsc(&_self->ring, _self->ring_buf, (void*)obj)) {
+        lwarning("buffer full, dropping packet");
+        self->dropped_pkts++;
+    }
 }
 
 core_receiver_t output_dnssim_receiver()

@@ -28,6 +28,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <uv.h>
+#include <ck_ring.h>
 
 #include "output/dnssim.hh"
 
