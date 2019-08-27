@@ -27,15 +27,17 @@
 typedef struct _output_dnssim {
     output_dnssim_t pub;
 
+    output_dnssim_transport_t transport;
     uv_loop_t loop;
     ck_ring_buffer_t* ring_buf;  /* ring buffer for data from receive() */
     ck_ring_t ring;
+    void (*send)(output_dnssim_t*, const core_object_t*);
 } _output_dnssim_t;
 
 static core_log_t _log = LOG_T_INIT("output.dnssim");
 static output_dnssim_t _defaults = {
     LOG_T_INIT_OBJ("output.dnssim"),
-    OUTPUT_DNSSIM_TRANSPORT_UDP_ONLY, 0, 0
+    OUTPUT_DNSSIM_TRANSPORT_UDP_ONLY, 0
 };
 
 core_log_t* output_dnssim_log()
@@ -46,6 +48,11 @@ core_log_t* output_dnssim_log()
 #define _self ((_output_dnssim_t*)self)
 #define RING_BUF_SIZE 8192
 
+void _send_udp(output_dnssim_t* self, core_object_t* obj) {
+    mlassert_self();
+    ldebug("udp send");
+}
+
 output_dnssim_t* output_dnssim_new()
 {
     output_dnssim_t* self;
@@ -55,6 +62,9 @@ output_dnssim_t* output_dnssim_new()
     lfatal_oom(_self->ring_buf = calloc(
         RING_BUF_SIZE, sizeof(ck_ring_buffer_t)));
     *self = _defaults;
+
+    _self->transport = OUTPUT_DNSSIM_TRANSPORT_UDP_ONLY;
+    _self->send = _send_udp;
 
     ck_ring_init(&_self->ring, RING_BUF_SIZE);
 
@@ -101,6 +111,25 @@ core_receiver_t output_dnssim_receiver()
     return (core_receiver_t)_receive;
 }
 
+void output_dnssim_set_transport(output_dnssim_t* self, output_dnssim_transport_t tr) {
+    mlassert_self();
+
+    switch(tr) {
+    case OUTPUT_DNSSIM_TRANSPORT_UDP_ONLY:
+        _self->send = _send_udp;
+        linfo("transport set to UDP (no TCP fallback)");
+        break;
+    case OUTPUT_DNSSIM_TRANSPORT_UDP:
+    case OUTPUT_DNSSIM_TRANSPORT_TCP:
+    case OUTPUT_DNSSIM_TRANSPORT_TLS:
+    default:
+        lfatal("unknown or unsupported transport");
+        break;
+    }
+
+    _self->transport = tr;
+}
+
 int output_dnssim_run_nowait(output_dnssim_t* self)
 {
     mlassert_self();
@@ -111,7 +140,7 @@ int output_dnssim_run_nowait(output_dnssim_t* self)
         switch(((core_object_t*)obj)->obj_type) {
         case CORE_OBJECT_IP:
         case CORE_OBJECT_IP6:
-            // TODO send
+            _self->send(self, obj);
             break;
         default:
             self->invalid_pkts++;
