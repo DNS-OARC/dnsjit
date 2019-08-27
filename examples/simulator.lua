@@ -44,6 +44,7 @@ while running ~= 0 do
 end
 
 print("dropped_pkts: "..output.obj.dropped_pkts)
+print("invalid_pkts: "..output.obj.invalid_pkts)
 
 
 print("zero:receiver() -> thread lua x1 -> dnssim:receive()")
@@ -70,6 +71,7 @@ thread:start(function(thread)
     end
 
     print("dropped_pkts: "..output.obj.dropped_pkts)
+    print("invalid_pkts: "..output.obj.invalid_pkts)
 end)
 thread:push(channel)
 

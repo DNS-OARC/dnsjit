@@ -35,7 +35,7 @@ typedef struct _output_dnssim {
 static core_log_t _log = LOG_T_INIT("output.dnssim");
 static output_dnssim_t _defaults = {
     LOG_T_INIT_OBJ("output.dnssim"),
-    OUTPUT_DNSSIM_TRANSPORT_UDP_ONLY, 0
+    OUTPUT_DNSSIM_TRANSPORT_UDP_ONLY, 0, 0
 };
 
 core_log_t* output_dnssim_log()
@@ -102,6 +102,21 @@ core_receiver_t output_dnssim_receiver()
 int output_dnssim_run_nowait(output_dnssim_t* self)
 {
     mlassert_self();
+    void *obj;
+
+    /* retrieve packets from buffer */
+    while(ck_ring_dequeue_spsc(&_self->ring, _self->ring_buf, &obj) == true) {
+        switch(((core_object_t*)obj)->obj_type) {
+        case CORE_OBJECT_IP:
+        case CORE_OBJECT_IP6:
+            // TODO send
+            break;
+        default:
+            lwarning("input packet must be either IP or IP6");
+            self->invalid_pkts++;
+            break;
+        }
+    }
 
     return uv_run(&_self->loop, UV_RUN_NOWAIT);
 }

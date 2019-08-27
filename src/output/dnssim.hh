@@ -31,7 +31,8 @@ typedef enum output_dnssim_transport {
 typedef struct output_dnssim {
     core_log_t _log;
     output_dnssim_transport_t transport;
-    int dropped_pkts;
+    int dropped_pkts;  /* n of packets dropped due to buffer overfull */
+    int invalid_pkts;  /* n of packets that didn't have ip/ip6 layer */
 } output_dnssim_t;
 
 core_log_t* output_dnssim_log();
