@@ -89,8 +89,10 @@ static void _receive(output_dnssim_t* self, const core_object_t* obj)
     mlassert_self();
 
     if (!ck_ring_enqueue_spsc(&_self->ring, _self->ring_buf, (void*)obj)) {
-        lwarning("buffer full, dropping packet");
         self->dropped_pkts++;
+        if (self->dropped_pkts == 1) {
+            lcritical("buffer full, dropping packet(s)");
+        }
     }
 }
 
@@ -112,8 +114,10 @@ int output_dnssim_run_nowait(output_dnssim_t* self)
             // TODO send
             break;
         default:
-            lwarning("input packet must be either IP or IP6");
             self->invalid_pkts++;
+            if (self->invalid_pkts == 1) {
+                lcritical("input packets must be either IP or IP6");
+            }
             break;
         }
     }
