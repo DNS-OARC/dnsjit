@@ -37,7 +37,11 @@ typedef struct _output_dnssim {
 static core_log_t _log = LOG_T_INIT("output.dnssim");
 static output_dnssim_t _defaults = {
     LOG_T_INIT_OBJ("output.dnssim"),
-    OUTPUT_DNSSIM_TRANSPORT_UDP_ONLY, 0
+    OUTPUT_DNSSIM_TRANSPORT_UDP_ONLY, 0, 0, 0
+};
+static output_dnssim_client_t _client_defaults = {
+    0, 0, 0,
+    0.0, 0.0, 0.0
 };
 
 core_log_t* output_dnssim_log()
@@ -48,12 +52,12 @@ core_log_t* output_dnssim_log()
 #define _self ((_output_dnssim_t*)self)
 #define RING_BUF_SIZE 8192
 
-void _send_udp(output_dnssim_t* self, core_object_t* obj) {
+void _send_udp(output_dnssim_t* self, const core_object_t* obj) {
     mlassert_self();
     ldebug("udp send");
 }
 
-output_dnssim_t* output_dnssim_new()
+output_dnssim_t* output_dnssim_new(size_t max_clients)
 {
     output_dnssim_t* self;
     int ret;
@@ -65,6 +69,13 @@ output_dnssim_t* output_dnssim_new()
 
     _self->transport = OUTPUT_DNSSIM_TRANSPORT_UDP_ONLY;
     _self->send = _send_udp;
+
+    lfatal_oom(self->client_arr = calloc(
+        max_clients, sizeof(output_dnssim_client_t)));
+    for (int i = 0; i < self->max_clients; i++) {
+        *self->client_arr = _client_defaults;
+    }
+    self->max_clients = max_clients;
 
     ck_ring_init(&_self->ring, RING_BUF_SIZE);
 
@@ -82,6 +93,7 @@ void output_dnssim_free(output_dnssim_t* self)
     mlassert_self();
     int ret;
 
+    free(self->client_arr);
     free(_self->ring_buf);
 
     ret = uv_loop_close(&_self->loop);
