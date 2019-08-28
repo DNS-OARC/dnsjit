@@ -4,8 +4,7 @@ local log = require("dnsjit.core.log")
 local getopt = require("dnsjit.lib.getopt").new({
     { "v", "verbose", 0, "Enable and increase verbosity for each time given", "?+" },
 })
-getopt:parse()
-local num = 10000
+local pcap = unpack(getopt:parse())
 if getopt:val("help") then
     getopt:usage()
     return
@@ -24,17 +23,30 @@ if v > 3 then
     log.enable("debug")
 end
 
+if pcap == nil then
+    print("usage: "..arg[1].." <pcap>")
+    return
+end
+
 
 print("zero:receiver() -> dnssim:receive()")
-local input = require("dnsjit.input.zero").new()
+local input = require("dnsjit.input.fpcap").new()
+local layer = require("dnsjit.filter.layer").new()
 local output = require("dnsjit.output.dnssim").new(65000)
+input:open(pcap)
+layer:producer(input)
 output:udp_only()
 
 local running = 0
 local recv, rctx = output:receive()
-local prod, pctx = input:produce()
-for n = 1, num do
-    recv(rctx, prod(pctx))
+local prod, pctx = layer:produce()
+
+while true do
+    pkt = prod(pctx)
+    if pkt == nil then
+        break
+    end
+    recv(rctx, pkt)
     running = output:run_nowait()
 end
 
@@ -48,9 +60,12 @@ print("invalid_pkts: "..tonumber(output.obj.invalid_pkts))
 
 
 print("zero:receiver() -> thread lua x1 -> dnssim:receive()")
-local input = require("dnsjit.input.zero").new()
+local input = require("dnsjit.input.fpcap").new()
+local layer = require("dnsjit.filter.layer").new()
 local channel = require("dnsjit.core.channel").new()
 local thread = require("dnsjit.core.thread").new()
+input:open(pcap)
+layer:producer(input)
 
 thread:start(function(thread)
     local channel = thread:pop()
@@ -75,9 +90,14 @@ thread:start(function(thread)
 end)
 thread:push(channel)
 
-local prod, pctx = input:produce()
-for n = 1, num do
-    channel:put(prod(pctx))
+local prod, pctx = layer:produce()
+while true do
+    pkt = prod(pctx)
+    if pkt == nil then
+        break
+    end
+    channel:put(pkt)
 end
+
 channel:close()
 thread:stop()
