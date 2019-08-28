@@ -22,7 +22,9 @@
 
 #include "output/dnssim.h"
 #include "core/assert.h"
-#include "core/object/pcap.h"
+#include "core/object/ip.h"
+#include "core/object/ip6.h"
+#include "core/object/payload.h"
 
 typedef struct _output_dnssim {
     output_dnssim_t pub;
@@ -31,8 +33,18 @@ typedef struct _output_dnssim {
     uv_loop_t loop;
     ck_ring_buffer_t* ring_buf;  /* ring buffer for data from receive() */
     ck_ring_t ring;
-    void (*send)(output_dnssim_t*, const core_object_t*);
+    //void (*create_req)(output_dnssim_t*, const core_object_t*);
 } _output_dnssim_t;
+
+typedef struct _output_dnssim_query _output_dnssim_query_t;
+struct _output_dnssim_query {
+    _output_dnssim_query_t* query_prev;
+};
+
+typedef struct _output_dnssim_req {
+    _output_dnssim_query_t* query;
+    output_dnssim_client_t* client;
+} _output_dnssim_req_t;
 
 static core_log_t _log = LOG_T_INIT("output.dnssim");
 static output_dnssim_t _defaults = {
@@ -52,7 +64,10 @@ core_log_t* output_dnssim_log()
 #define _self ((_output_dnssim_t*)self)
 #define RING_BUF_SIZE 8192
 
-void _send_udp(output_dnssim_t* self, const core_object_t* obj) {
+void _drop_pkt(output_dnssim_t* self) {
+}
+
+void _create_req_udp(output_dnssim_t* self, core_object_t* obj) {
     mlassert_self();
     ldebug("udp send");
 }
@@ -68,7 +83,7 @@ output_dnssim_t* output_dnssim_new(size_t max_clients)
     *self = _defaults;
 
     _self->transport = OUTPUT_DNSSIM_TRANSPORT_UDP_ONLY;
-    _self->send = _send_udp;
+    //_self->create_req = _send_udp;
 
     lfatal_oom(self->client_arr = calloc(
         max_clients, sizeof(output_dnssim_client_t)));
@@ -106,15 +121,63 @@ void output_dnssim_free(output_dnssim_t* self)
     free(self);
 }
 
+size_t _extract_ip_client(const core_object_ip_t* ip) {
+    size_t client;
+
+    client = ip->dst[3];
+    client += (ip->dst[2] << 8);
+    client += (ip->dst[1] << 16);
+    client += (ip->dst[0] << 24);
+
+    return client;
+}
+
+size_t _extract_ip6_client(const core_object_ip6_t* ip6) {
+    size_t client;
+
+    client = ip6->dst[15];
+    client += (ip6->dst[14] << 8);
+    client += (ip6->dst[13] << 16);
+    client += (ip6->dst[12] << 24);
+
+    return client;
+}
+
 static void _receive(output_dnssim_t* self, const core_object_t* obj)
 {
     mlassert_self();
+    core_object_payload_t* payload;
+    size_t client;
 
-    if (!ck_ring_enqueue_spsc(&_self->ring, _self->ring_buf, (void*)obj)) {
-        self->dropped_pkts++;
-        if (self->dropped_pkts == 1) {
-            lcritical("buffer full, dropping packet(s)");
+    /* get payload from packet */
+    for (;;) {
+        if (obj->obj_type == CORE_OBJECT_PAYLOAD) {
+            payload = (core_object_payload_t*)obj;
+            break;
         }
+        if (obj->obj_prev == NULL) {
+            self->dropped_pkts++;
+            lwarning("packet droppped (missing payload object)");
+            return;
+        }
+        obj = (const core_object_t*)obj->obj_prev;
+    }
+
+    /* extract client information from IP/IP6 layer */
+    for (;;) {
+        if (obj->obj_type == CORE_OBJECT_IP) {
+            client = _extract_ip_client((const core_object_ip_t*)obj);
+            break;
+        } else if (obj->obj_type == CORE_OBJECT_IP6) {
+            client = _extract_ip6_client((const core_object_ip6_t*)obj);
+            break;
+        }
+        if (obj->obj_prev == NULL) {
+            self->dropped_pkts++;
+            lwarning("packet droppped (missing ip/ip6 object)");
+            return;
+        }
+        obj = (const core_object_t*)obj->obj_prev;
     }
 }
 
@@ -128,7 +191,7 @@ void output_dnssim_set_transport(output_dnssim_t* self, output_dnssim_transport_
 
     switch(tr) {
     case OUTPUT_DNSSIM_TRANSPORT_UDP_ONLY:
-        _self->send = _send_udp;
+        //_self->send = _send_udp;
         linfo("transport set to UDP (no TCP fallback)");
         break;
     case OUTPUT_DNSSIM_TRANSPORT_UDP:
@@ -152,7 +215,7 @@ int output_dnssim_run_nowait(output_dnssim_t* self)
         switch(((core_object_t*)obj)->obj_type) {
         case CORE_OBJECT_IP:
         case CORE_OBJECT_IP6:
-            _self->send(self, obj);
+            //_self->send(self, obj);
             break;
         default:
             self->invalid_pkts++;
