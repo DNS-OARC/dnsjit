@@ -30,10 +30,10 @@ local C = ffi.C
 
 local DnsSim = {}
 
--- Create a new DnsSim output.
-function DnsSim.new()
+-- Create a new DnsSim output for up to max_clients.
+function DnsSim.new(max_clients)
     local self = {
-        obj = C.output_dnssim_new(),
+        obj = C.output_dnssim_new(max_clients),
     }
     ffi.gc(self.obj, C.output_dnssim_free)
     return setmetatable(self, { __index = DnsSim })

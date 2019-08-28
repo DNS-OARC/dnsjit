@@ -28,15 +28,28 @@ typedef enum output_dnssim_transport {
     OUTPUT_DNSSIM_TRANSPORT_TLS
 } output_dnssim_transport_t;
 
+typedef struct output_dnssim_client {
+    uint32_t req_total;
+    uint32_t req_answered;
+    uint32_t req_noerror;
+
+    float latency_min;
+    float latency_mean;
+    float latency_max;
+} output_dnssim_client_t;
+
 typedef struct output_dnssim {
     core_log_t _log;
-    int dropped_pkts;  /* n of packets dropped due to buffer overfull */
-    int invalid_pkts;  /* n of packets that didn't have ip/ip6 layer */
+    uint64_t dropped_pkts;  /* n of packets dropped due to buffer overfull */
+    uint64_t invalid_pkts;  /* n of packets that didn't have ip/ip6 layer */
+
+    size_t max_clients;
+    output_dnssim_client_t* client_arr;
 } output_dnssim_t;
 
 core_log_t* output_dnssim_log();
 
-output_dnssim_t* output_dnssim_new();
+output_dnssim_t* output_dnssim_new(size_t max_clients);
 void output_dnssim_free(output_dnssim_t* self);
 
 void output_dnssim_set_transport(output_dnssim_t* self, output_dnssim_transport_t tr);

@@ -27,7 +27,7 @@ end
 
 print("zero:receiver() -> dnssim:receive()")
 local input = require("dnsjit.input.zero").new()
-local output = require("dnsjit.output.dnssim").new()
+local output = require("dnsjit.output.dnssim").new(65000)
 output:udp_only()
 
 local running = 0
@@ -43,8 +43,8 @@ while running ~= 0 do
     running = output:run_nowait()
 end
 
-print("dropped_pkts: "..output.obj.dropped_pkts)
-print("invalid_pkts: "..output.obj.invalid_pkts)
+print("dropped_pkts: "..tonumber(output.obj.dropped_pkts))
+print("invalid_pkts: "..tonumber(output.obj.invalid_pkts))
 
 
 print("zero:receiver() -> thread lua x1 -> dnssim:receive()")
@@ -54,7 +54,7 @@ local thread = require("dnsjit.core.thread").new()
 
 thread:start(function(thread)
     local channel = thread:pop()
-    local output = require("dnsjit.output.dnssim").new()
+    local output = require("dnsjit.output.dnssim").new(65000)
     local running = 0
     output:udp_only()
 
@@ -70,8 +70,8 @@ thread:start(function(thread)
         running = output:run_nowait()
     end
 
-    print("dropped_pkts: "..output.obj.dropped_pkts)
-    print("invalid_pkts: "..output.obj.invalid_pkts)
+    print("dropped_pkts: "..tonumber(output.obj.dropped_pkts))
+    print("invalid_pkts: "..tonumber(output.obj.invalid_pkts))
 end)
 thread:push(channel)
 
