@@ -1,4 +1,5 @@
 #!/usr/bin/env dnsjit
+local object = require("dnsjit.core.objects")
 local ffi = require("ffi")
 local log = require("dnsjit.core.log")
 local getopt = require("dnsjit.lib.getopt").new({
@@ -29,7 +30,6 @@ if pcap == nil then
 end
 
 
-print("zero:receiver() -> dnssim:receive()")
 local input = require("dnsjit.input.fpcap").new()
 local layer = require("dnsjit.filter.layer").new()
 local output = require("dnsjit.output.dnssim").new(65000)
@@ -56,48 +56,58 @@ while running ~= 0 do
 end
 
 print("dropped_pkts: "..tonumber(output.obj.dropped_pkts))
-print("invalid_pkts: "..tonumber(output.obj.invalid_pkts))
 
-
-print("zero:receiver() -> thread lua x1 -> dnssim:receive()")
-local input = require("dnsjit.input.fpcap").new()
-local layer = require("dnsjit.filter.layer").new()
-local channel = require("dnsjit.core.channel").new()
-local thread = require("dnsjit.core.thread").new()
-input:open(pcap)
-layer:producer(input)
-
-thread:start(function(thread)
-    local channel = thread:pop()
-    local output = require("dnsjit.output.dnssim").new(65000)
-    local running = 0
-    output:udp_only()
-
-    local recv, rctx = output:receive()
-    while true do
-        local obj = channel:get()
-        if obj == nil then break end
-        recv(rctx, obj)
-        running = output:run_nowait()
-    end
-
-    while running ~= 0 do
-        running = output:run_nowait()
-    end
-
-    print("dropped_pkts: "..tonumber(output.obj.dropped_pkts))
-    print("invalid_pkts: "..tonumber(output.obj.invalid_pkts))
-end)
-thread:push(channel)
-
-local prod, pctx = layer:produce()
-while true do
-    pkt = prod(pctx)
-    if pkt == nil then
-        break
-    end
-    channel:put(pkt)
-end
-
-channel:close()
-thread:stop()
+--input:open(pcap)
+--layer:producer(input)
+--
+--thread:start(function(thread)
+--    local ffi  =require("ffi")
+--    local object = require("dnsjit.core.objects")
+--    local channel = thread:pop()
+--    local output = require("dnsjit.output.dnssim").new(65000)
+--    local running = 0
+--    output:udp_only()
+--
+--    local recv, rctx = output:receive()
+--    while true do
+--        local obj = channel:get()
+--        if obj == nil then break end
+--        local pl = ffi.cast("core_object_t*", obj):cast()
+--        while pl.obj_type ~= object.IP6 do
+--            pl = pl.obj_prev:cast()
+--        end
+--        print(pl:source())
+--        recv(rctx, obj)
+--        running = output:run_nowait()
+--    end
+--
+--    while running ~= 0 do
+--        running = output:run_nowait()
+--    end
+--
+--    print("dropped_pkts: "..tonumber(output.obj.dropped_pkts))
+--end)
+--thread:push(channel)
+--
+--local prod, pctx = layer:produce()
+--while true do
+--    local obj = prod(pctx)
+--    if obj == nil then break end
+--    local pl = obj:cast()
+--    while pl.obj_type ~= object.IP6 do
+--        pl = pl.obj_prev:cast()
+--    end
+--    print(pl:source())
+--    --if obj:type() == "payload" and pl.len > 0 then
+--    --    print("d")
+--    --end
+--
+--    --if pkt:type() == "payload" then
+--        --pkt.obj_prev
+--
+--    channel:put(obj)
+--    --end
+--end
+--
+--channel:close()
+--thread:stop()
