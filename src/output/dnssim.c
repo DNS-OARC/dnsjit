@@ -31,8 +31,6 @@ typedef struct _output_dnssim {
 
     output_dnssim_transport_t transport;
     uv_loop_t loop;
-    ck_ring_buffer_t* ring_buf;  /* ring buffer for data from receive() */
-    ck_ring_t ring;
     //void (*create_req)(output_dnssim_t*, const core_object_t*);
 } _output_dnssim_t;
 
@@ -49,7 +47,7 @@ typedef struct _output_dnssim_req {
 static core_log_t _log = LOG_T_INIT("output.dnssim");
 static output_dnssim_t _defaults = {
     LOG_T_INIT_OBJ("output.dnssim"),
-    OUTPUT_DNSSIM_TRANSPORT_UDP_ONLY, 0, 0, 0
+    OUTPUT_DNSSIM_TRANSPORT_UDP_ONLY, 0, 0
 };
 static output_dnssim_client_t _client_defaults = {
     0, 0, 0,
@@ -78,8 +76,6 @@ output_dnssim_t* output_dnssim_new(size_t max_clients)
     int ret;
 
     mlfatal_oom(self = malloc(sizeof(_output_dnssim_t)));
-    lfatal_oom(_self->ring_buf = calloc(
-        RING_BUF_SIZE, sizeof(ck_ring_buffer_t)));
     *self = _defaults;
 
     _self->transport = OUTPUT_DNSSIM_TRANSPORT_UDP_ONLY;
@@ -91,8 +87,6 @@ output_dnssim_t* output_dnssim_new(size_t max_clients)
         *self->client_arr = _client_defaults;
     }
     self->max_clients = max_clients;
-
-    ck_ring_init(&_self->ring, RING_BUF_SIZE);
 
     ret = uv_loop_init(&_self->loop);
     if (ret < 0) {
@@ -109,7 +103,6 @@ void output_dnssim_free(output_dnssim_t* self)
     int ret;
 
     free(self->client_arr);
-    free(_self->ring_buf);
 
     ret = uv_loop_close(&_self->loop);
     if (ret < 0) {
@@ -121,24 +114,25 @@ void output_dnssim_free(output_dnssim_t* self)
     free(self);
 }
 
-size_t _extract_ip_client(const core_object_ip_t* ip) {
-    size_t client;
+ssize_t _extract_client(const core_object_t* obj) {
+    ssize_t client;
+    uint8_t* ip;
 
-    client = ip->dst[3];
-    client += (ip->dst[2] << 8);
-    client += (ip->dst[1] << 16);
-    client += (ip->dst[0] << 24);
+    switch (obj->obj_type) {
+    case CORE_OBJECT_IP:
+        ip = ((core_object_ip_t*)obj)->dst;
+        break;
+    case CORE_OBJECT_IP6:
+        ip = ((core_object_ip6_t*)obj)->dst;
+        break;
+    default:
+        return -1;
+    }
 
-    return client;
-}
-
-size_t _extract_ip6_client(const core_object_ip6_t* ip6) {
-    size_t client;
-
-    client = ip6->dst[15];
-    client += (ip6->dst[14] << 8);
-    client += (ip6->dst[13] << 16);
-    client += (ip6->dst[12] << 24);
+    client = ip[3];
+    client += (ip[2] << 8);
+    client += (ip[1] << 16);
+    client += (ip[0] << 24);
 
     return client;
 }
@@ -147,7 +141,7 @@ static void _receive(output_dnssim_t* self, const core_object_t* obj)
 {
     mlassert_self();
     core_object_payload_t* payload;
-    size_t client;
+    ssize_t client;
 
     /* get payload from packet */
     for (;;) {
@@ -165,11 +159,8 @@ static void _receive(output_dnssim_t* self, const core_object_t* obj)
 
     /* extract client information from IP/IP6 layer */
     for (;;) {
-        if (obj->obj_type == CORE_OBJECT_IP) {
-            client = _extract_ip_client((const core_object_ip_t*)obj);
-            break;
-        } else if (obj->obj_type == CORE_OBJECT_IP6) {
-            client = _extract_ip6_client((const core_object_ip6_t*)obj);
+        if (obj->obj_type == CORE_OBJECT_IP || obj->obj_type == CORE_OBJECT_IP6) {
+            client = _extract_client(obj);
             break;
         }
         if (obj->obj_prev == NULL) {
@@ -179,6 +170,14 @@ static void _receive(output_dnssim_t* self, const core_object_t* obj)
         }
         obj = (const core_object_t*)obj->obj_prev;
     }
+
+    if (client >= self->max_clients) {
+        self->dropped_pkts++;
+        lwarning("packet dropped (client exceeded max_clients)");
+        return;
+    }
+
+    ldebug("client(c): %d", client);
 }
 
 core_receiver_t output_dnssim_receiver()
@@ -208,23 +207,6 @@ void output_dnssim_set_transport(output_dnssim_t* self, output_dnssim_transport_
 int output_dnssim_run_nowait(output_dnssim_t* self)
 {
     mlassert_self();
-    void *obj;
-
-    /* retrieve packets from buffer */
-    while(ck_ring_dequeue_spsc(&_self->ring, _self->ring_buf, &obj) == true) {
-        switch(((core_object_t*)obj)->obj_type) {
-        case CORE_OBJECT_IP:
-        case CORE_OBJECT_IP6:
-            //_self->send(self, obj);
-            break;
-        default:
-            self->invalid_pkts++;
-            if (self->invalid_pkts == 1) {
-                lcritical("input packets must be either IP or IP6");
-            }
-            break;
-        }
-    }
 
     return uv_run(&_self->loop, UV_RUN_NOWAIT);
 }

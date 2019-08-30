@@ -40,8 +40,7 @@ typedef struct output_dnssim_client {
 
 typedef struct output_dnssim {
     core_log_t _log;
-    uint64_t dropped_pkts;  /* n of packets dropped due to buffer overfull */
-    uint64_t invalid_pkts;  /* n of packets that didn't have ip/ip6 layer */
+    uint64_t dropped_pkts;
 
     size_t max_clients;
     output_dnssim_client_t* client_arr;

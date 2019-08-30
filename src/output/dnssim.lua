@@ -21,10 +21,13 @@
 --   TODO
 --
 -- Output module for simulating traffic from huge number of independent,
--- individual DNS clients. Uses libuv for asynchronous communication.
+-- individual DNS clients. Uses libuv for asynchronous communication. There
+-- may only be a single dnssim in a thread. Use dnsjit.core.thread to have
+-- multiple dnssim instances.
 module(...,package.seeall)
 
 require("dnsjit.output.dnssim_h")
+local object = require("dnsjit.core.objects")
 local ffi = require("ffi")
 local C = ffi.C
 
@@ -34,6 +37,8 @@ local DnsSim = {}
 function DnsSim.new(max_clients)
     local self = {
         obj = C.output_dnssim_new(max_clients),
+        clients = {},
+        i_client = 0,
     }
     ffi.gc(self.obj, C.output_dnssim_free)
     return setmetatable(self, { __index = DnsSim })
@@ -72,7 +77,48 @@ end
 
 -- Return the C function and context for receiving objects.
 function DnsSim:receive()
-    return C.output_dnssim_receiver(), self.obj
+    local receive = C.output_dnssim_receiver()
+    local i = 1
+    function lua_recv(ctx, obj)
+        if obj == nil then
+            self.obj.dropped_pkts = self.obj.dropped_pkts + 1
+            self.obj._log:warning("packet droppped (no data)")
+            return
+        end
+        local pkt = ffi.cast("core_object_t*", obj)
+        repeat
+            if pkt == nil then
+                self.obj.dropped_pkts = self.obj.dropped_pkts + 1
+                self.obj._log:warning("packet droppped (missing ip/ip6 object)")
+                return
+            end
+            if pkt.obj_type == object.IP or pkt.obj_type == object.IP6 then
+                -- assign unique client number based on IP
+                local ip = pkt:cast()
+                local client = self.clients[ip:source()]
+                if client == nil then
+                    self.clients[ip:source()] = self.i_client
+                    client = self.i_client
+                    self.i_client = self.i_client + 1
+                end
+                self.obj._log:debug("client(lua): "..client)
+
+                -- put the client number into dst IP
+                -- NOTE: this is a mess because luajit doesn't have bitwise ops
+                ip.dst[3] = client % 256
+                client = client - ip.dst[3]
+                ip.dst[2] = (client % 65536) / 256
+                client = client - (ip.dst[2] * 256)
+                ip.dst[1] = (client % 16777216) / 65536
+                client = client - (ip.dst[1] * 65536)
+                ip.dst[0] = client / 16777216
+
+                return receive(ctx, obj)
+            end
+            pkt = pkt.obj_prev
+        until(false)
+    end
+    return lua_recv, self.obj
 end
 
 -- Run the libuv loop once without blocking when there is no I/O. This
