@@ -121,6 +121,20 @@ function DnsSim:receive()
     return lua_recv, self.obj
 end
 
+-- Set the target server where queries will be sent to. Returns 0 on success.
+function DnsSim:target(ip, port)
+    nport = tonumber(port)
+    if nport == nil then
+        self.obj._log:critical("invalid port: "..port)
+        return -1
+    end
+    if nport <= 0 or nport > 65535 then
+        self.obj._log:critical("invalid port number: "..nport)
+        return -1
+    end
+    return C.output_dnssim_target(self.obj, ip, nport)
+end
+
 -- Run the libuv loop once without blocking when there is no I/O. This
 -- should be called repeatedly until 0 is returned and no more data
 -- is expected to be received by DnsSim.
