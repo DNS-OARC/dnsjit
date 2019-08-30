@@ -52,6 +52,7 @@ output_dnssim_t* output_dnssim_new(size_t max_clients);
 void output_dnssim_free(output_dnssim_t* self);
 
 void output_dnssim_set_transport(output_dnssim_t* self, output_dnssim_transport_t tr);
+int output_dnssim_target(output_dnssim_t* self, const char* ip, uint16_t port);
 int output_dnssim_run_nowait(output_dnssim_t* self);
 
 core_receiver_t output_dnssim_receiver();

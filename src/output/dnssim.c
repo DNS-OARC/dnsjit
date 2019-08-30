@@ -31,18 +31,28 @@ typedef struct _output_dnssim {
 
     output_dnssim_transport_t transport;
     uv_loop_t loop;
+    struct sockaddr_storage target;
     //void (*create_req)(output_dnssim_t*, const core_object_t*);
 } _output_dnssim_t;
 
 typedef struct _output_dnssim_query _output_dnssim_query_t;
 struct _output_dnssim_query {
-    _output_dnssim_query_t* query_prev;
+    _output_dnssim_query_t* qry_prev;
+    output_dnssim_transport_t transport;
 };
 
-typedef struct _output_dnssim_req {
+typedef struct _output_dnssim_query_udp {
+    _output_dnssim_query_t qry;
+    uv_udp_t handle;
+    //uv_timer_t* qry_retransmit;
+} _output_dnssim_query_udp_t;
+
+typedef struct _output_dnssim_request {
     _output_dnssim_query_t* query;
     output_dnssim_client_t* client;
-} _output_dnssim_req_t;
+    // TODO time start
+    //uv_timer_t req_timeout;
+} _output_dnssim_request_t;
 
 static core_log_t _log = LOG_T_INIT("output.dnssim");
 static output_dnssim_t _defaults = {
@@ -202,6 +212,25 @@ void output_dnssim_set_transport(output_dnssim_t* self, output_dnssim_transport_
     }
 
     _self->transport = tr;
+}
+
+int output_dnssim_target(output_dnssim_t* self, const char* ip, uint16_t port) {
+    int ret;
+    mlassert_self();
+    lassert(ip, "ip is nil");
+    lassert(port, "port is nil");
+
+    ret = uv_ip6_addr(ip, port, (struct sockaddr_in6*)&_self->target);
+    if (ret != 0) {
+        ret = uv_ip4_addr(ip, port, (struct sockaddr_in*)&_self->target);
+        if (ret != 0) {
+            lcritical("failed to parse IP/IP6 from \"%s\"", ip);
+            return -1;
+        }
+    }
+
+    linfo("set target to %s port %d", ip, port);
+    return 0;
 }
 
 int output_dnssim_run_nowait(output_dnssim_t* self)
