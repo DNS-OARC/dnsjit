@@ -32,7 +32,9 @@ typedef struct _output_dnssim {
     output_dnssim_transport_t transport;
     uv_loop_t loop;
     struct sockaddr_storage target;
-    //void (*create_req)(output_dnssim_t*, const core_object_t*);
+
+    void (*create_req)(output_dnssim_t*, output_dnssim_client_t*,
+        core_object_payload_t*);
 } _output_dnssim_t;
 
 typedef struct _output_dnssim_query _output_dnssim_query_t;
@@ -44,11 +46,12 @@ struct _output_dnssim_query {
 typedef struct _output_dnssim_query_udp {
     _output_dnssim_query_t qry;
     uv_udp_t handle;
+    uv_buf_t buf;
     //uv_timer_t* qry_retransmit;
 } _output_dnssim_query_udp_t;
 
 typedef struct _output_dnssim_request {
-    _output_dnssim_query_t* query;
+    _output_dnssim_query_t* qry;
     output_dnssim_client_t* client;
     // TODO time start
     //uv_timer_t req_timeout;
@@ -70,16 +73,74 @@ core_log_t* output_dnssim_log()
 }
 
 #define _self ((_output_dnssim_t*)self)
-#define RING_BUF_SIZE 8192
 
-void _drop_pkt(output_dnssim_t* self) {
+/*** UDP dnssim ***/
+static void
+_uv_udp_alloc_cb(uv_handle_t* handle, size_t suggested_size, uv_buf_t* buf) {
+	buf->base = malloc(suggested_size);
+	buf->len = suggested_size;
 }
 
-void _create_req_udp(output_dnssim_t* self, core_object_t* obj) {
+static void
+_uv_udp_recv_cb(uv_udp_t* handle, ssize_t nread, const uv_buf_t* buf,
+		const struct sockaddr* addr, unsigned flags) {
+	if (nread > 0) {
+		printf("Received: %d\n", nread);
+		//for (int i = 0; i < nread; ++i) {
+		//	printf("%c", buf->base[i]);
+		//}
+		//printf("\n");
+		uv_udp_recv_stop(handle);
+	}
+
+	if (buf->base != NULL) {
+		free(buf->base);
+	}
+}
+
+void _create_req_udp(output_dnssim_t* self, output_dnssim_client_t* client,
+        core_object_payload_t* payload) {
+    int ret;
     mlassert_self();
-    ldebug("udp send");
+
+    _output_dnssim_request_t* req;
+    _output_dnssim_query_udp_t* qry;
+
+    // TODO free
+    lfatal_oom(req = malloc(sizeof(_output_dnssim_request_t)));
+    lfatal_oom(qry = malloc(sizeof(_output_dnssim_query_udp_t)));
+
+    qry->qry.transport = OUTPUT_DNSSIM_TRANSPORT_UDP;
+    qry->qry.qry_prev = NULL;
+
+    req->client = client;
+    req->qry = (_output_dnssim_query_t*)qry;
+
+    ret = uv_udp_init(&_self->loop, &qry->handle);
+    if (ret != 0) {
+        self->dropped_pkts++;
+        lwarning("failed to init uv_udp_t");
+        return;
+    }
+
+    qry->buf = uv_buf_init((char*)payload->payload, payload->len);
+
+    ret = uv_udp_try_send(&qry->handle, &qry->buf, 1, (struct sockaddr*)&_self->target);
+    if (ret < 0) {
+        self->dropped_pkts++;
+        lwarning("failed to send udp packet: %s", uv_strerror(ret));
+        return;
+    }
+    client->req_total++;
+
+    // TODO IPv4
+    struct sockaddr_in6 src;
+    int addr_len = sizeof(src);
+    uv_udp_getsockname(&qry->handle, (struct sockaddr*)&src, &addr_len);
+    ldebug("sent udp from port: %d", ntohs(src.sin6_port));
 }
 
+/*** dnssim functions ***/
 output_dnssim_t* output_dnssim_new(size_t max_clients)
 {
     output_dnssim_t* self;
@@ -89,7 +150,7 @@ output_dnssim_t* output_dnssim_new(size_t max_clients)
     *self = _defaults;
 
     _self->transport = OUTPUT_DNSSIM_TRANSPORT_UDP_ONLY;
-    //_self->create_req = _send_udp;
+    _self->create_req = _create_req_udp;
 
     lfatal_oom(self->client_arr = calloc(
         max_clients, sizeof(output_dnssim_client_t)));
@@ -188,6 +249,7 @@ static void _receive(output_dnssim_t* self, const core_object_t* obj)
     }
 
     ldebug("client(c): %d", client);
+    _self->create_req(self, &self->client_arr[client], payload);
 }
 
 core_receiver_t output_dnssim_receiver()
@@ -200,7 +262,7 @@ void output_dnssim_set_transport(output_dnssim_t* self, output_dnssim_transport_
 
     switch(tr) {
     case OUTPUT_DNSSIM_TRANSPORT_UDP_ONLY:
-        //_self->send = _send_udp;
+        _self->create_req = _create_req_udp;
         linfo("transport set to UDP (no TCP fallback)");
         break;
     case OUTPUT_DNSSIM_TRANSPORT_UDP:
@@ -222,11 +284,14 @@ int output_dnssim_target(output_dnssim_t* self, const char* ip, uint16_t port) {
 
     ret = uv_ip6_addr(ip, port, (struct sockaddr_in6*)&_self->target);
     if (ret != 0) {
-        ret = uv_ip4_addr(ip, port, (struct sockaddr_in*)&_self->target);
-        if (ret != 0) {
-            lcritical("failed to parse IP/IP6 from \"%s\"", ip);
-            return -1;
-        }
+        lcritical("failed to parse IPv6 from \"%s\"", ip);
+        return -1;
+        // TODO IPv4 support
+        //ret = uv_ip4_addr(ip, port, (struct sockaddr_in*)&_self->target);
+        //if (ret != 0) {
+        //    lcritical("failed to parse IP/IP6 from \"%s\"", ip);
+        //    return -1;
+        //}
     }
 
     linfo("set target to %s port %d", ip, port);
