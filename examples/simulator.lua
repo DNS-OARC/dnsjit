@@ -60,6 +60,8 @@ while running ~= 0 do
 end
 
 print("dropped_pkts: "..tonumber(output.obj.dropped_pkts))
+print("clint0 req_total: "..tonumber(output.obj.client_arr[0].req_total))
+print("clint26 req_total: "..tonumber(output.obj.client_arr[26].req_total))
 
 --input:open(pcap)
 --layer:producer(input)
