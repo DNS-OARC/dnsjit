@@ -45,7 +45,7 @@ struct _output_dnssim_query {
 
 typedef struct _output_dnssim_query_udp {
     _output_dnssim_query_t qry;
-    uv_udp_t handle;
+    uv_udp_t* handle;
     uv_buf_t buf;
     //uv_timer_t* qry_retransmit;
 } _output_dnssim_query_udp_t;
@@ -98,6 +98,75 @@ _uv_udp_recv_cb(uv_udp_t* handle, ssize_t nread, const uv_buf_t* buf,
 	}
 }
 
+static void _maybe_free_request(_output_dnssim_request_t* req)
+{
+    if (req->qry == NULL) {
+        free(req);
+        mldebug("req freed");
+    }
+}
+
+static void _close_query_udp_cb(uv_handle_t* handle)
+{
+    _output_dnssim_request_t* req = (_output_dnssim_request_t*)handle->data;
+    _output_dnssim_query_t* qry = req->qry;
+    _output_dnssim_query_t* parent_qry = req->qry;
+    _output_dnssim_query_udp_t* udp_qry;
+
+    for (;;) {  // find the query the handle belongs to
+        if (qry->transport == OUTPUT_DNSSIM_TRANSPORT_UDP) {
+            udp_qry = (_output_dnssim_query_udp_t*)qry;
+            if (udp_qry->handle == (uv_udp_t*)handle) {
+                free(udp_qry->handle);
+
+                // free and remove from query list
+                if (req->qry == qry) {
+                    req->qry = qry->qry_prev;
+                    _maybe_free_request(req);
+                } else {
+                    parent_qry->qry_prev = qry->qry_prev;
+                }
+                free(qry);
+                mldebug("udp query freed");
+                return;
+            }
+        }
+        if (qry->qry_prev == NULL) {
+            mlwarning("failed to free udp_query memory");
+            return;
+        }
+        parent_qry = qry;
+        qry = qry->qry_prev;
+    }
+}
+
+static void _close_query_udp(_output_dnssim_query_udp_t* qry)
+{
+    uv_close((uv_handle_t*)qry->handle, _close_query_udp_cb);
+}
+
+static void _close_query(_output_dnssim_query_t* qry)
+{
+    switch(qry->transport) {
+    case OUTPUT_DNSSIM_TRANSPORT_UDP:
+        _close_query_udp((_output_dnssim_query_udp_t*)qry);
+        break;
+    default:
+        mlnotice("failed to close query: unsupported transport");
+        break;
+    }
+}
+
+static void _close_request(_output_dnssim_request_t* req)
+{
+    // finish any ongoing queries
+    _output_dnssim_query_t* qry = req->qry;
+    while (qry != NULL) {
+        _close_query(qry);
+        qry = qry->qry_prev;
+    }
+}
+
 void _create_req_udp(output_dnssim_t* self, output_dnssim_client_t* client,
         core_object_payload_t* payload) {
     int ret;
@@ -106,9 +175,11 @@ void _create_req_udp(output_dnssim_t* self, output_dnssim_client_t* client,
     _output_dnssim_request_t* req;
     _output_dnssim_query_udp_t* qry;
 
-    // TODO free
+    client->req_total++;
+
     lfatal_oom(req = malloc(sizeof(_output_dnssim_request_t)));
     lfatal_oom(qry = malloc(sizeof(_output_dnssim_query_udp_t)));
+    lfatal_oom(qry->handle = malloc(sizeof(uv_udp_t)));
 
     qry->qry.transport = OUTPUT_DNSSIM_TRANSPORT_UDP;
     qry->qry.qry_prev = NULL;
@@ -116,28 +187,37 @@ void _create_req_udp(output_dnssim_t* self, output_dnssim_client_t* client,
     req->client = client;
     req->qry = (_output_dnssim_query_t*)qry;
 
-    ret = uv_udp_init(&_self->loop, &qry->handle);
+    ret = uv_udp_init(&_self->loop, qry->handle);
     if (ret != 0) {
-        self->dropped_pkts++;
         lwarning("failed to init uv_udp_t");
-        return;
+        goto failure;
     }
+    qry->handle->data = (void*)req;
 
     qry->buf = uv_buf_init((char*)payload->payload, payload->len);
 
-    ret = uv_udp_try_send(&qry->handle, &qry->buf, 1, (struct sockaddr*)&_self->target);
+    ret = uv_udp_try_send(qry->handle, &qry->buf, 1, (struct sockaddr*)&_self->target);
     if (ret < 0) {
-        self->dropped_pkts++;
         lwarning("failed to send udp packet: %s", uv_strerror(ret));
-        return;
+        goto failure;
     }
-    client->req_total++;
 
     // TODO IPv4
     struct sockaddr_in6 src;
     int addr_len = sizeof(src);
-    uv_udp_getsockname(&qry->handle, (struct sockaddr*)&src, &addr_len);
+    uv_udp_getsockname(qry->handle, (struct sockaddr*)&src, &addr_len);
     ldebug("sent udp from port: %d", ntohs(src.sin6_port));
+
+    // TODO move to proper place
+    _close_request(req);
+
+    return;
+failure:
+    self->dropped_pkts++;
+    free(qry->handle);
+    free(qry);
+    free(req);
+    return;
 }
 
 /*** dnssim functions ***/
