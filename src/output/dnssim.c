@@ -33,7 +33,7 @@ typedef struct _output_dnssim {
     uv_loop_t loop;
     struct sockaddr_storage target;
 
-    void (*create_req)(output_dnssim_t*, output_dnssim_client_t*,
+    void (*create_request)(output_dnssim_t*, output_dnssim_client_t*,
         core_object_payload_t*);
 } _output_dnssim_t;
 
@@ -53,6 +53,7 @@ typedef struct _output_dnssim_query_udp {
 typedef struct _output_dnssim_request {
     _output_dnssim_query_t* qry;
     output_dnssim_client_t* client;
+    core_object_payload_t* payload;
     // TODO time start
     //uv_timer_t req_timeout;
 } _output_dnssim_request_t;
@@ -67,6 +68,9 @@ static output_dnssim_client_t _client_defaults = {
     0.0, 0.0, 0.0
 };
 
+// forward declarations
+static void _close_query_udp(_output_dnssim_query_udp_t* qry);
+
 core_log_t* output_dnssim_log()
 {
     return &_log;
@@ -74,16 +78,51 @@ core_log_t* output_dnssim_log()
 
 #define _self ((_output_dnssim_t*)self)
 
+
+/*** request/query ***/
+static void _maybe_free_request(_output_dnssim_request_t* req)
+{
+    if (req->qry == NULL) {
+        free(req);
+        mldebug("req freed");
+    }
+    // TODO optionally, free payload
+}
+
+static void _close_query(_output_dnssim_query_t* qry)
+{
+    switch(qry->transport) {
+    case OUTPUT_DNSSIM_TRANSPORT_UDP:
+        _close_query_udp((_output_dnssim_query_udp_t*)qry);
+        break;
+    default:
+        mlnotice("failed to close query: unsupported transport");
+        break;
+    }
+}
+
+static void _close_request(_output_dnssim_request_t* req)
+{
+    // finish any ongoing queries
+    _output_dnssim_query_t* qry = req->qry;
+    while (qry != NULL) {
+        _close_query(qry);
+        qry = qry->qry_prev;
+    }
+    _maybe_free_request(req);
+}
+
+
 /*** UDP dnssim ***/
-static void
-_uv_udp_alloc_cb(uv_handle_t* handle, size_t suggested_size, uv_buf_t* buf) {
+static void _uv_udp_alloc_cb(uv_handle_t* handle, size_t suggested_size, uv_buf_t* buf)
+{
 	buf->base = malloc(suggested_size);
 	buf->len = suggested_size;
 }
 
-static void
-_uv_udp_recv_cb(uv_udp_t* handle, ssize_t nread, const uv_buf_t* buf,
-		const struct sockaddr* addr, unsigned flags) {
+static void _uv_udp_recv_cb(uv_udp_t* handle, ssize_t nread, const uv_buf_t* buf,
+    const struct sockaddr* addr, unsigned flags)
+{
 	if (nread > 0) {
 		printf("Received: %d\n", nread);
 		//for (int i = 0; i < nread; ++i) {
@@ -96,14 +135,6 @@ _uv_udp_recv_cb(uv_udp_t* handle, ssize_t nread, const uv_buf_t* buf,
 	if (buf->base != NULL) {
 		free(buf->base);
 	}
-}
-
-static void _maybe_free_request(_output_dnssim_request_t* req)
-{
-    if (req->qry == NULL) {
-        free(req);
-        mldebug("req freed");
-    }
 }
 
 static void _close_query_udp_cb(uv_handle_t* handle)
@@ -145,48 +176,19 @@ static void _close_query_udp(_output_dnssim_query_udp_t* qry)
     uv_close((uv_handle_t*)qry->handle, _close_query_udp_cb);
 }
 
-static void _close_query(_output_dnssim_query_t* qry)
+static int _create_query_udp(output_dnssim_t* self, _output_dnssim_request_t* req)
 {
-    switch(qry->transport) {
-    case OUTPUT_DNSSIM_TRANSPORT_UDP:
-        _close_query_udp((_output_dnssim_query_udp_t*)qry);
-        break;
-    default:
-        mlnotice("failed to close query: unsupported transport");
-        break;
-    }
-}
-
-static void _close_request(_output_dnssim_request_t* req)
-{
-    // finish any ongoing queries
-    _output_dnssim_query_t* qry = req->qry;
-    while (qry != NULL) {
-        _close_query(qry);
-        qry = qry->qry_prev;
-    }
-}
-
-void _create_req_udp(output_dnssim_t* self, output_dnssim_client_t* client,
-        core_object_payload_t* payload) {
-    int ret;
     mlassert_self();
 
-    _output_dnssim_request_t* req;
+    int ret;
     _output_dnssim_query_udp_t* qry;
 
-    client->req_total++;
-
-    lfatal_oom(req = malloc(sizeof(_output_dnssim_request_t)));
     lfatal_oom(qry = malloc(sizeof(_output_dnssim_query_udp_t)));
     lfatal_oom(qry->handle = malloc(sizeof(uv_udp_t)));
 
     qry->qry.transport = OUTPUT_DNSSIM_TRANSPORT_UDP;
-    qry->qry.qry_prev = NULL;
-
-    req->client = client;
-    req->qry = (_output_dnssim_query_t*)qry;
-
+    qry->qry.qry_prev = req->qry;
+    qry->buf = uv_buf_init((char*)req->payload->payload, req->payload->len);
     ret = uv_udp_init(&_self->loop, qry->handle);
     if (ret != 0) {
         lwarning("failed to init uv_udp_t");
@@ -194,13 +196,12 @@ void _create_req_udp(output_dnssim_t* self, output_dnssim_client_t* client,
     }
     qry->handle->data = (void*)req;
 
-    qry->buf = uv_buf_init((char*)payload->payload, payload->len);
-
     ret = uv_udp_try_send(qry->handle, &qry->buf, 1, (struct sockaddr*)&_self->target);
     if (ret < 0) {
         lwarning("failed to send udp packet: %s", uv_strerror(ret));
         goto failure;
     }
+    req->qry = (_output_dnssim_query_t*)qry;
 
     // TODO IPv4
     struct sockaddr_in6 src;
@@ -208,14 +209,42 @@ void _create_req_udp(output_dnssim_t* self, output_dnssim_client_t* client,
     uv_udp_getsockname(qry->handle, (struct sockaddr*)&src, &addr_len);
     ldebug("sent udp from port: %d", ntohs(src.sin6_port));
 
+    // TODO listen for reply
+
+    return 0;
+failure:
+    free(qry->handle);
+    free(qry);
+    return ret;
+}
+
+static void _create_request_udp(output_dnssim_t* self, output_dnssim_client_t* client,
+    core_object_payload_t* payload)
+{
+    mlassert_self();
+
+    int ret;
+    _output_dnssim_request_t* req;
+
+    client->req_total++;
+
+    lfatal_oom(req = malloc(sizeof(_output_dnssim_request_t)));
+
+    req->client = client;
+    req->payload = payload;
+    req->qry = NULL;
+
+    ret = _create_query_udp(self, req);
+    if (ret != 0) {
+        goto failure;
+    }
+
     // TODO move to proper place
     _close_request(req);
 
     return;
 failure:
     self->dropped_pkts++;
-    free(qry->handle);
-    free(qry);
     free(req);
     return;
 }
@@ -230,7 +259,7 @@ output_dnssim_t* output_dnssim_new(size_t max_clients)
     *self = _defaults;
 
     _self->transport = OUTPUT_DNSSIM_TRANSPORT_UDP_ONLY;
-    _self->create_req = _create_req_udp;
+    _self->create_request = _create_request_udp;
 
     lfatal_oom(self->client_arr = calloc(
         max_clients, sizeof(output_dnssim_client_t)));
@@ -329,7 +358,7 @@ static void _receive(output_dnssim_t* self, const core_object_t* obj)
     }
 
     ldebug("client(c): %d", client);
-    _self->create_req(self, &self->client_arr[client], payload);
+    _self->create_request(self, &self->client_arr[client], payload);
 }
 
 core_receiver_t output_dnssim_receiver()
@@ -342,7 +371,7 @@ void output_dnssim_set_transport(output_dnssim_t* self, output_dnssim_transport_
 
     switch(tr) {
     case OUTPUT_DNSSIM_TRANSPORT_UDP_ONLY:
-        _self->create_req = _create_req_udp;
+        _self->create_request = _create_request_udp;
         linfo("transport set to UDP (no TCP fallback)");
         break;
     case OUTPUT_DNSSIM_TRANSPORT_UDP:
