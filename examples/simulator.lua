@@ -36,7 +36,7 @@ local output = require("dnsjit.output.dnssim").new(65000)
 input:open(pcap)
 layer:producer(input)
 output:udp_only()
-ret = output:target("::1", 53535)
+ret = output:target("::1", 53)
 if ret < 0 then
     return
 end

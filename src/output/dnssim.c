@@ -114,27 +114,44 @@ static void _close_request(_output_dnssim_request_t* req)
 
 
 /*** UDP dnssim ***/
-static void _uv_udp_alloc_cb(uv_handle_t* handle, size_t suggested_size, uv_buf_t* buf)
+static void _query_udp_alloc_cb(uv_handle_t* handle, size_t suggested_size, uv_buf_t* buf)
 {
-	buf->base = malloc(suggested_size);
-	buf->len = suggested_size;
+    mlfatal_oom(buf->base = malloc(suggested_size));
+    buf->len = suggested_size;
 }
 
-static void _uv_udp_recv_cb(uv_udp_t* handle, ssize_t nread, const uv_buf_t* buf,
+static void _query_udp_recv_cb(uv_udp_t* handle, ssize_t nread, const uv_buf_t* buf,
     const struct sockaddr* addr, unsigned flags)
 {
-	if (nread > 0) {
-		printf("Received: %d\n", nread);
-		//for (int i = 0; i < nread; ++i) {
-		//	printf("%c", buf->base[i]);
-		//}
-		//printf("\n");
-		uv_udp_recv_stop(handle);
-	}
+    if (nread > 0) {
+        mldebug("udp recv: %d", nread);
 
-	if (buf->base != NULL) {
-		free(buf->base);
-	}
+        // TODO match msgid
+        _output_dnssim_request_t* req = (_output_dnssim_request_t*)handle->data;
+        _output_dnssim_query_t* qry = req->qry;
+        _output_dnssim_query_udp_t* udp_qry;
+
+        req->client->req_answered++;
+
+        while (qry != NULL) {
+            if (qry->transport == OUTPUT_DNSSIM_TRANSPORT_UDP) {
+                udp_qry = (_output_dnssim_query_udp_t*)qry;
+                if (udp_qry->handle == (uv_udp_t*)handle) {
+                    _close_query((_output_dnssim_query_t*)udp_qry);
+                    break;
+                }
+            }
+            if (qry->qry_prev == NULL) {
+                mlwarning("failed to find query during recv");
+                break;
+            }
+            qry = qry->qry_prev;
+        }
+    }
+
+    if (buf->base != NULL) {
+        free(buf->base);
+    }
 }
 
 static void _close_query_udp_cb(uv_handle_t* handle)
@@ -173,6 +190,13 @@ static void _close_query_udp_cb(uv_handle_t* handle)
 
 static void _close_query_udp(_output_dnssim_query_udp_t* qry)
 {
+    int ret;
+
+    ret = uv_udp_recv_stop(qry->handle);
+    if (ret != 0) {
+        mldebug("failed uv_udp_recv_stop(): %s", uv_strerror(ret));
+    }
+
     uv_close((uv_handle_t*)qry->handle, _close_query_udp_cb);
 }
 
@@ -209,7 +233,12 @@ static int _create_query_udp(output_dnssim_t* self, _output_dnssim_request_t* re
     uv_udp_getsockname(qry->handle, (struct sockaddr*)&src, &addr_len);
     ldebug("sent udp from port: %d", ntohs(src.sin6_port));
 
-    // TODO listen for reply
+    // listen for reply
+    ret = uv_udp_recv_start(qry->handle, _query_udp_alloc_cb, _query_udp_recv_cb);
+    if (ret < 0) {
+        lwarning("failed uv_udp_recv_start(): %s", uv_strerror(ret));
+        return ret;
+    }
 
     return 0;
 failure:
@@ -239,13 +268,10 @@ static void _create_request_udp(output_dnssim_t* self, output_dnssim_client_t* c
         goto failure;
     }
 
-    // TODO move to proper place
-    _close_request(req);
-
     return;
 failure:
     self->dropped_pkts++;
-    free(req);
+    _close_request(req);
     return;
 }
 
