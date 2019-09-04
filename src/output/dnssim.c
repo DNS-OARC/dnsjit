@@ -54,8 +54,7 @@ typedef struct _output_dnssim_request {
     _output_dnssim_query_t* qry;
     output_dnssim_client_t* client;
     core_object_payload_t* payload;
-    // TODO time start
-    //uv_timer_t req_timeout;
+    uv_timer_t* timeout;
 } _output_dnssim_request_t;
 
 static core_log_t _log = LOG_T_INIT("output.dnssim");
@@ -70,6 +69,8 @@ static output_dnssim_client_t _client_defaults = {
 
 // forward declarations
 static void _close_query_udp(_output_dnssim_query_udp_t* qry);
+static void _close_request_timeout_cb(uv_handle_t* handle);
+static void _close_request_timeout(uv_timer_t* handle);
 
 core_log_t* output_dnssim_log()
 {
@@ -77,12 +78,13 @@ core_log_t* output_dnssim_log()
 }
 
 #define _self ((_output_dnssim_t*)self)
+#define REQUEST_TIMEOUT 3000
 
 
 /*** request/query ***/
 static void _maybe_free_request(_output_dnssim_request_t* req)
 {
-    if (req->qry == NULL) {
+    if (req->qry == NULL && req->timeout == NULL) {
         free(req);
         mldebug("req freed");
     }
@@ -103,6 +105,9 @@ static void _close_query(_output_dnssim_query_t* qry)
 
 static void _close_request(_output_dnssim_request_t* req)
 {
+    if (req->timeout != NULL) {
+        _close_request_timeout(req->timeout);
+    }
     // finish any ongoing queries
     _output_dnssim_query_t* qry = req->qry;
     while (qry != NULL) {
@@ -110,6 +115,21 @@ static void _close_request(_output_dnssim_request_t* req)
         qry = qry->qry_prev;
     }
     _maybe_free_request(req);
+}
+
+static void _close_request_timeout_cb(uv_handle_t* handle)
+{
+    _output_dnssim_request_t* req = (_output_dnssim_request_t*)handle->data;
+    free(handle);
+    mldebug("req timer freed");
+    req->timeout = NULL;
+    _close_request(req);
+}
+
+static void _close_request_timeout(uv_timer_t* handle)
+{
+    uv_timer_stop(handle);
+    uv_close((uv_handle_t*)handle, _close_request_timeout_cb);
 }
 
 
@@ -127,26 +147,11 @@ static void _query_udp_recv_cb(uv_udp_t* handle, ssize_t nread, const uv_buf_t* 
         mldebug("udp recv: %d", nread);
 
         // TODO match msgid
+
+        // accept answer -> close request
         _output_dnssim_request_t* req = (_output_dnssim_request_t*)handle->data;
-        _output_dnssim_query_t* qry = req->qry;
-        _output_dnssim_query_udp_t* udp_qry;
-
         req->client->req_answered++;
-
-        while (qry != NULL) {
-            if (qry->transport == OUTPUT_DNSSIM_TRANSPORT_UDP) {
-                udp_qry = (_output_dnssim_query_udp_t*)qry;
-                if (udp_qry->handle == (uv_udp_t*)handle) {
-                    _close_query((_output_dnssim_query_t*)udp_qry);
-                    break;
-                }
-            }
-            if (qry->qry_prev == NULL) {
-                mlwarning("failed to find query during recv");
-                break;
-            }
-            qry = qry->qry_prev;
-        }
+        _close_request(req);
     }
 
     if (buf->base != NULL) {
@@ -193,7 +198,7 @@ static void _close_query_udp(_output_dnssim_query_udp_t* qry)
     int ret;
 
     ret = uv_udp_recv_stop(qry->handle);
-    if (ret != 0) {
+    if (ret < 0) {
         mldebug("failed uv_udp_recv_stop(): %s", uv_strerror(ret));
     }
 
@@ -214,7 +219,7 @@ static int _create_query_udp(output_dnssim_t* self, _output_dnssim_request_t* re
     qry->qry.qry_prev = req->qry;
     qry->buf = uv_buf_init((char*)req->payload->payload, req->payload->len);
     ret = uv_udp_init(&_self->loop, qry->handle);
-    if (ret != 0) {
+    if (ret < 0) {
         lwarning("failed to init uv_udp_t");
         goto failure;
     }
@@ -264,7 +269,22 @@ static void _create_request_udp(output_dnssim_t* self, output_dnssim_client_t* c
     req->qry = NULL;
 
     ret = _create_query_udp(self, req);
-    if (ret != 0) {
+    if (ret < 0) {
+        goto failure;
+    }
+
+    lfatal_oom(req->timeout = malloc(sizeof(uv_timer_t)));
+    ret = uv_timer_init(&_self->loop, req->timeout);
+    req->timeout->data = req;
+    if (ret < 0) {
+        ldebug("failed uv_timer_init(): %s", uv_strerror(ret));
+        free(req->timeout);
+        req->timeout = NULL;
+        goto failure;
+    }
+    ret = uv_timer_start(req->timeout, _close_request_timeout, REQUEST_TIMEOUT, 0);
+    if (ret < 0) {
+        ldebug("failed uv_timer_start(): %s", uv_strerror(ret));
         goto failure;
     }
 
