@@ -60,22 +60,10 @@ while running ~= 0 do
 end
 
 -- stats
-dropped_pkts = tonumber(output.obj.dropped_pkts)
-req_total = 0
-req_answered = 0
-req_noerror = 0
-
-for i = 0, output.i_client do
-    client = output.obj.client_arr[i]
-    req_total = req_total + tonumber(client.req_total)
-    req_answered = req_answered + tonumber(client.req_answered)
-    req_noerror = req_noerror + tonumber(client.req_noerror)
-end
-
-print("dropped_pkts: "..dropped_pkts)
-print("req_total: "..req_total)
-print("req_answered: "..req_answered)
-print("req_noerror: "..req_noerror)
+print("discarded: "..output:discarded())
+print("total: "..output:total())
+print("answered: "..output:answered())
+print("noerror: "..output:noerror())
 
 --input:open(pcap)
 --layer:producer(input)

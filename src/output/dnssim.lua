@@ -81,15 +81,15 @@ function DnsSim:receive()
     local i = 1
     function lua_recv(ctx, obj)
         if obj == nil then
-            self.obj.dropped_pkts = self.obj.dropped_pkts + 1
-            self.obj._log:warning("packet droppped (no data)")
+            self.obj.discarded = self.obj.discarded + 1
+            self.obj._log:warning("packet discarded (no data)")
             return
         end
         local pkt = ffi.cast("core_object_t*", obj)
         repeat
             if pkt == nil then
-                self.obj.dropped_pkts = self.obj.dropped_pkts + 1
-                self.obj._log:warning("packet droppped (missing ip/ip6 object)")
+                self.obj.discarded = self.obj.discarded + 1
+                self.obj._log:warning("packet discarded (missing ip/ip6 object)")
                 return
             end
             if pkt.obj_type == object.IP or pkt.obj_type == object.IP6 then
@@ -140,6 +140,48 @@ end
 -- is expected to be received by DnsSim.
 function DnsSim:run_nowait()
     return C.output_dnssim_run_nowait(self.obj)
+end
+
+-- Number of input packets discarded due to various reasons.
+-- To investigate causes, run with increased logging level.
+function DnsSim:discarded()
+    return tonumber(self.obj.discarded)
+end
+
+-- Number of valid requests (input packets) processed.
+function DnsSim:total()
+    local total = 0
+    for i = 0, self.i_client do
+        local n = tonumber(self.obj.client_arr[i].req_total)
+        if n ~= nil then
+            total = total + n
+        end
+    end
+    return total
+end
+
+-- Number of requests that received an answer
+function DnsSim:answered()
+    local answered = 0
+    for i = 0, self.i_client do
+        local n = tonumber(self.obj.client_arr[i].req_answered)
+        if n ~= nil then
+            answered = answered + n
+        end
+    end
+    return answered
+end
+
+-- Number of requests that received a NOERROR response
+function DnsSim:noerror()
+    local noerror = 0
+    for i = 0, self.i_client do
+        local n = tonumber(self.obj.client_arr[i].req_noerror)
+        if n ~= nil then
+            noerror = noerror + n
+        end
+    end
+    return noerror
 end
 
 return DnsSim
