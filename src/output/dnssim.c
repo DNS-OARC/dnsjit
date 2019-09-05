@@ -54,6 +54,7 @@ typedef struct _output_dnssim_query_udp {
 typedef struct _output_dnssim_request {
     _output_dnssim_query_t* qry;
     output_dnssim_client_t* client;
+    core_object_payload_t* payload;
     core_object_dns_t* dns_q;
     uv_timer_t* timeout;
 } _output_dnssim_request_t;
@@ -89,7 +90,7 @@ core_log_t* output_dnssim_log()
 static void _maybe_free_request(_output_dnssim_request_t* req)
 {
     if (req->qry == NULL && req->timeout == NULL) {
-        // TODO optionally, free payload
+        core_object_payload_free(req->payload);
         core_object_dns_free(req->dns_q);
         free(req);
         mldebug("req freed");
@@ -217,7 +218,7 @@ static void _close_query_udp_cb(uv_handle_t* handle)
                     parent_qry->qry_prev = qry->qry_prev;
                 }
                 free(qry);
-                mldebug("udp query freed");
+                mldebug("freed udp query %p", qry);
                 return;
             }
         }
@@ -262,13 +263,13 @@ static int _create_query_udp(output_dnssim_t* self, _output_dnssim_request_t* re
         goto failure;
     }
     qry->handle->data = (void*)req;
+    req->qry = (_output_dnssim_query_t*)qry;
 
     ret = uv_udp_try_send(qry->handle, &qry->buf, 1, (struct sockaddr*)&_self->target);
     if (ret < 0) {
         lwarning("failed to send udp packet: %s", uv_strerror(ret));
-        goto failure;
+        return ret;
     }
-    req->qry = (_output_dnssim_query_t*)qry;
 
     // TODO IPv4
     struct sockaddr_in6 src;
@@ -297,22 +298,21 @@ static void _create_request_udp(output_dnssim_t* self, output_dnssim_client_t* c
 
     int ret;
     _output_dnssim_request_t* req;
-    core_object_dns_t* dns_q = core_object_dns_new();
-    dns_q->obj_prev = (core_object_t*)payload;
 
-    ret = core_object_dns_parse_header(dns_q);
+    lfatal_oom(req = malloc(sizeof(_output_dnssim_request_t)));
+    memset(req, 0, sizeof(_output_dnssim_request_t));
+    req->client = client;
+    req->payload = core_object_payload_copy(payload);
+    req->dns_q = core_object_dns_new();
+    req->dns_q->obj_prev = (core_object_t*)req->payload;
+
+    ret = core_object_dns_parse_header(req->dns_q);
     if (ret != 0) {
-        ldebug("dropped malformed dns query: couldn't parse header");
-        core_object_dns_free(dns_q);
+        ldebug("discarded malformed dns query: couldn't parse header");
         goto failure;
     }
 
-    client->req_total++;
-
-    lfatal_oom(req = malloc(sizeof(_output_dnssim_request_t)));
-    req->client = client;
-    req->dns_q = dns_q;
-    req->qry = NULL;
+    req->client->req_total++;
 
     ret = _create_query_udp(self, req);
     if (ret < 0) {
@@ -336,7 +336,7 @@ static void _create_request_udp(output_dnssim_t* self, output_dnssim_client_t* c
 
     return;
 failure:
-    self->dropped_pkts++;
+    self->discarded++;
     _close_request(req);
     return;
 }
@@ -422,8 +422,8 @@ static void _receive(output_dnssim_t* self, const core_object_t* obj)
             break;
         }
         if (obj->obj_prev == NULL) {
-            self->dropped_pkts++;
-            lwarning("packet droppped (missing payload object)");
+            self->discarded++;
+            lwarning("packet discarded (missing payload object)");
             return;
         }
         obj = (const core_object_t*)obj->obj_prev;
@@ -436,16 +436,16 @@ static void _receive(output_dnssim_t* self, const core_object_t* obj)
             break;
         }
         if (obj->obj_prev == NULL) {
-            self->dropped_pkts++;
-            lwarning("packet droppped (missing ip/ip6 object)");
+            self->discarded++;
+            lwarning("packet discarded (missing ip/ip6 object)");
             return;
         }
         obj = (const core_object_t*)obj->obj_prev;
     }
 
     if (client >= self->max_clients) {
-        self->dropped_pkts++;
-        lwarning("packet dropped (client exceeded max_clients)");
+        self->discarded++;
+        lwarning("packet discarded (client exceeded max_clients)");
         return;
     }
 
