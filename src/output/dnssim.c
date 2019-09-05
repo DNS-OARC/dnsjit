@@ -25,6 +25,7 @@
 #include "core/object/ip.h"
 #include "core/object/ip6.h"
 #include "core/object/payload.h"
+#include "core/object/dns.h"
 
 typedef struct _output_dnssim {
     output_dnssim_t pub;
@@ -53,7 +54,7 @@ typedef struct _output_dnssim_query_udp {
 typedef struct _output_dnssim_request {
     _output_dnssim_query_t* qry;
     output_dnssim_client_t* client;
-    core_object_payload_t* payload;
+    core_object_dns_t* dns_q;
     uv_timer_t* timeout;
 } _output_dnssim_request_t;
 
@@ -79,16 +80,20 @@ core_log_t* output_dnssim_log()
 
 #define _self ((_output_dnssim_t*)self)
 #define REQUEST_TIMEOUT 3000
+#define _ERR_MALFORMED -2
+#define _ERR_MSGID -3
+#define _ERR_TC -4
 
 
 /*** request/query ***/
 static void _maybe_free_request(_output_dnssim_request_t* req)
 {
     if (req->qry == NULL && req->timeout == NULL) {
+        // TODO optionally, free payload
+        core_object_dns_free(req->dns_q);
         free(req);
         mldebug("req freed");
     }
-    // TODO optionally, free payload
 }
 
 static void _close_query(_output_dnssim_query_t* qry)
@@ -105,6 +110,9 @@ static void _close_query(_output_dnssim_query_t* qry)
 
 static void _close_request(_output_dnssim_request_t* req)
 {
+    if (req == NULL) {
+        return;
+    }
     if (req->timeout != NULL) {
         _close_request_timeout(req->timeout);
     }
@@ -134,6 +142,39 @@ static void _close_request_timeout(uv_timer_t* handle)
 
 
 /*** UDP dnssim ***/
+static int _process_udp_response(uv_udp_t* handle, ssize_t nread, const uv_buf_t* buf)
+{
+    _output_dnssim_request_t* req = (_output_dnssim_request_t*)handle->data;
+    core_object_payload_t payload = CORE_OBJECT_PAYLOAD_INIT(NULL);
+    core_object_dns_t dns_a = CORE_OBJECT_DNS_INIT(&payload);
+
+    payload.payload = buf->base;
+    payload.len = nread;
+
+    dns_a.obj_prev = (core_object_t*)&payload;
+    int ret = core_object_dns_parse_header(&dns_a);
+    if (ret != 0) {
+        mldebug("udp response malformed");
+        return _ERR_MALFORMED;
+    }
+    if (dns_a.id != req->dns_q->id) {
+        mldebug("udp response msgid mismatch %x(q) != %x(a)", req->dns_q->id, dns_a.id);
+        return _ERR_MSGID;
+    }
+    if (dns_a.tc == 1) {
+        mldebug("udp response has TC=1");
+        return _ERR_TC;
+    }
+
+    req->client->req_answered++;
+    if (dns_a.rcode == CORE_OBJECT_DNS_RCODE_NOERROR) {
+        req->client->req_noerror++;
+    }
+
+    _close_request(req);
+    return 0;
+}
+
 static void _query_udp_alloc_cb(uv_handle_t* handle, size_t suggested_size, uv_buf_t* buf)
 {
     mlfatal_oom(buf->base = malloc(suggested_size));
@@ -146,12 +187,8 @@ static void _query_udp_recv_cb(uv_udp_t* handle, ssize_t nread, const uv_buf_t* 
     if (nread > 0) {
         mldebug("udp recv: %d", nread);
 
-        // TODO match msgid
-
-        // accept answer -> close request
-        _output_dnssim_request_t* req = (_output_dnssim_request_t*)handle->data;
-        req->client->req_answered++;
-        _close_request(req);
+        // TODO handle TC=1
+        _process_udp_response(handle, nread, buf);
     }
 
     if (buf->base != NULL) {
@@ -211,13 +248,14 @@ static int _create_query_udp(output_dnssim_t* self, _output_dnssim_request_t* re
 
     int ret;
     _output_dnssim_query_udp_t* qry;
+    core_object_payload_t* payload = (core_object_payload_t*)req->dns_q->obj_prev;
 
     lfatal_oom(qry = malloc(sizeof(_output_dnssim_query_udp_t)));
     lfatal_oom(qry->handle = malloc(sizeof(uv_udp_t)));
 
     qry->qry.transport = OUTPUT_DNSSIM_TRANSPORT_UDP;
     qry->qry.qry_prev = req->qry;
-    qry->buf = uv_buf_init((char*)req->payload->payload, req->payload->len);
+    qry->buf = uv_buf_init((char*)payload->payload, payload->len);
     ret = uv_udp_init(&_self->loop, qry->handle);
     if (ret < 0) {
         lwarning("failed to init uv_udp_t");
@@ -259,13 +297,21 @@ static void _create_request_udp(output_dnssim_t* self, output_dnssim_client_t* c
 
     int ret;
     _output_dnssim_request_t* req;
+    core_object_dns_t* dns_q = core_object_dns_new();
+    dns_q->obj_prev = (core_object_t*)payload;
+
+    ret = core_object_dns_parse_header(dns_q);
+    if (ret != 0) {
+        ldebug("dropped malformed dns query: couldn't parse header");
+        core_object_dns_free(dns_q);
+        goto failure;
+    }
 
     client->req_total++;
 
     lfatal_oom(req = malloc(sizeof(_output_dnssim_request_t)));
-
     req->client = client;
-    req->payload = payload;
+    req->dns_q = dns_q;
     req->qry = NULL;
 
     ret = _create_query_udp(self, req);

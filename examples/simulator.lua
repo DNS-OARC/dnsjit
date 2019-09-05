@@ -59,10 +59,23 @@ while running ~= 0 do
     running = output:run_nowait()
 end
 
-print("dropped_pkts: "..tonumber(output.obj.dropped_pkts))
-print("clint0 req_total: "..tonumber(output.obj.client_arr[0].req_total))
-print("clint0 req_answered: "..tonumber(output.obj.client_arr[0].req_answered))
-print("clint26 req_total: "..tonumber(output.obj.client_arr[26].req_total))
+-- stats
+dropped_pkts = tonumber(output.obj.dropped_pkts)
+req_total = 0
+req_answered = 0
+req_noerror = 0
+
+for i = 0, output.i_client do
+    client = output.obj.client_arr[i]
+    req_total = req_total + tonumber(client.req_total)
+    req_answered = req_answered + tonumber(client.req_answered)
+    req_noerror = req_noerror + tonumber(client.req_noerror)
+end
+
+print("dropped_pkts: "..dropped_pkts)
+print("req_total: "..req_total)
+print("req_answered: "..req_answered)
+print("req_noerror: "..req_noerror)
 
 --input:open(pcap)
 --layer:producer(input)
