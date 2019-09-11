@@ -57,6 +57,7 @@ typedef struct _output_dnssim_request {
     core_object_payload_t* payload;
     core_object_dns_t* dns_q;
     uv_timer_t* timeout;
+    output_dnssim_t* dnssim;
 } _output_dnssim_request_t;
 
 static core_log_t _log = LOG_T_INIT("output.dnssim");
@@ -90,7 +91,10 @@ core_log_t* output_dnssim_log()
 static void _maybe_free_request(_output_dnssim_request_t* req)
 {
     if (req->qry == NULL && req->timeout == NULL) {
-        core_object_payload_free(req->payload);
+        if (req->dnssim->free_after_use) {
+            core_object_payload_free(req->payload);
+            mldebug("payload freed");
+        }
         core_object_dns_free(req->dns_q);
         free(req);
         mldebug("req freed");
@@ -301,8 +305,9 @@ static void _create_request_udp(output_dnssim_t* self, output_dnssim_client_t* c
 
     lfatal_oom(req = malloc(sizeof(_output_dnssim_request_t)));
     memset(req, 0, sizeof(_output_dnssim_request_t));
+    req->dnssim = self;
     req->client = client;
-    req->payload = core_object_payload_copy(payload);
+    req->payload = payload;
     req->dns_q = core_object_dns_new();
     req->dns_q->obj_prev = (core_object_t*)req->payload;
 
@@ -412,35 +417,49 @@ ssize_t _extract_client(const core_object_t* obj) {
 static void _receive(output_dnssim_t* self, const core_object_t* obj)
 {
     mlassert_self();
+    core_object_t* current = (core_object_t*)obj;
     core_object_payload_t* payload;
     ssize_t client;
 
     /* get payload from packet */
     for (;;) {
-        if (obj->obj_type == CORE_OBJECT_PAYLOAD) {
-            payload = (core_object_payload_t*)obj;
+        if (current->obj_type == CORE_OBJECT_PAYLOAD) {
+            payload = (core_object_payload_t*)current;
             break;
         }
-        if (obj->obj_prev == NULL) {
+        if (current->obj_prev == NULL) {
             self->discarded++;
             lwarning("packet discarded (missing payload object)");
             return;
         }
-        obj = (const core_object_t*)obj->obj_prev;
+        current = (core_object_t*)current->obj_prev;
     }
 
     /* extract client information from IP/IP6 layer */
     for (;;) {
-        if (obj->obj_type == CORE_OBJECT_IP || obj->obj_type == CORE_OBJECT_IP6) {
-            client = _extract_client(obj);
+        if (current->obj_type == CORE_OBJECT_IP || current->obj_type == CORE_OBJECT_IP6) {
+            client = _extract_client(current);
             break;
         }
-        if (obj->obj_prev == NULL) {
+        if (current->obj_prev == NULL) {
             self->discarded++;
             lwarning("packet discarded (missing ip/ip6 object)");
             return;
         }
-        obj = (const core_object_t*)obj->obj_prev;
+        current = (core_object_t*)current->obj_prev;
+    }
+
+    if (self->free_after_use) {
+        /* free all objects except payload */
+        current = (core_object_t*)obj;
+        core_object_t* parent = current;
+        while (current != NULL) {
+            parent = current;
+            current = (core_object_t*)current->obj_prev;
+            if (parent->obj_type != CORE_OBJECT_PAYLOAD) {
+                core_object_free(parent);
+            }
+        }
     }
 
     if (client >= self->max_clients) {
@@ -503,5 +522,6 @@ int output_dnssim_run_nowait(output_dnssim_t* self)
 {
     mlassert_self();
 
+    ldebug("executing libuv loop");
     return uv_run(&_self->loop, UV_RUN_NOWAIT);
 }

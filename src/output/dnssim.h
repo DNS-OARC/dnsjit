@@ -25,6 +25,7 @@
 #ifndef __dnsjit_output_dnssim_h
 #define __dnsjit_output_dnssim_h
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <uv.h>

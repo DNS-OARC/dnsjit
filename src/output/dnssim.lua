@@ -75,6 +75,12 @@ function DnsSim:tls()
     C.output_dnssim_set_transport(self.obj, C.OUTPUT_DNSSIM_TRANSPORT_TLS)
 end
 
+-- Set this to true if dnssim should free the memory of passed-in objects (useful
+-- when using copy() to pass objects from different thread).
+function DnsSim:free_after_use(free_after_use)
+    self.obj.free_after_use = free_after_use
+end
+
 -- Return the C function and context for receiving objects.
 function DnsSim:receive()
     local receive = C.output_dnssim_receiver()
