@@ -29,93 +29,82 @@ if pcap == nil then
     return
 end
 
-
 local input = require("dnsjit.input.fpcap").new()
 local layer = require("dnsjit.filter.layer").new()
-local output = require("dnsjit.output.dnssim").new(65000)
+local channel = require("dnsjit.core.channel").new()
+local thread = require("dnsjit.core.thread").new()
 input:open(pcap)
 layer:producer(input)
-output:udp_only()
-ret = output:target("::1", 53)
-if ret < 0 then
-    return
-end
 
-local running = 0
-local recv, rctx = output:receive()
-local prod, pctx = layer:produce()
+local function thread_main(thr)
+    --local object = require("dnsjit.core.objects")
+    local MAX_BATCH_SIZE = 32
+    local chann = thr:pop()
+    local output = require("dnsjit.output.dnssim").new(65000)
+    local running
+    output:udp_only()
+    output:target("::1", 53)
+    output:free_after_use(true)
 
-while true do
-    pkt = prod(pctx)
-    if pkt == nil then
-        break
+    local recv, rctx = output:receive()
+    while true do
+        local obj
+        local i = 0
+
+        -- read available data from channel
+        while i < MAX_BATCH_SIZE do
+            obj = chann:try_get()
+            if obj == nil then break end
+            recv(rctx, obj)
+            i = i + 1
+        end
+
+        -- execute libuv loop
+        running = output:run_nowait()
+
+        -- check if channel is still open
+        if obj == nil and chann.closed then
+            break
+        end
     end
-    recv(rctx, pkt)
-    running = output:run_nowait()
+
+    -- finish processing outstanding requests
+    while running ~= 0 do
+        running = output:run_nowait()
+    end
 end
 
--- finish processing
-while running ~= 0 do
-    running = output:run_nowait()
+-- initialize thread
+thread:start(thread_main)
+thread:push(channel)
+
+-- read PCAP, parse, copy objects and pass to channel
+local prod, pctx = layer:produce()
+while true do
+    local obj, payload, ip6
+    local srcobj = prod(pctx)
+    if srcobj == nil then break end
+
+    -- find and copy payload object
+    obj = srcobj:cast()
+    while (obj.obj_type ~= object.PAYLOAD and obj.obj_prev ~= nil) do
+        obj = obj.obj_prev:cast()
+    end
+    if obj.obj_type == object.PAYLOAD then
+        payload = obj:copy()
+
+        -- find and copy IP6 object
+        while (obj.obj_type ~= object.IP6 and obj.obj_prev ~= nil) do
+            obj = obj.obj_prev:cast()
+        end
+        if obj.obj_type == object.IP6 then
+            ip6 = obj:copy()
+            payload.obj_prev = ffi.cast("core_object_t*", ip6)
+
+            channel:put(payload)
+        end
+    end
 end
 
--- stats
-print("discarded: "..output:discarded())
-print("total: "..output:total())
-print("answered: "..output:answered())
-print("noerror: "..output:noerror())
-
---input:open(pcap)
---layer:producer(input)
---
---thread:start(function(thread)
---    local ffi  =require("ffi")
---    local object = require("dnsjit.core.objects")
---    local channel = thread:pop()
---    local output = require("dnsjit.output.dnssim").new(65000)
---    local running = 0
---    output:udp_only()
---
---    local recv, rctx = output:receive()
---    while true do
---        local obj = channel:get()
---        if obj == nil then break end
---        local pl = ffi.cast("core_object_t*", obj):cast()
---        while pl.obj_type ~= object.IP6 do
---            pl = pl.obj_prev:cast()
---        end
---        print(pl:source())
---        recv(rctx, obj)
---        running = output:run_nowait()
---    end
---
---    while running ~= 0 do
---        running = output:run_nowait()
---    end
---
---    print("dropped_pkts: "..tonumber(output.obj.dropped_pkts))
---end)
---thread:push(channel)
---
---local prod, pctx = layer:produce()
---while true do
---    local obj = prod(pctx)
---    if obj == nil then break end
---    local pl = obj:cast()
---    while pl.obj_type ~= object.IP6 do
---        pl = pl.obj_prev:cast()
---    end
---    print(pl:source())
---    --if obj:type() == "payload" and pl.len > 0 then
---    --    print("d")
---    --end
---
---    --if pkt:type() == "payload" then
---        --pkt.obj_prev
---
---    channel:put(obj)
---    --end
---end
---
---channel:close()
---thread:stop()
+channel:close()
+thread:stop()
