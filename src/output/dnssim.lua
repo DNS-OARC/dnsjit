@@ -27,6 +27,7 @@
 module(...,package.seeall)
 
 require("dnsjit.output.dnssim_h")
+local bit = require("bit")
 local object = require("dnsjit.core.objects")
 local ffi = require("ffi")
 local C = ffi.C
@@ -110,14 +111,10 @@ function DnsSim:receive()
                 self.obj._log:debug("client(lua): "..client)
 
                 -- put the client number into dst IP
-                -- NOTE: this is a mess because luajit doesn't have bitwise ops
-                ip.dst[3] = client % 256
-                client = client - ip.dst[3]
-                ip.dst[2] = (client % 65536) / 256
-                client = client - (ip.dst[2] * 256)
-                ip.dst[1] = (client % 16777216) / 65536
-                client = client - (ip.dst[1] * 65536)
-                ip.dst[0] = client / 16777216
+                ip.dst[3] = bit.band(client, 0xff)
+                ip.dst[2] = bit.rshift(bit.band(client, 0xff00), 8)
+                ip.dst[1] = bit.rshift(bit.band(client, 0xff0000), 16)
+                ip.dst[0] = bit.rshift(bit.band(client, 0xff000000), 24)
 
                 return receive(ctx, obj)
             end
