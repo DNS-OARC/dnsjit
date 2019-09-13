@@ -138,6 +138,12 @@ function DnsSim:target(ip, port)
     return C.output_dnssim_target(self.obj, ip, nport)
 end
 
+-- Specify source address for sending queries. Can be set multiple times. Adresses
+-- are selected round-robin when sending.
+function DnsSim:bind(ip)
+    return C.output_dnssim_bind(self.obj, ip)
+end
+
 -- Run the libuv loop once without blocking when there is no I/O. This
 -- should be called repeatedly until 0 is returned and no more data
 -- is expected to be received by DnsSim.
