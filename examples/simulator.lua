@@ -41,6 +41,7 @@ local function thread_main(thr)
     local MAX_BATCH_SIZE = 32
     local chann = thr:pop()
     local output = require("dnsjit.output.dnssim").new(65000)
+    local unique_id = tostring( {} ):sub(8)
     local running
     output:udp_only()
     output:target("::1", 53)
@@ -72,6 +73,9 @@ local function thread_main(thr)
     while running ~= 0 do
         running = output:run_nowait()
     end
+
+    -- output results to file
+    output:export("data_"..unique_id..".json")
 end
 
 -- initialize thread

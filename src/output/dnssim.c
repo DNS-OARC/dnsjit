@@ -522,6 +522,5 @@ int output_dnssim_run_nowait(output_dnssim_t* self)
 {
     mlassert_self();
 
-    ldebug("executing libuv loop");
     return uv_run(&_self->loop, UV_RUN_NOWAIT);
 }
