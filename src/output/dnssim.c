@@ -27,12 +27,19 @@
 #include "core/object/payload.h"
 #include "core/object/dns.h"
 
+typedef struct _output_dnssim_source _output_dnssim_source_t;
+struct _output_dnssim_source {
+    _output_dnssim_source_t* next;
+    struct sockaddr_storage addr;
+};
+
 typedef struct _output_dnssim {
     output_dnssim_t pub;
 
     output_dnssim_transport_t transport;
     uv_loop_t loop;
     struct sockaddr_storage target;
+    _output_dnssim_source_t* source;
 
     void (*create_request)(output_dnssim_t*, output_dnssim_client_t*,
         core_object_payload_t*);
@@ -269,6 +276,16 @@ static int _create_query_udp(output_dnssim_t* self, _output_dnssim_request_t* re
     qry->handle->data = (void*)req;
     req->qry = (_output_dnssim_query_t*)qry;
 
+    // bind to IP address
+    if (_self->source != NULL) {
+        ret = uv_udp_bind(qry->handle, (struct sockaddr*)&_self->source->addr, 0);
+        if (ret < 0) {
+            lwarning("failed to bind to address: %s", uv_strerror(ret));
+            return ret;
+        }
+        _self->source = _self->source->next;
+    }
+
     ret = uv_udp_try_send(qry->handle, &qry->buf, 1, (struct sockaddr*)&_self->target);
     if (ret < 0) {
         lwarning("failed to send udp packet: %s", uv_strerror(ret));
@@ -355,6 +372,7 @@ output_dnssim_t* output_dnssim_new(size_t max_clients)
     mlfatal_oom(self = malloc(sizeof(_output_dnssim_t)));
     *self = _defaults;
 
+    _self->source = NULL;
     _self->transport = OUTPUT_DNSSIM_TRANSPORT_UDP_ONLY;
     _self->create_request = _create_request_udp;
 
@@ -378,6 +396,17 @@ void output_dnssim_free(output_dnssim_t* self)
 {
     mlassert_self();
     int ret;
+    _output_dnssim_source_t* source;
+    _output_dnssim_source_t* first = _self->source;
+
+    if (_self->source != NULL) {
+        // free cilcular linked list
+        do {
+            source = _self->source->next;
+            free(_self->source);
+            _self->source = source;
+        } while (_self->source != first);
+    }
 
     free(self->client_arr);
 
@@ -515,6 +544,31 @@ int output_dnssim_target(output_dnssim_t* self, const char* ip, uint16_t port) {
     }
 
     linfo("set target to %s port %d", ip, port);
+    return 0;
+}
+
+int output_dnssim_bind(output_dnssim_t* self, const char* ip) {
+    int ret;
+    mlassert_self();
+    lassert(ip, "ip is nil");
+
+    _output_dnssim_source_t* source;
+    lfatal_oom(source = malloc(sizeof(_output_dnssim_source_t)));
+
+    ret = uv_ip6_addr(ip, 0, (struct sockaddr_in6*)&source->addr);
+    if (ret != 0) {
+        lfatal("failed to parse IPv6 from \"%s\"", ip);
+        return -1;
+        // TODO IPv4 support
+    }
+
+    if (_self->source == NULL) {
+        source->next = source;
+        _self->source = source;
+    } else {
+        source->next = _self->source->next;
+        _self->source->next = source;
+    }
     return 0;
 }
 
