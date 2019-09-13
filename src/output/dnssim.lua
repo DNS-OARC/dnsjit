@@ -187,4 +187,21 @@ function DnsSim:noerror()
     return noerror
 end
 
+-- Export the results to a JSON file
+function DnsSim:export(filename)
+    local file = io.open(filename, "w")
+    if file == nil then
+        -- TODO log error
+        return
+    end
+
+    file:write("{\n")
+    file:write('"discarded": ', self:discarded(), ', \n')
+    file:write('"total": ', self:total(), ', \n')
+    file:write('"answered": ', self:answered(), ', \n')
+    file:write('"noerror": ', self:noerror(), ', \n')
+    file:write("}")
+    file:close()
+end
+
 return DnsSim
