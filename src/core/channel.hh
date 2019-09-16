@@ -42,6 +42,7 @@ int core_channel_try_put(core_channel_t* self, const void* obj);
 void* core_channel_get(core_channel_t* self);
 void* core_channel_try_get(core_channel_t* self);
 int core_channel_size(core_channel_t* self);
+bool core_channel_full(core_channel_t* self);
 void core_channel_close(core_channel_t* self);
 
 core_receiver_t core_channel_receiver();

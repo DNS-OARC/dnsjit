@@ -115,6 +115,12 @@ int core_channel_size(core_channel_t* self)
     return ck_ring_size(&self->ring);
 }
 
+bool core_channel_full(core_channel_t* self)
+{
+    mlassert_self();
+    return (core_channel_size(self) >= (self->capacity - 1));
+}
+
 void core_channel_close(core_channel_t* self)
 {
     mlassert_self();

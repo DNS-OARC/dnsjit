@@ -109,6 +109,11 @@ function Channel:size()
     return C.core_channel_size(self)
 end
 
+-- Returns true when channel is full.
+function Channel:full()
+    return C.core_channel_full(self)
+end
+
 -- Close the channel.
 function Channel:close()
     C.core_channel_close(self)
