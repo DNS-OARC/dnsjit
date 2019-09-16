@@ -50,16 +50,16 @@ local core_channel_t
 local Channel = {}
 
 -- Create a new Channel, use the optional
--- .I size
--- to specify the size of the channel (buffer).
--- Size must be a power-of-two greater than or equal to 4.
--- Default size is 2048.
-function Channel.new(size)
-    if size == nil then
-        size = 2048
+-- .I capacity
+-- to specify the capacity of the channel (buffer).
+-- Capacity must be a power-of-two greater than or equal to 4.
+-- Default capacity is 2048.
+function Channel.new(capacity)
+    if capacity == nil then
+        capacity = 2048
     end
     local self = core_channel_t()
-    C.core_channel_init(self, size)
+    C.core_channel_init(self, capacity)
     ffi.gc(self, C.core_channel_destroy)
     return self
 end
@@ -102,6 +102,11 @@ end
 -- Returns nil if there was no objects to get.
 function Channel:try_get()
     return C.core_channel_try_get(self)
+end
+
+-- Return number of enqueued objects.
+function Channel:size()
+    return C.core_channel_size(self)
 end
 
 -- Close the channel.

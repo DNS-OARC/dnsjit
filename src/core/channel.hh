@@ -27,6 +27,7 @@ typedef struct core_channel {
     ck_ring_buffer_t* ring_buf;
     ck_ring_t         ring;
     int               closed;
+    size_t            capacity;
 
     core_receiver_t recv;
     void*           ctx;
@@ -34,12 +35,13 @@ typedef struct core_channel {
 
 core_log_t* core_channel_log();
 
-void core_channel_init(core_channel_t* self, size_t size);
+void core_channel_init(core_channel_t* self, size_t capacity);
 void core_channel_destroy(core_channel_t* self);
 void core_channel_put(core_channel_t* self, const void* obj);
 int core_channel_try_put(core_channel_t* self, const void* obj);
 void* core_channel_get(core_channel_t* self);
 void* core_channel_try_get(core_channel_t* self);
+int core_channel_size(core_channel_t* self);
 void core_channel_close(core_channel_t* self);
 
 core_receiver_t core_channel_receiver();
