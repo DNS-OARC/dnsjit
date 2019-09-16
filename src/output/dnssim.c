@@ -64,6 +64,7 @@ typedef struct _output_dnssim_request {
     core_object_payload_t* payload;
     core_object_dns_t* dns_q;
     uv_timer_t* timeout;
+    uint8_t timeout_closing;
     output_dnssim_t* dnssim;
 } _output_dnssim_request_t;
 
@@ -148,8 +149,13 @@ static void _close_request_timeout_cb(uv_handle_t* handle)
 
 static void _close_request_timeout(uv_timer_t* handle)
 {
-    uv_timer_stop(handle);
-    uv_close((uv_handle_t*)handle, _close_request_timeout_cb);
+    _output_dnssim_request_t* req = (_output_dnssim_request_t*)handle->data;
+
+    if (!req->timeout_closing) {
+        req->timeout_closing = 1;
+        uv_timer_stop(handle);
+        uv_close((uv_handle_t*)handle, _close_request_timeout_cb);
+    }
 }
 
 
