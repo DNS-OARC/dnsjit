@@ -84,6 +84,12 @@ function Channel:put(obj)
     C.core_channel_put(self, obj)
 end
 
+-- Try and put an object into the channel.
+-- Returns 0 on success.
+function Channel:put(obj)
+    C.core_channel_try_put(self, obj)
+end
+
 -- Get an object from the channel, if the channel is empty it will wait until
 -- an object is available.
 -- Returns nil if the channel is closed or if a nil object was explicitly put

@@ -66,6 +66,18 @@ void core_channel_put(core_channel_t* self, const void* obj)
     }
 }
 
+int core_channel_try_put(core_channel_t* self, const void* obj)
+{
+    mlassert_self();
+    lassert(self->ring_buf, "ring_buf is nil");
+
+    if (!ck_ring_enqueue_spsc(&self->ring, self->ring_buf, (void*)obj)) {
+        return -1;
+    }
+
+    return 0;
+}
+
 void* core_channel_get(core_channel_t* self)
 {
     void* obj = 0;
