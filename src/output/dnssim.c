@@ -70,8 +70,9 @@ typedef struct _output_dnssim_request {
 
 static core_log_t _log = LOG_T_INIT("output.dnssim");
 static output_dnssim_t _defaults = {
-    LOG_T_INIT_OBJ("output.dnssim"),
-    OUTPUT_DNSSIM_TRANSPORT_UDP_ONLY, 0, 0
+    LOG_T_INIT_OBJ("output.dnssim"), 0,
+    0, 0, 0,
+    2000
 };
 static output_dnssim_client_t _client_defaults = {
     0, 0, 0,
@@ -89,7 +90,6 @@ core_log_t* output_dnssim_log()
 }
 
 #define _self ((_output_dnssim_t*)self)
-#define REQUEST_TIMEOUT 3000
 #define _ERR_MALFORMED -2
 #define _ERR_MSGID -3
 #define _ERR_TC -4
@@ -356,7 +356,7 @@ static void _create_request_udp(output_dnssim_t* self, output_dnssim_client_t* c
         req->timeout = NULL;
         goto failure;
     }
-    ret = uv_timer_start(req->timeout, _close_request_timeout, REQUEST_TIMEOUT, 0);
+    ret = uv_timer_start(req->timeout, _close_request_timeout, self->timeout_ms, 0);
     if (ret < 0) {
         ldebug("failed uv_timer_start(): %s", uv_strerror(ret));
         goto failure;
