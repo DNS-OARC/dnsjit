@@ -75,6 +75,15 @@ function DnsSim:tls()
     C.output_dnssim_set_transport(self.obj, C.OUTPUT_DNSSIM_TRANSPORT_TLS)
 end
 
+-- Set timeout for the individual requests in seconds (default 2s).
+function DnsSim:timeout(seconds)
+    if seconds == nil then
+        seconds = 2
+    end
+    local timeout_ms = math.floor(seconds * 1000)
+    self.obj.timeout_ms = math.floor(seconds * 1000)
+end
+
 -- Set this to true if dnssim should free the memory of passed-in objects (useful
 -- when using copy() to pass objects from different thread).
 function DnsSim:free_after_use(free_after_use)
