@@ -36,15 +36,17 @@ typedef struct _filter_timing {
     struct timespec diff;
     core_timespec_t last_pkthdr_ts;
     struct timespec last_ts;
+    struct timespec first_ts;
     void (*timing_callback)(filter_timing_t*, const core_object_pcap_t*);
     struct timespec mod_ts;
+    size_t counter;
 } _filter_timing_t;
 
 static core_log_t      _log      = LOG_T_INIT("filter.timing");
 static filter_timing_t _defaults = {
     LOG_T_INIT_OBJ("filter.timing"),
     0, 0,
-    TIMING_MODE_KEEP, 0, 0, 0.0,
+    TIMING_MODE_KEEP, 0, 0, 0, 0, 0.0, 0,
     0, 0
 };
 
@@ -363,12 +365,78 @@ static void _fixed(filter_timing_t* self, const core_object_pcap_t* pkt)
 #endif
 }
 
+static void _timespec_diff(struct timespec *start, struct timespec *stop,
+    struct timespec *result)
+{
+    if ((stop->tv_nsec - start->tv_nsec) < 0) {
+        mlassert(stop->tv_sec > start->tv_sec, "stop time must be after start time");
+        result->tv_sec = stop->tv_sec - start->tv_sec - 1;
+        result->tv_nsec = stop->tv_nsec - start->tv_nsec + 1000000000UL;
+    } else {
+        mlassert(stop->tv_sec >= start->tv_sec, "stop time must be after start time");
+        result->tv_sec = stop->tv_sec - start->tv_sec;
+        result->tv_nsec = stop->tv_nsec - start->tv_nsec;
+    }
+}
+
+static void _realtime(filter_timing_t* self, const core_object_pcap_t* pkt)
+{
+#if HAVE_CLOCK_NANOSLEEP
+    _self->counter++;
+    if (_self->counter >= self->rt_batch) {
+        struct timespec simulated;
+
+        _self->counter = 0;
+        if (clock_gettime(CLOCK_MONOTONIC, &_self->last_ts)) {
+            lfatal("clock_gettime()");
+        }
+
+        // calculate simulated time from packet offsets
+        simulated.tv_sec = pkt->ts.sec;
+        simulated.tv_nsec = pkt->ts.nsec;
+        _timespec_diff(&_self->mod_ts, &simulated, &simulated);
+
+        // calculate real elapsed time from monotonic clock
+        _timespec_diff(&_self->first_ts, &_self->last_ts, &_self->diff);
+
+        linfo("simulated time: %ld.%09lds; real time: %ld.%09lds",
+            simulated.tv_sec, simulated.tv_nsec, _self->diff.tv_sec, _self->diff.tv_nsec);
+
+        if (simulated.tv_sec > _self->diff.tv_sec || (simulated.tv_sec == _self->diff.tv_sec
+                && simulated.tv_nsec > _self->diff.tv_nsec)) {
+            int ret = EINTR;
+            _timespec_diff(&_self->diff, &simulated, &simulated);
+
+            ldebug("sleeping for %ld.%09lds", simulated.tv_sec, simulated.tv_nsec);
+            while (ret) {
+                ret = clock_nanosleep(CLOCK_MONOTONIC, 0, &simulated, 0);
+                if (ret && ret != EINTR) {
+                    lfatal("clock_nanosleep(%ld.%09ld) %d", simulated.tv_sec, simulated.tv_nsec, ret);
+                }
+            }
+        } else {
+            // check that real time didn't drift ahead more than specified drift limit
+            _timespec_diff(&simulated, &_self->diff, &_self->diff);
+            if (_self->diff.tv_sec > (self->rt_drift / N1e9) ||
+                (_self->diff.tv_sec == (self->rt_drift / N1e9) &&
+                 _self->diff.tv_nsec >= (self->rt_drift % N1e9))) {
+                lfatal("aborting, real time drifted ahead of simulated time (%ld.%09lds) by %ld.%09lds",
+                    simulated.tv_sec, simulated.tv_nsec, _self->diff.tv_sec, _self->diff.tv_nsec);
+            }
+        }
+    }
+#elif HAVE_NANOSLEEP
+    lfatal("clock_nanosleep() required for realtime mode");
+#endif
+}
+
 static void _init(filter_timing_t* self, const core_object_pcap_t* pkt)
 {
 #if HAVE_CLOCK_NANOSLEEP
     if (clock_gettime(CLOCK_MONOTONIC, &_self->last_ts)) {
         lfatal("clock_gettime()");
     }
+    _self->first_ts = _self->last_ts;
     _self->diff = _self->last_ts;
     _self->diff.tv_sec -= pkt->ts.sec;
     _self->diff.tv_nsec -= pkt->ts.nsec;
@@ -409,6 +477,17 @@ static void _init(filter_timing_t* self, const core_object_pcap_t* pkt)
         _self->mod_ts.tv_sec   = self->fixed / N1e9;
         _self->mod_ts.tv_nsec  = self->fixed % N1e9;
         ldebug("init mode fixed by %ld.%09ld", _self->mod_ts.tv_sec, _self->mod_ts.tv_nsec);
+        break;
+    case TIMING_MODE_REALTIME:
+#if HAVE_CLOCK_NANOSLEEP
+        ldebug("init mode realtime");
+        _self->timing_callback = _realtime;
+        _self->counter = 0;
+        _self->mod_ts.tv_sec = pkt->ts.sec;
+        _self->mod_ts.tv_nsec = pkt->ts.nsec;
+#else
+        lfatal("realtime mode requires clock_nanosleep()");
+#endif
         break;
     default:
         lfatal("invalid timing mode %d", self->mode);

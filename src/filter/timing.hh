@@ -32,10 +32,12 @@ typedef struct filter_timing {
         TIMING_MODE_INCREASE = 1,
         TIMING_MODE_REDUCE   = 2,
         TIMING_MODE_MULTIPLY = 3,
-        TIMING_MODE_FIXED    = 4
+        TIMING_MODE_FIXED    = 4,
+        TIMING_MODE_REALTIME = 5
     } mode;
-    size_t inc, red, fixed;
+    size_t inc, red, fixed, rt_batch;
     float  mul;
+    uint64_t rt_drift;
 
     core_producer_t prod;
     void*           prod_ctx;
