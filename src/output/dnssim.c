@@ -518,7 +518,7 @@ void output_dnssim_set_transport(output_dnssim_t* self, output_dnssim_transport_
     switch(tr) {
     case OUTPUT_DNSSIM_TRANSPORT_UDP_ONLY:
         _self->create_request = _create_request_udp;
-        linfo("transport set to UDP (no TCP fallback)");
+        lnotice("transport set to UDP (no TCP fallback)");
         break;
     case OUTPUT_DNSSIM_TRANSPORT_UDP:
     case OUTPUT_DNSSIM_TRANSPORT_TCP:
@@ -549,7 +549,7 @@ int output_dnssim_target(output_dnssim_t* self, const char* ip, uint16_t port) {
         //}
     }
 
-    linfo("set target to %s port %d", ip, port);
+    lnotice("set target to %s port %d", ip, port);
     return 0;
 }
 
@@ -575,6 +575,8 @@ int output_dnssim_bind(output_dnssim_t* self, const char* ip) {
         source->next = _self->source->next;
         _self->source->next = source;
     }
+
+    lnotice("bind to source address %s", ip);
     return 0;
 }
 
