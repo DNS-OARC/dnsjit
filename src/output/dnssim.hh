@@ -40,7 +40,11 @@ typedef struct output_dnssim_client {
 
 typedef struct output_dnssim {
     core_log_t _log;
+    uint64_t log_interval;
+
+    uint64_t processed;
     uint64_t discarded;
+    uint64_t ongoing;
 
     size_t max_clients;
     output_dnssim_client_t* client_arr;
