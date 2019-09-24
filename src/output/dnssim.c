@@ -70,7 +70,8 @@ typedef struct _output_dnssim_request {
 
 static core_log_t _log = LOG_T_INIT("output.dnssim");
 static output_dnssim_t _defaults = {
-    LOG_T_INIT_OBJ("output.dnssim"), 0,
+    LOG_T_INIT_OBJ("output.dnssim"), 100000,
+    0, 0, 0,
     0, 0, 0,
     2000
 };
@@ -221,6 +222,7 @@ static void _close_query_udp_cb(uv_handle_t* handle)
     _output_dnssim_query_t* parent_qry = req->qry;
     _output_dnssim_query_udp_t* udp_qry;
 
+    req->dnssim->ongoing--;
     for (;;) {  // find the query the handle belongs to
         if (qry->transport == OUTPUT_DNSSIM_TRANSPORT_UDP) {
             udp_qry = (_output_dnssim_query_udp_t*)qry;
@@ -310,6 +312,8 @@ static int _create_query_udp(output_dnssim_t* self, _output_dnssim_request_t* re
         lwarning("failed uv_udp_recv_start(): %s", uv_strerror(ret));
         return ret;
     }
+
+    req->dnssim->ongoing++;
 
     return 0;
 failure:
@@ -455,6 +459,11 @@ static void _receive(output_dnssim_t* self, const core_object_t* obj)
     core_object_t* current = (core_object_t*)obj;
     core_object_payload_t* payload;
     ssize_t client;
+
+    if (++self->processed % self->log_interval == 0) {
+        lnotice("processed:%10ld; discarded:%10ld; ongoing:%10ld",
+            self->processed, self->discarded, self->ongoing);
+    }
 
     /* get payload from packet */
     for (;;) {
