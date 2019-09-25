@@ -21,12 +21,25 @@
 #include "config.h"
 
 #include "filter/dnssim.h"
-#include "core/assert.h"
+
+typedef struct _filter_dnssim {
+    filter_dnssim_t pub;
+
+    trie_t* trie;
+} _filter_dnssim_t;
+
+typedef struct _client {
+    uint8_t id[4];
+    filter_dnssim_recv_t* recv;
+} _client_t;
+
+#define _self ((_filter_dnssim_t*)self)
 
 static core_log_t     _log      = LOG_T_INIT("filter.dnssim");
 static filter_dnssim_t _defaults = {
     LOG_T_INIT_OBJ("filter.dnssim"),
-    0
+    0,
+    NULL
 };
 
 core_log_t* filter_dnssim_log()
@@ -34,14 +47,110 @@ core_log_t* filter_dnssim_log()
     return &_log;
 }
 
-void filter_dnssim_init(filter_dnssim_t* self)
+filter_dnssim_t* filter_dnssim_new()
 {
-    mlassert_self();
+    filter_dnssim_t* self;
 
+    mlfatal_oom(self = malloc(sizeof(_filter_dnssim_t)));
     *self = _defaults;
+    _self->trie = trie_create(NULL);
+
+    return self;
 }
 
-void filter_dnssim_destroy(filter_dnssim_t* self)
+static int _free_trie_value(trie_val_t *val, void *ctx)
 {
+    (void*)ctx;
+    free(*val);
+    return 0;
+}
+
+void filter_dnssim_free(filter_dnssim_t* self)
+{
+    filter_dnssim_recv_t* first;
+    filter_dnssim_recv_t* r;
     mlassert_self();
+
+    trie_apply(_self->trie, _free_trie_value, NULL);
+    trie_free(_self->trie);
+
+    if (self->recv) {
+        first = self->recv;
+        do {
+            r = self->recv->next;
+            free(self->recv);
+            self->recv = r;
+        } while (self->recv != first);
+    }
+
+    free(self);
+}
+
+void filter_dnssim_add(filter_dnssim_t* self, core_receiver_t recv, void* ctx)
+{
+    filter_dnssim_recv_t* r;
+    mlassert_self();
+    lassert(recv, "recv is nil");
+
+    lfatal_oom(r = malloc(sizeof(filter_dnssim_recv_t)));
+    r->recv = recv;
+    r->ctx = ctx;
+    r->client = 1;
+
+    if (!self->recv) {
+        r->next = r;
+        self->recv = r;
+    } else {
+        r->next = self->recv->next;
+        self->recv->next = r;
+    }
+}
+
+static void _receive(filter_dnssim_t* self, const core_object_t* obj)
+{
+    core_object_t* pkt;
+    core_object_ip6_t* ip6;
+    _client_t* client;
+    trie_val_t* val;
+    uint32_t id;
+    mlassert_self();
+
+    if (!obj) {
+        self->discarded++;
+        linfo("packet discarded (no data)");
+    }
+
+    pkt = (core_object_t*)obj;
+    do {
+        if (pkt->obj_type == CORE_OBJECT_IP6) {
+            ip6 = (core_object_ip6_t*)pkt;
+            val = trie_get_ins(_self->trie, ip6->src, sizeof(ip6->src));
+            if (*val == NULL) {  // new client
+                lfatal_oom(client = malloc(sizeof(_client_t)));
+                *val = (void*)client;
+                client->recv = self->recv;
+                self->recv = self->recv->next;
+                id = client->recv->client++;
+                memcpy(client->id, &id, sizeof(client->id));
+            } else {
+                client = (_client_t*)*val;
+            }
+            // put the client ID into dst IP
+            memcpy(&ip6->dst, client->id, sizeof(client->id));
+            client->recv->recv(client->recv->ctx, obj);
+            return;
+        }
+        pkt = (core_object_t*)pkt->obj_prev;
+    } while (pkt != NULL);
+
+    lwarning("packet discarded (missing ip6 object)");
+}
+
+core_receiver_t filter_dnssim_receiver(filter_dnssim_t* self)
+{
+    if (!self->recv) {
+        lfatal("no receiver(s) set");
+    }
+
+    return (core_receiver_t)_receive;
 }

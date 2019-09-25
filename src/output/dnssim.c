@@ -430,8 +430,8 @@ void output_dnssim_free(output_dnssim_t* self)
     free(self);
 }
 
-ssize_t _extract_client(const core_object_t* obj) {
-    ssize_t client;
+uint32_t _extract_client(const core_object_t* obj) {
+    uint32_t client;
     uint8_t* ip;
 
     switch (obj->obj_type) {
@@ -445,11 +445,7 @@ ssize_t _extract_client(const core_object_t* obj) {
         return -1;
     }
 
-    client = ip[3];
-    client += (ip[2] << 8);
-    client += (ip[1] << 16);
-    client += (ip[0] << 24);
-
+    memcpy(&client, ip, sizeof(client));
     return client;
 }
 
@@ -458,7 +454,7 @@ static void _receive(output_dnssim_t* self, const core_object_t* obj)
     mlassert_self();
     core_object_t* current = (core_object_t*)obj;
     core_object_payload_t* payload;
-    ssize_t client;
+    uint32_t client;
 
     if (++self->processed % self->log_interval == 0) {
         lnotice("processed:%10ld; discarded:%10ld; ongoing:%10ld",

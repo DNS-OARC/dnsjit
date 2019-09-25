@@ -19,11 +19,15 @@
  */
 
 #include "core/log.h"
+#include "core/object/ip6.h"
 #include "core/receiver.h"
 
 #ifndef __dnsjit_filter_dnssim_h
 #define __dnsjit_filter_dnssim_h
 
+#include <string.h>
+#include "contrib/trie.h"
+#include "core/assert.h"
 #include "filter/dnssim.hh"
 
 #endif
