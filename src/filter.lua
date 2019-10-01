@@ -19,9 +19,11 @@
 -- dnsjit.filter
 -- Filter/processing modules for dnsjit
 --
--- Filter modules to process or manipulate DNS messages.
+-- Filter modules to process or manipulate objects, packets and/or DNS
+-- messages.
 module(...,package.seeall)
 
+-- dnsjit.filter.copy (3),
 -- dnsjit.filter.layer (3),
 -- dnsjit.filter.split (3),
 -- dnsjit.filter.timing (3)
