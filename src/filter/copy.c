@@ -152,31 +152,31 @@ static void _receive(filter_copy_t* self, const core_object_t* obj)
     mlassert_self();
     lassert(obj, "obj is nil");
 
-    core_object_t* first = NULL;
-    core_object_t* parent = NULL;
+    core_object_t* outobj = NULL;
+    core_object_t* next = NULL;
     core_object_t* current = NULL;
     const core_object_t* srcobj = obj;
 
     do {
         if (filter_copy_get(self, srcobj->obj_type)) {
-            parent = current;
+            next = current;
             current = core_object_copy(srcobj);
-            if (parent == NULL) {
-                parent = current;
-                first = current;
+            if (next == NULL) {
+                next = current;
+                outobj = current;
             } else {
-                parent->obj_prev = current;
+                next->obj_prev = current;
             }
         }
         srcobj = srcobj->obj_prev;
     } while(srcobj != NULL);
 
-    if (first == NULL) {
+    if (outobj == NULL) {
         lnotice("object discarded (no types to copy)");
         return;
     }
 
-    self->recv(self->recv_ctx, first);
+    self->recv(self->recv_ctx, outobj);
 }
 
 core_receiver_t filter_copy_receiver(filter_copy_t* self)
