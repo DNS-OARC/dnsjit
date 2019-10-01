@@ -17,15 +17,15 @@
 -- along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
 
 -- dnsjit.filter.copy
--- Creates a copy of selected layers in object.
+-- Creates a copy of an object chain with selected object types.
 --   local copy = require("dnsjit.filter.copy").new()
 --   local object = require("dnsjit.core.objects")
---   copy:layer(object.PAYLOAD)
---   copy:layer(object.IP6)
+--   copy:obj_type(object.PAYLOAD)
+--   copy:obj_type(object.IP6)
 --   channel:receiver(copy)
 --
--- Filter to create copies of selected layers from passed-in objects.
--- The user is responsible for manually freeing the created objects.
+-- Filter to create a copy of the object chain with selected object types.
+-- The user is responsible for manually freeing the created object chain.
 module(...,package.seeall)
 
 require("dnsjit.filter.copy_h")
@@ -55,9 +55,10 @@ function Copy:log()
     return self.obj._log
 end
 
--- Set a layer to be copied. Can be called multiple times to copy multiple layers.
-function Copy:layer(layer)
-    C.filter_copy_set(self.obj, layer)
+-- Set the object type to be copied. Can be called multiple times to copy
+-- multiple object types from the object chain.
+function Copy:obj_type(obj_type)
+    C.filter_copy_set(self.obj, obj_type)
 end
 
 -- Return the C functions and context for receiving objects.

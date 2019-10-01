@@ -172,7 +172,7 @@ static void _receive(filter_copy_t* self, const core_object_t* obj)
     } while(srcobj != NULL);
 
     if (first == NULL) {
-        lnotice("packet discarded (no layers copied)");
+        lnotice("object discarded (no types to copy)");
         return;
     }
 
