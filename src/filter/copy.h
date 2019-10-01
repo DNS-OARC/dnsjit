@@ -25,7 +25,6 @@
 #ifndef __dnsjit_filter_copy_h
 #define __dnsjit_filter_copy_h
 
-#include <stdbool.h>
 #include "filter/copy.hh"
 
 #endif

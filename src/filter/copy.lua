@@ -57,11 +57,7 @@ end
 
 -- Set a layer to be copied. Can be called multiple times to copy multiple layers.
 function Copy:layer(layer)
-    local l = tonumber(layer)
-    if l == nil or l > object.DNS or l < 0 then
-        self:log():fatal("invalid layer: "..layer)
-    end
-    self.obj.copy[l] = true
+    C.filter_copy_set(self.obj, layer)
 end
 
 -- Return the C functions and context for receiving objects.

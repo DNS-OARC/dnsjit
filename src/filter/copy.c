@@ -40,15 +40,111 @@ void filter_copy_init(filter_copy_t* self)
     mlassert_self();
 
     *self = _defaults;
-
-    lfatal_oom(self->copy = calloc(CORE_OBJECT_DNS + 1, sizeof(uint8_t)));
 }
 
 void filter_copy_destroy(filter_copy_t* self)
 {
     mlassert_self();
+}
 
-    free(self->copy);
+void filter_copy_set(filter_copy_t* self, int32_t obj_type)
+{
+    mlassert_self();
+
+    switch (obj_type) {
+    case CORE_OBJECT_NONE:
+        self->copy |= 0x1;
+        break;
+    case CORE_OBJECT_PCAP:
+        self->copy |= 0x2;
+        break;
+    case CORE_OBJECT_ETHER:
+        self->copy |= 0x4;
+        break;
+    case CORE_OBJECT_NULL:
+        self->copy |= 0x8;
+        break;
+    case CORE_OBJECT_LOOP:
+        self->copy |= 0x10;
+        break;
+    case CORE_OBJECT_LINUXSLL:
+        self->copy |= 0x20;
+        break;
+    case CORE_OBJECT_IEEE802:
+        self->copy |= 0x40;
+        break;
+    case CORE_OBJECT_GRE:
+        self->copy |= 0x80;
+        break;
+    case CORE_OBJECT_IP:
+        self->copy |= 0x100;
+        break;
+    case CORE_OBJECT_IP6:
+        self->copy |= 0x200;
+        break;
+    case CORE_OBJECT_ICMP:
+        self->copy |= 0x400;
+        break;
+    case CORE_OBJECT_ICMP6:
+        self->copy |= 0x800;
+        break;
+    case CORE_OBJECT_UDP:
+        self->copy |= 0x1000;
+        break;
+    case CORE_OBJECT_TCP:
+        self->copy |= 0x2000;
+        break;
+    case CORE_OBJECT_PAYLOAD:
+        self->copy |= 0x4000;
+        break;
+    case CORE_OBJECT_DNS:
+        self->copy |= 0x8000;
+        break;
+    default:
+        lfatal("unknown type %d", obj_type);
+    }
+}
+
+uint64_t filter_copy_get(filter_copy_t* self, int32_t obj_type)
+{
+    mlassert_self();
+
+    switch (obj_type) {
+    case CORE_OBJECT_NONE:
+        return self->copy & 0x1;
+    case CORE_OBJECT_PCAP:
+        return self->copy & 0x2;
+    case CORE_OBJECT_ETHER:
+        return self->copy & 0x4;
+    case CORE_OBJECT_NULL:
+        return self->copy & 0x8;
+    case CORE_OBJECT_LOOP:
+        return self->copy & 0x10;
+    case CORE_OBJECT_LINUXSLL:
+        return self->copy & 0x20;
+    case CORE_OBJECT_IEEE802:
+        return self->copy & 0x40;
+    case CORE_OBJECT_GRE:
+        return self->copy & 0x80;
+    case CORE_OBJECT_IP:
+        return self->copy & 0x100;
+    case CORE_OBJECT_IP6:
+        return self->copy & 0x200;
+    case CORE_OBJECT_ICMP:
+        return self->copy & 0x400;
+    case CORE_OBJECT_ICMP6:
+        return self->copy & 0x800;
+    case CORE_OBJECT_UDP:
+        return self->copy & 0x1000;
+    case CORE_OBJECT_TCP:
+        return self->copy & 0x2000;
+    case CORE_OBJECT_PAYLOAD:
+        return self->copy & 0x4000;
+    case CORE_OBJECT_DNS:
+        return self->copy & 0x8000;
+    default:
+        lfatal("unknown type %d", obj_type);
+    }
 }
 
 static void _receive(filter_copy_t* self, const core_object_t* obj)
@@ -62,9 +158,7 @@ static void _receive(filter_copy_t* self, const core_object_t* obj)
     const core_object_t* srcobj = obj;
 
     do {
-        lassert(srcobj->obj_type >= CORE_OBJECT_NONE && srcobj->obj_type <= CORE_OBJECT_DNS,
-            "invalid object type");
-        if (self->copy[srcobj->obj_type]) {
+        if (filter_copy_get(self, srcobj->obj_type)) {
             parent = current;
             current = core_object_copy(srcobj);
             if (parent == NULL) {
