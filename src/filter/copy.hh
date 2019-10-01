@@ -25,7 +25,7 @@ typedef struct filter_copy {
     core_log_t _log;
 
     core_receiver_t recv;
-    void* recv_ctx;
+    void*           recv_ctx;
 
     uint64_t copy;
 } filter_copy_t;

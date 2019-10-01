@@ -23,7 +23,7 @@
 #include "filter/copy.h"
 #include "core/assert.h"
 
-static core_log_t _log = LOG_T_INIT("filter.copy");
+static core_log_t    _log      = LOG_T_INIT("filter.copy");
 static filter_copy_t _defaults = {
     LOG_T_INIT_OBJ("filter.copy"),
     0, 0,
@@ -153,24 +153,24 @@ static void _receive(filter_copy_t* self, const core_object_t* obj)
     mlassert_self();
     lassert(obj, "obj is nil");
 
-    core_object_t* outobj = NULL;
-    core_object_t* next = NULL;
-    core_object_t* current = NULL;
-    const core_object_t* srcobj = obj;
+    core_object_t*       outobj  = NULL;
+    core_object_t*       next    = NULL;
+    core_object_t*       current = NULL;
+    const core_object_t* srcobj  = obj;
 
     do {
         if (filter_copy_get(self, srcobj->obj_type)) {
-            next = current;
+            next    = current;
             current = core_object_copy(srcobj);
             if (next == NULL) {
-                next = current;
+                next   = current;
                 outobj = current;
             } else {
                 next->obj_prev = current;
             }
         }
         srcobj = srcobj->obj_prev;
-    } while(srcobj != NULL);
+    } while (srcobj != NULL);
 
     if (outobj == NULL) {
         lnotice("object discarded (no types to copy)");
