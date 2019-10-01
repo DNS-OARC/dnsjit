@@ -145,6 +145,7 @@ uint64_t filter_copy_get(filter_copy_t* self, int32_t obj_type)
     default:
         lfatal("unknown type %d", obj_type);
     }
+    return 0;
 }
 
 static void _receive(filter_copy_t* self, const core_object_t* obj)
