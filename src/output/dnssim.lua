@@ -184,7 +184,7 @@ function DnsSim:export(filename)
     file:write('"discarded": ', self:discarded(), ', \n')
     file:write('"total": ', self:total(), ', \n')
     file:write('"answered": ', self:answered(), ', \n')
-    file:write('"noerror": ', self:noerror(), ', \n')
+    file:write('"noerror": ', self:noerror(), '\n')
     file:write("}")
     file:close()
 end
