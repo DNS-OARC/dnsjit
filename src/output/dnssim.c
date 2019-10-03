@@ -41,6 +41,8 @@ typedef struct _output_dnssim {
     struct sockaddr_storage target;
     _output_dnssim_source_t* source;
 
+    uv_timer_t stat_timer;
+
     void (*create_request)(output_dnssim_t*, output_dnssim_client_t*,
         core_object_payload_t*);
 } _output_dnssim_t;
@@ -70,7 +72,7 @@ typedef struct _output_dnssim_request {
 
 static core_log_t _log = LOG_T_INIT("output.dnssim");
 static output_dnssim_t _defaults = {
-    LOG_T_INIT_OBJ("output.dnssim"), 100000,
+    LOG_T_INIT_OBJ("output.dnssim"),
     0, 0, 0,
     0, 0, 0,
     0, 0, 0,
@@ -460,10 +462,7 @@ static void _receive(output_dnssim_t* self, const core_object_t* obj)
     core_object_payload_t* payload;
     uint32_t client;
 
-    if (++self->processed % self->log_interval == 0) {
-        lnotice("processed:%10ld; discarded:%10ld; ongoing:%10ld",
-            self->processed, self->discarded, self->ongoing);
-    }
+    self->processed++;
 
     /* get payload from packet */
     for (;;) {
@@ -594,4 +593,42 @@ int output_dnssim_run_nowait(output_dnssim_t* self)
     mlassert_self();
 
     return uv_run(&_self->loop, UV_RUN_NOWAIT);
+}
+
+static void _stat_timer_cb(uv_timer_t* handle)
+{
+    output_dnssim_t* self = (output_dnssim_t*)handle->data;
+    lnotice("processed:%10ld; answered:%10ld; discarded:%10ld; ongoing:%10ld",
+        self->processed, self->answered, self->discarded, self->ongoing);
+}
+
+void output_dnssim_stat_collect(output_dnssim_t* self, uint64_t interval_ms)
+{
+    int ret;
+    mlassert_self();
+
+    _self->stat_timer.data = (void*)self;
+    ret = uv_timer_init(&_self->loop, &_self->stat_timer);
+    if (ret < 0) {
+        lcritical("failed to init stat_timer: %s", uv_strerror(ret));
+        return;
+    }
+    ret = uv_timer_start(&_self->stat_timer, _stat_timer_cb, interval_ms, interval_ms);
+    if (ret < 0) {
+        lcritical("failed to start stat_timer: %s", uv_strerror(ret));
+        return;
+    }
+}
+
+void output_dnssim_stat_finish(output_dnssim_t* self)
+{
+    int ret;
+    mlassert_self();
+
+    ret = uv_timer_stop(&_self->stat_timer);
+    if (ret < 0) {
+        lcritical("failed to stop stat_timer: %s", uv_strerror(ret));
+        return;
+    }
+    uv_close((uv_handle_t*)&_self->stat_timer, NULL);
 }

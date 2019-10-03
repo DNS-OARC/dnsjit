@@ -40,7 +40,6 @@ typedef struct output_dnssim_client {
 
 typedef struct output_dnssim {
     core_log_t _log;
-    uint64_t log_interval;
 
     uint64_t processed;
     uint64_t discarded;
@@ -66,5 +65,7 @@ void output_dnssim_set_transport(output_dnssim_t* self, output_dnssim_transport_
 int output_dnssim_target(output_dnssim_t* self, const char* ip, uint16_t port);
 int output_dnssim_bind(output_dnssim_t* self, const char* ip);
 int output_dnssim_run_nowait(output_dnssim_t* self);
+void output_dnssim_stat_collect(output_dnssim_t* self, uint64_t interval_ms);
+void output_dnssim_stat_finish(output_dnssim_t* self);
 
 core_receiver_t output_dnssim_receiver();
