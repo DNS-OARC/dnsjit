@@ -85,17 +85,17 @@ function DnsSim:timeout(seconds)
 end
 
 -- Configure statistics to be collected every N seconds.
-function DnsSim:stat_collect(seconds)
+function DnsSim:stats_collect(seconds)
     if seconds == nil then
-        self.obj._log:critical("number of seconds must be set for stat_collect()")
+        self.obj._log:critical("number of seconds must be set for stats_collect()")
     end
     interval_ms = math.floor(seconds * 1000)
-    C.output_dnssim_stat_collect(self.obj, interval_ms)
+    C.output_dnssim_stats_collect(self.obj, interval_ms)
 end
 
 -- Stop the collection of statistics.
-function DnsSim:stat_finish()
-    C.output_dnssim_stat_finish(self.obj)
+function DnsSim:stats_finish()
+    C.output_dnssim_stats_finish(self.obj)
 end
 
 -- Set this to true if dnssim should free the memory of passed-in objects (useful
