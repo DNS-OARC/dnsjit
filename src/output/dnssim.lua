@@ -84,13 +84,20 @@ function DnsSim:timeout(seconds)
     self.obj.timeout_ms = math.floor(seconds * 1000)
 end
 
--- Set number of packets after which statistics will be reported (default 100000).
-function DnsSim:log_interval(n)
-    if n == nil then
-        n = 100000
+-- Configure statistics to be collected every N seconds.
+function DnsSim:stat_collect(seconds)
+    if seconds == nil then
+        self.obj._log:critical("number of seconds must be set for stat_collect()")
     end
-    self.obj.log_interval = n
+    interval_ms = math.floor(seconds * 1000)
+    C.output_dnssim_stat_collect(self.obj, interval_ms)
 end
+
+-- Stop the collection of statistics.
+function DnsSim:stat_finish()
+    C.output_dnssim_stat_finish(self.obj)
+end
+
 -- Set this to true if dnssim should free the memory of passed-in objects (useful
 -- when using copy() to pass objects from different thread).
 function DnsSim:free_after_use(free_after_use)
