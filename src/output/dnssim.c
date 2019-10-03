@@ -192,11 +192,11 @@ static int _process_udp_response(uv_udp_t* handle, ssize_t nread, const uv_buf_t
         return _ERR_TC;
     }
 
-    req->client->req_answered++;
-    req->dnssim->stats_sum->answered++;
-    req->dnssim->stats_current->answered++;
+    req->client->answers++;
+    req->dnssim->stats_sum->answers++;
+    req->dnssim->stats_current->answers++;
     if (dns_a.rcode == CORE_OBJECT_DNS_RCODE_NOERROR) {
-        req->client->req_noerror++;
+        req->client->noerror++;
         req->dnssim->stats_sum->noerror++;
         req->dnssim->stats_current->noerror++;
     }
@@ -355,9 +355,9 @@ static void _create_request_udp(output_dnssim_t* self, output_dnssim_client_t* c
         goto failure;
     }
 
-    req->client->req_total++;
-    req->dnssim->stats_sum->total++;
-    req->dnssim->stats_current->total++;
+    req->client->requests++;
+    req->dnssim->stats_sum->requests++;
+    req->dnssim->stats_current->requests++;
 
     ret = _create_query_udp(self, req);
     if (ret < 0) {
@@ -617,8 +617,8 @@ int output_dnssim_run_nowait(output_dnssim_t* self)
 static void _stat_timer_cb(uv_timer_t* handle)
 {
     output_dnssim_t* self = (output_dnssim_t*)handle->data;
-    lnotice("processed:%10ld; answered:%10ld; discarded:%10ld; ongoing:%10ld",
-        self->processed, self->stats_sum->answered, self->discarded,
+    lnotice("processed:%10ld; answers:%10ld; discarded:%10ld; ongoing:%10ld",
+        self->processed, self->stats_sum->answers, self->discarded,
         self->ongoing);
 
     output_dnssim_stats_t* stats_next;

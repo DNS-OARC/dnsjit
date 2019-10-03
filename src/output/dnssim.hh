@@ -30,9 +30,9 @@ typedef enum output_dnssim_transport {
 
 typedef struct output_dnssim_client {
     // TODO use stats instead
-    uint32_t req_total;
-    uint32_t req_answered;
-    uint32_t req_noerror;
+    uint32_t requests;
+    uint32_t answers;
+    uint32_t noerror;
 
     float latency_min;
     float latency_mean;
@@ -44,8 +44,8 @@ struct output_dnssim_stats {
     output_dnssim_stats_t* prev;
     output_dnssim_stats_t* next;
 
-    uint64_t total;
-    uint64_t answered;
+    uint64_t requests;
+    uint64_t answers;
     uint64_t noerror;
 };
 

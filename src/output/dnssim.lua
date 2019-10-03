@@ -144,13 +144,13 @@ function DnsSim:discarded()
 end
 
 -- Number of valid requests (input packets) processed.
-function DnsSim:total()
-    return tonumber(self.obj.stats_sum.total)
+function DnsSim:requests()
+    return tonumber(self.obj.stats_sum.requests)
 end
 
 -- Number of requests that received an answer
-function DnsSim:answered()
-    return tonumber(self.obj.stats_sum.answered)
+function DnsSim:answers()
+    return tonumber(self.obj.stats_sum.answers)
 end
 
 -- Number of requests that received a NOERROR response
@@ -169,8 +169,8 @@ function DnsSim:export(filename)
     local function write_stats(file, stats)
         file:write(
             "{ ",
-                '"total": ', tonumber(stats.total), ', ',
-                '"answered": ', tonumber(stats.answered), ', ',
+                '"requests": ', tonumber(stats.requests), ', ',
+                '"answers": ', tonumber(stats.answers), ', ',
                 '"noerror": ', tonumber(stats.noerror),
             "}")
     end
