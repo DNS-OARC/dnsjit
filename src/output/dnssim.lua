@@ -170,6 +170,7 @@ function DnsSim:export(filename)
         file:write(
             "{ ",
                 '"requests": ', tonumber(stats.requests), ', ',
+                '"ongoing": ', tonumber(stats.ongoing), ', ',
                 '"answers": ', tonumber(stats.answers), ', ',
                 '"noerror": ', tonumber(stats.noerror),
             "}")

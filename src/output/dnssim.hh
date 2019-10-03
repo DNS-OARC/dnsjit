@@ -45,6 +45,7 @@ struct output_dnssim_stats {
     output_dnssim_stats_t* next;
 
     uint64_t requests;
+    uint64_t ongoing;
     uint64_t answers;
     uint64_t noerror;
 };
