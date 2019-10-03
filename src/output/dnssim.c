@@ -73,6 +73,7 @@ static output_dnssim_t _defaults = {
     LOG_T_INIT_OBJ("output.dnssim"), 100000,
     0, 0, 0,
     0, 0, 0,
+    0, 0, 0,
     2000
 };
 static output_dnssim_client_t _client_defaults = {
@@ -186,8 +187,10 @@ static int _process_udp_response(uv_udp_t* handle, ssize_t nread, const uv_buf_t
     }
 
     req->client->req_answered++;
+    req->dnssim->answered++;
     if (dns_a.rcode == CORE_OBJECT_DNS_RCODE_NOERROR) {
         req->client->req_noerror++;
+        req->dnssim->noerror++;
     }
 
     _close_request(req);
@@ -345,6 +348,7 @@ static void _create_request_udp(output_dnssim_t* self, output_dnssim_client_t* c
     }
 
     req->client->req_total++;
+    req->dnssim->total++;
 
     ret = _create_query_udp(self, req);
     if (ret < 0) {

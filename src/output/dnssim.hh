@@ -46,6 +46,10 @@ typedef struct output_dnssim {
     uint64_t discarded;
     uint64_t ongoing;
 
+    uint64_t total;
+    uint64_t answered;
+    uint64_t noerror;
+
     size_t max_clients;
     output_dnssim_client_t* client_arr;
     bool free_after_use;
