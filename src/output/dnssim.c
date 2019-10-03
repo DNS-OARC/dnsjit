@@ -74,13 +74,17 @@ static core_log_t _log = LOG_T_INIT("output.dnssim");
 static output_dnssim_t _defaults = {
     LOG_T_INIT_OBJ("output.dnssim"),
     0, 0, 0,
-    0, 0, 0,
+    NULL, NULL, NULL,
     0, 0, 0,
     2000
 };
 static output_dnssim_client_t _client_defaults = {
     0, 0, 0,
     0.0, 0.0, 0.0
+};
+static output_dnssim_stats_t _stats_defaults = {
+    NULL, NULL,
+    0, 0, 0
 };
 
 // forward declarations
@@ -189,10 +193,12 @@ static int _process_udp_response(uv_udp_t* handle, ssize_t nread, const uv_buf_t
     }
 
     req->client->req_answered++;
-    req->dnssim->answered++;
+    req->dnssim->stats_sum->answered++;
+    req->dnssim->stats_current->answered++;
     if (dns_a.rcode == CORE_OBJECT_DNS_RCODE_NOERROR) {
         req->client->req_noerror++;
-        req->dnssim->noerror++;
+        req->dnssim->stats_sum->noerror++;
+        req->dnssim->stats_current->noerror++;
     }
 
     _close_request(req);
@@ -350,7 +356,8 @@ static void _create_request_udp(output_dnssim_t* self, output_dnssim_client_t* c
     }
 
     req->client->req_total++;
-    req->dnssim->total++;
+    req->dnssim->stats_sum->total++;
+    req->dnssim->stats_current->total++;
 
     ret = _create_query_udp(self, req);
     if (ret < 0) {
@@ -388,6 +395,10 @@ output_dnssim_t* output_dnssim_new(size_t max_clients)
     mlfatal_oom(self = malloc(sizeof(_output_dnssim_t)));
     *self = _defaults;
 
+    lfatal_oom(self->stats_sum = malloc(sizeof(output_dnssim_stats_t)));
+    lfatal_oom(self->stats_current = malloc(sizeof(output_dnssim_stats_t)));
+    self->stats_first = self->stats_current;
+
     _self->source = NULL;
     _self->transport = OUTPUT_DNSSIM_TRANSPORT_UDP_ONLY;
     _self->create_request = _create_request_udp;
@@ -414,6 +425,14 @@ void output_dnssim_free(output_dnssim_t* self)
     int ret;
     _output_dnssim_source_t* source;
     _output_dnssim_source_t* first = _self->source;
+    output_dnssim_stats_t* stats_prev;
+
+    free(self->stats_sum);
+    do {
+        stats_prev = self->stats_current->prev;
+        free(self->stats_current);
+        self->stats_current = stats_prev;
+    } while (self->stats_current != NULL);
 
     if (_self->source != NULL) {
         // free cilcular linked list
@@ -599,7 +618,16 @@ static void _stat_timer_cb(uv_timer_t* handle)
 {
     output_dnssim_t* self = (output_dnssim_t*)handle->data;
     lnotice("processed:%10ld; answered:%10ld; discarded:%10ld; ongoing:%10ld",
-        self->processed, self->answered, self->discarded, self->ongoing);
+        self->processed, self->stats_sum->answered, self->discarded,
+        self->ongoing);
+
+    output_dnssim_stats_t* stats_next;
+    lfatal_oom(stats_next = malloc(sizeof(output_dnssim_stats_t)));
+    *stats_next = _stats_defaults;
+
+    stats_next->prev = self->stats_current;
+    self->stats_current->next = stats_next;
+    self->stats_current = stats_next;
 }
 
 void output_dnssim_stat_collect(output_dnssim_t* self, uint64_t interval_ms)

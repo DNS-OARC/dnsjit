@@ -145,34 +145,57 @@ end
 
 -- Number of valid requests (input packets) processed.
 function DnsSim:total()
-    return tonumber(self.obj.total)
+    return tonumber(self.obj.stats_sum.total)
 end
 
 -- Number of requests that received an answer
 function DnsSim:answered()
-    return tonumber(self.obj.answered)
+    return tonumber(self.obj.stats_sum.answered)
 end
 
 -- Number of requests that received a NOERROR response
 function DnsSim:noerror()
-    return tonumber(self.obj.noerror)
+    return tonumber(self.obj.stats_sum.noerror)
 end
 
 -- Export the results to a JSON file
 function DnsSim:export(filename)
     local file = io.open(filename, "w")
     if file == nil then
-        -- TODO log error
+        self.obj._log:critical("export failed: no filename")
         return
     end
 
-    file:write("{\n")
-    file:write('"discarded": ', self:discarded(), ', \n')
-    file:write('"total": ', self:total(), ', \n')
-    file:write('"answered": ', self:answered(), ', \n')
-    file:write('"noerror": ', self:noerror(), '\n')
-    file:write("}")
+    local function write_stats(file, stats)
+        file:write(
+            "{ ",
+                '"total": ', tonumber(stats.total), ', ',
+                '"answered": ', tonumber(stats.answered), ', ',
+                '"noerror": ', tonumber(stats.noerror),
+            "}")
+    end
+
+    file:write(
+        "{ ",
+            '"discarded": ', self:discarded(), ', ',
+            '"stats_sum": ')
+    write_stats(file, self.obj.stats_sum)
+    file:write(
+            ', ',
+            '"stats_periodic": [')
+
+    local stats = self.obj.stats_first
+    write_stats(file, stats)
+
+    while (stats.next ~= nil) do
+        stats = stats.next
+        file:write(', ')
+        write_stats(file, stats)
+    end
+
+    file:write(']}')
     file:close()
+    self.obj._log:notice("results exported to "..filename)
 end
 
 return DnsSim

@@ -29,6 +29,7 @@ typedef enum output_dnssim_transport {
 } output_dnssim_transport_t;
 
 typedef struct output_dnssim_client {
+    // TODO use stats instead
     uint32_t req_total;
     uint32_t req_answered;
     uint32_t req_noerror;
@@ -38,6 +39,16 @@ typedef struct output_dnssim_client {
     float latency_max;
 } output_dnssim_client_t;
 
+typedef struct output_dnssim_stats output_dnssim_stats_t;
+struct output_dnssim_stats {
+    output_dnssim_stats_t* prev;
+    output_dnssim_stats_t* next;
+
+    uint64_t total;
+    uint64_t answered;
+    uint64_t noerror;
+};
+
 typedef struct output_dnssim {
     core_log_t _log;
 
@@ -45,9 +56,9 @@ typedef struct output_dnssim {
     uint64_t discarded;
     uint64_t ongoing;
 
-    uint64_t total;
-    uint64_t answered;
-    uint64_t noerror;
+    output_dnssim_stats_t* stats_sum;
+    output_dnssim_stats_t* stats_current;
+    output_dnssim_stats_t* stats_first;
 
     size_t max_clients;
     output_dnssim_client_t* client_arr;
