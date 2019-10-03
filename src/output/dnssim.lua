@@ -138,38 +138,17 @@ end
 
 -- Number of valid requests (input packets) processed.
 function DnsSim:total()
-    local total = 0
-    for i = 0, self.max_clients-1 do
-        local n = tonumber(self.obj.client_arr[i].req_total)
-        if n ~= nil then
-            total = total + n
-        end
-    end
-    return total
+    return tonumber(self.obj.total)
 end
 
 -- Number of requests that received an answer
 function DnsSim:answered()
-    local answered = 0
-    for i = 0, self.max_clients-1 do
-        local n = tonumber(self.obj.client_arr[i].req_answered)
-        if n ~= nil then
-            answered = answered + n
-        end
-    end
-    return answered
+    return tonumber(self.obj.answered)
 end
 
 -- Number of requests that received a NOERROR response
 function DnsSim:noerror()
-    local noerror = 0
-    for i = 0, self.max_clients-1 do
-        local n = tonumber(self.obj.client_arr[i].req_noerror)
-        if n ~= nil then
-            noerror = noerror + n
-        end
-    end
-    return noerror
+    return tonumber(self.obj.noerror)
 end
 
 -- Export the results to a JSON file
