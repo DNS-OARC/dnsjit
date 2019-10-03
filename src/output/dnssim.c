@@ -67,6 +67,7 @@ typedef struct _output_dnssim_request {
     core_object_dns_t* dns_q;
     uv_timer_t* timeout;
     uint8_t timeout_closing;
+    uint8_t ongoing;
     output_dnssim_t* dnssim;
 } _output_dnssim_request_t;
 
@@ -84,7 +85,7 @@ static output_dnssim_client_t _client_defaults = {
 };
 static output_dnssim_stats_t _stats_defaults = {
     NULL, NULL,
-    0, 0, 0
+    0, 0, 0, 0
 };
 
 // forward declarations
@@ -134,10 +135,14 @@ static void _close_request(_output_dnssim_request_t* req)
     if (req == NULL) {
         return;
     }
+    if (req->ongoing) {
+        req->ongoing = 0;
+        req->dnssim->ongoing--;
+    }
     if (req->timeout != NULL) {
         _close_request_timeout(req->timeout);
     }
-    // finish any ongoing queries
+    // finish any queries in flight
     _output_dnssim_query_t* qry = req->qry;
     while (qry != NULL) {
         _close_query(qry);
@@ -233,7 +238,6 @@ static void _close_query_udp_cb(uv_handle_t* handle)
     _output_dnssim_query_t* parent_qry = req->qry;
     _output_dnssim_query_udp_t* udp_qry;
 
-    req->dnssim->ongoing--;
     for (;;) {  // find the query the handle belongs to
         if (qry->transport == OUTPUT_DNSSIM_TRANSPORT_UDP) {
             udp_qry = (_output_dnssim_query_udp_t*)qry;
@@ -324,8 +328,6 @@ static int _create_query_udp(output_dnssim_t* self, _output_dnssim_request_t* re
         return ret;
     }
 
-    req->dnssim->ongoing++;
-
     return 0;
 failure:
     free(qry->handle);
@@ -348,6 +350,8 @@ static void _create_request_udp(output_dnssim_t* self, output_dnssim_client_t* c
     req->payload = payload;
     req->dns_q = core_object_dns_new();
     req->dns_q->obj_prev = (core_object_t*)req->payload;
+    req->ongoing = 1;
+    req->dnssim->ongoing++;
 
     ret = core_object_dns_parse_header(req->dns_q);
     if (ret != 0) {
@@ -624,6 +628,7 @@ static void _stats_timer_cb(uv_timer_t* handle)
     output_dnssim_stats_t* stats_next;
     lfatal_oom(stats_next = malloc(sizeof(output_dnssim_stats_t)));
     *stats_next = _stats_defaults;
+    stats_next->ongoing = self->ongoing;
 
     stats_next->prev = self->stats_current;
     self->stats_current->next = stats_next;
