@@ -401,6 +401,8 @@ output_dnssim_t* output_dnssim_new(size_t max_clients)
 
     lfatal_oom(self->stats_sum = malloc(sizeof(output_dnssim_stats_t)));
     lfatal_oom(self->stats_current = malloc(sizeof(output_dnssim_stats_t)));
+    *self->stats_sum = _stats_defaults;
+    *self->stats_current = _stats_defaults;
     self->stats_first = self->stats_current;
 
     _self->source = NULL;
