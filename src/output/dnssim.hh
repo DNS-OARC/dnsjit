@@ -47,7 +47,27 @@ struct output_dnssim_stats {
     uint64_t requests;
     uint64_t ongoing;
     uint64_t answers;
-    uint64_t noerror;
+
+    uint64_t rcode_noerror;
+    uint64_t rcode_formerr;
+    uint64_t rcode_servfail;
+    uint64_t rcode_nxdomain;
+    uint64_t rcode_notimp;
+    uint64_t rcode_refused;
+    uint64_t rcode_yxdomain;
+    uint64_t rcode_yxrrset;
+    uint64_t rcode_nxrrset;
+    uint64_t rcode_notauth;
+    uint64_t rcode_notzone;
+    uint64_t rcode_badvers;
+    uint64_t rcode_badkey;
+    uint64_t rcode_badtime;
+    uint64_t rcode_badmode;
+    uint64_t rcode_badname;
+    uint64_t rcode_badalg;
+    uint64_t rcode_badtrunc;
+    uint64_t rcode_badcookie;
+    uint64_t rcode_other;
 };
 
 typedef struct output_dnssim {

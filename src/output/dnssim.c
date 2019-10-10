@@ -85,7 +85,8 @@ static output_dnssim_client_t _client_defaults = {
 };
 static output_dnssim_stats_t _stats_defaults = {
     NULL, NULL,
-    0, 0, 0, 0
+    0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 };
 
 // forward declarations
@@ -200,10 +201,88 @@ static int _process_udp_response(uv_udp_t* handle, ssize_t nread, const uv_buf_t
     req->client->answers++;
     req->dnssim->stats_sum->answers++;
     req->dnssim->stats_current->answers++;
-    if (dns_a.rcode == CORE_OBJECT_DNS_RCODE_NOERROR) {
+
+    switch(dns_a.rcode) {
+    case CORE_OBJECT_DNS_RCODE_NOERROR:
         req->client->noerror++;
-        req->dnssim->stats_sum->noerror++;
-        req->dnssim->stats_current->noerror++;
+        req->dnssim->stats_sum->rcode_noerror++;
+        req->dnssim->stats_current->rcode_noerror++;
+        break;
+    case CORE_OBJECT_DNS_RCODE_FORMERR:
+        req->dnssim->stats_sum->rcode_formerr++;
+        req->dnssim->stats_current->rcode_formerr++;
+        break;
+    case CORE_OBJECT_DNS_RCODE_SERVFAIL:
+        req->dnssim->stats_sum->rcode_servfail++;
+        req->dnssim->stats_current->rcode_servfail++;
+        break;
+    case CORE_OBJECT_DNS_RCODE_NXDOMAIN:
+        req->dnssim->stats_sum->rcode_nxdomain++;
+        req->dnssim->stats_current->rcode_nxdomain++;
+        break;
+    case CORE_OBJECT_DNS_RCODE_NOTIMP:
+        req->dnssim->stats_sum->rcode_notimp++;
+        req->dnssim->stats_current->rcode_notimp++;
+        break;
+    case CORE_OBJECT_DNS_RCODE_REFUSED:
+        req->dnssim->stats_sum->rcode_refused++;
+        req->dnssim->stats_current->rcode_refused++;
+        break;
+    case CORE_OBJECT_DNS_RCODE_YXDOMAIN:
+        req->dnssim->stats_sum->rcode_yxdomain++;
+        req->dnssim->stats_current->rcode_yxdomain++;
+        break;
+    case CORE_OBJECT_DNS_RCODE_YXRRSET:
+        req->dnssim->stats_sum->rcode_yxrrset++;
+        req->dnssim->stats_current->rcode_yxrrset++;
+        break;
+    case CORE_OBJECT_DNS_RCODE_NXRRSET:
+        req->dnssim->stats_sum->rcode_nxrrset++;
+        req->dnssim->stats_current->rcode_nxrrset++;
+        break;
+    case CORE_OBJECT_DNS_RCODE_NOTAUTH:
+        req->dnssim->stats_sum->rcode_notauth++;
+        req->dnssim->stats_current->rcode_notauth++;
+        break;
+    case CORE_OBJECT_DNS_RCODE_NOTZONE:
+        req->dnssim->stats_sum->rcode_notzone++;
+        req->dnssim->stats_current->rcode_notzone++;
+        break;
+    case CORE_OBJECT_DNS_RCODE_BADVERS:
+        req->dnssim->stats_sum->rcode_badvers++;
+        req->dnssim->stats_current->rcode_badvers++;
+        break;
+    case CORE_OBJECT_DNS_RCODE_BADKEY:
+        req->dnssim->stats_sum->rcode_badkey++;
+        req->dnssim->stats_current->rcode_badkey++;
+        break;
+    case CORE_OBJECT_DNS_RCODE_BADTIME:
+        req->dnssim->stats_sum->rcode_badtime++;
+        req->dnssim->stats_current->rcode_badtime++;
+        break;
+    case CORE_OBJECT_DNS_RCODE_BADMODE:
+        req->dnssim->stats_sum->rcode_badmode++;
+        req->dnssim->stats_current->rcode_badmode++;
+        break;
+    case CORE_OBJECT_DNS_RCODE_BADNAME:
+        req->dnssim->stats_sum->rcode_badname++;
+        req->dnssim->stats_current->rcode_badname++;
+        break;
+    case CORE_OBJECT_DNS_RCODE_BADALG:
+        req->dnssim->stats_sum->rcode_badalg++;
+        req->dnssim->stats_current->rcode_badalg++;
+        break;
+    case CORE_OBJECT_DNS_RCODE_BADTRUNC:
+        req->dnssim->stats_sum->rcode_badtrunc++;
+        req->dnssim->stats_current->rcode_badtrunc++;
+        break;
+    case CORE_OBJECT_DNS_RCODE_BADCOOKIE:
+        req->dnssim->stats_sum->rcode_badcookie++;
+        req->dnssim->stats_current->rcode_badcookie++;
+        break;
+    default:
+        req->dnssim->stats_sum->rcode_other++;
+        req->dnssim->stats_current->rcode_other++;
     }
 
     _close_request(req);
