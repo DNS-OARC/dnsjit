@@ -34,6 +34,7 @@
 
 #include <ck_ring.h>
 #include <ck_pr.h>
+#include <stdbool.h>
 
 #include "core/channel.hh"
 

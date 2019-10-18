@@ -37,10 +37,20 @@ core_log_t* core_channel_log()
     return &_log;
 }
 
+bool _is_pow2(size_t num)
+{
+    while(num != 1) {
+        if(num % 2 != 0)
+            return false;
+        num = num /2;
+    }
+    return true;
+}
+
 void core_channel_init(core_channel_t* self, size_t capacity)
 {
     mlassert_self();
-    if (!(capacity = (capacity >> 2) << 2)) {
+    if (capacity < 4 || !_is_pow2(capacity)) {
         mlfatal("invalid capacity");
     }
 
