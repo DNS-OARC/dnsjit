@@ -114,4 +114,15 @@ function Pcap:packets()
     return tonumber(self.obj.pkts)
 end
 
+-- Return the linktype of the opened PCAP.
+function Pcap:linktype()
+    return self.obj.linktype
+end
+
+-- Return the snaplen of the opened PCAP.
+function Pcap:snaplen()
+    return self.obj.snaplen
+end
+
+-- dnsjit.output.pcap (3)
 return Pcap
