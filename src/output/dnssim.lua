@@ -169,47 +169,47 @@ function DnsSim:export(filename)
     local function write_stats(file, stats)
         file:write(
             "{ ",
-                '"requests": ', tonumber(stats.requests), ', ',
-                '"ongoing": ', tonumber(stats.ongoing), ', ',
-                '"answers": ', tonumber(stats.answers), ', ',
-                '"rcode_noerror": ', tonumber(stats.rcode_noerror), ', ',
-                '"rcode_formerr": ', tonumber(stats.rcode_formerr), ', ',
-                '"rcode_servfail": ', tonumber(stats.rcode_servfail), ', ',
-                '"rcode_nxdomain": ', tonumber(stats.rcode_nxdomain), ', ',
-                '"rcode_notimp": ', tonumber(stats.rcode_notimp), ', ',
-                '"rcode_refused": ', tonumber(stats.rcode_refused), ', ',
-                '"rcode_yxdomain": ', tonumber(stats.rcode_yxdomain), ', ',
-                '"rcode_yxrrset": ', tonumber(stats.rcode_yxrrset), ', ',
-                '"rcode_nxrrset": ', tonumber(stats.rcode_nxrrset), ', ',
-                '"rcode_notauth": ', tonumber(stats.rcode_notauth), ', ',
-                '"rcode_notzone": ', tonumber(stats.rcode_notzone), ', ',
-                '"rcode_badvers": ', tonumber(stats.rcode_badvers), ', ',
-                '"rcode_badkey": ', tonumber(stats.rcode_badkey), ', ',
-                '"rcode_badtime": ', tonumber(stats.rcode_badtime), ', ',
-                '"rcode_badmode": ', tonumber(stats.rcode_badmode), ', ',
-                '"rcode_badname": ', tonumber(stats.rcode_badname), ', ',
-                '"rcode_badalg": ', tonumber(stats.rcode_badalg), ', ',
-                '"rcode_badtrunc": ', tonumber(stats.rcode_badtrunc), ', ',
-                '"rcode_badcookie": ', tonumber(stats.rcode_badcookie), ', ',
-                '"rcode_other": ', tonumber(stats.rcode_other),
+                '"requests":', tonumber(stats.requests), ',',
+                '"ongoing":', tonumber(stats.ongoing), ',',
+                '"answers":', tonumber(stats.answers), ',',
+                '"rcode_noerror":', tonumber(stats.rcode_noerror), ',',
+                '"rcode_formerr":', tonumber(stats.rcode_formerr), ',',
+                '"rcode_servfail":', tonumber(stats.rcode_servfail), ',',
+                '"rcode_nxdomain":', tonumber(stats.rcode_nxdomain), ',',
+                '"rcode_notimp":', tonumber(stats.rcode_notimp), ',',
+                '"rcode_refused":', tonumber(stats.rcode_refused), ',',
+                '"rcode_yxdomain":', tonumber(stats.rcode_yxdomain), ',',
+                '"rcode_yxrrset":', tonumber(stats.rcode_yxrrset), ',',
+                '"rcode_nxrrset":', tonumber(stats.rcode_nxrrset), ',',
+                '"rcode_notauth":', tonumber(stats.rcode_notauth), ',',
+                '"rcode_notzone":', tonumber(stats.rcode_notzone), ',',
+                '"rcode_badvers":', tonumber(stats.rcode_badvers), ',',
+                '"rcode_badkey":', tonumber(stats.rcode_badkey), ',',
+                '"rcode_badtime":', tonumber(stats.rcode_badtime), ',',
+                '"rcode_badmode":', tonumber(stats.rcode_badmode), ',',
+                '"rcode_badname":', tonumber(stats.rcode_badname), ',',
+                '"rcode_badalg":', tonumber(stats.rcode_badalg), ',',
+                '"rcode_badtrunc":', tonumber(stats.rcode_badtrunc), ',',
+                '"rcode_badcookie":', tonumber(stats.rcode_badcookie), ',',
+                '"rcode_other":', tonumber(stats.rcode_other),
             "}")
     end
 
     file:write(
         "{ ",
-            '"discarded": ', self:discarded(), ', ',
-            '"stats_sum": ')
+            '"discarded":', self:discarded(), ',',
+            '"stats_sum":')
     write_stats(file, self.obj.stats_sum)
     file:write(
-            ', ',
-            '"stats_periodic": [')
+            ',',
+            '"stats_periodic":[')
 
     local stats = self.obj.stats_first
     write_stats(file, stats)
 
     while (stats.next ~= nil) do
         stats = stats.next
-        file:write(', ')
+        file:write(',')
         write_stats(file, stats)
     end
 
