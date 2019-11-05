@@ -65,6 +65,8 @@ typedef struct _output_dnssim_request {
     output_dnssim_client_t* client;
     core_object_payload_t* payload;
     core_object_dns_t* dns_q;
+    uint64_t created_at;
+    uint64_t ended_at;
     uv_timer_t* timeout;
     uint8_t timeout_closing;
     uint8_t ongoing;
@@ -81,10 +83,10 @@ static output_dnssim_t _defaults = {
 };
 static output_dnssim_client_t _client_defaults = {
     0, 0, 0,
-    0.0, 0.0, 0.0
 };
 static output_dnssim_stats_t _stats_defaults = {
     NULL, NULL,
+    NULL,
     0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 };
@@ -167,6 +169,12 @@ static void _close_request_timeout(uv_timer_t* handle)
 
     if (!req->timeout_closing) {
         req->timeout_closing = 1;
+
+        uint64_t latency = req->ended_at - req->created_at;
+        mlassert(latency <= req->dnssim->timeout_ms, "invalid latency value");
+        req->dnssim->stats_current->latency[latency]++;
+        req->dnssim->stats_sum->latency[latency]++;
+
         uv_timer_stop(handle);
         uv_close((uv_handle_t*)handle, _close_request_timeout_cb);
     }
@@ -196,6 +204,11 @@ static int _process_udp_response(uv_udp_t* handle, ssize_t nread, const uv_buf_t
     if (dns_a.tc == 1) {
         mldebug("udp response has TC=1");
         return _ERR_TC;
+    }
+
+    req->ended_at = uv_now(&((_output_dnssim_t*)req->dnssim)->loop);
+    if (req->ended_at > (req->created_at + req->dnssim->timeout_ms)) {
+        req->ended_at = req->created_at + req->dnssim->timeout_ms;
     }
 
     req->client->answers++;
@@ -447,6 +460,8 @@ static void _create_request_udp(output_dnssim_t* self, output_dnssim_client_t* c
         goto failure;
     }
 
+    req->created_at = uv_now(&_self->loop);
+    req->ended_at = req->created_at + self->timeout_ms;
     lfatal_oom(req->timeout = malloc(sizeof(uv_timer_t)));
     ret = uv_timer_init(&_self->loop, req->timeout);
     req->timeout->data = req;
@@ -479,9 +494,13 @@ output_dnssim_t* output_dnssim_new(size_t max_clients)
     *self = _defaults;
 
     lfatal_oom(self->stats_sum = malloc(sizeof(output_dnssim_stats_t)));
-    lfatal_oom(self->stats_current = malloc(sizeof(output_dnssim_stats_t)));
     *self->stats_sum = _stats_defaults;
+    lfatal_oom(self->stats_sum->latency = calloc(self->timeout_ms + 1, sizeof(uint64_t)));
+
+    lfatal_oom(self->stats_current = malloc(sizeof(output_dnssim_stats_t)));
     *self->stats_current = _stats_defaults;
+    lfatal_oom(self->stats_current->latency = calloc(self->timeout_ms + 1, sizeof(uint64_t)));
+
     self->stats_first = self->stats_current;
 
     _self->source = NULL;
@@ -512,9 +531,11 @@ void output_dnssim_free(output_dnssim_t* self)
     _output_dnssim_source_t* first = _self->source;
     output_dnssim_stats_t* stats_prev;
 
+    free(self->stats_sum->latency);
     free(self->stats_sum);
     do {
         stats_prev = self->stats_current->prev;
+        free(self->stats_current->latency);
         free(self->stats_current);
         self->stats_current = stats_prev;
     } while (self->stats_current != NULL);
@@ -709,8 +730,9 @@ static void _stats_timer_cb(uv_timer_t* handle)
     output_dnssim_stats_t* stats_next;
     lfatal_oom(stats_next = malloc(sizeof(output_dnssim_stats_t)));
     *stats_next = _stats_defaults;
-    stats_next->ongoing = self->ongoing;
+    lfatal_oom(stats_next->latency = calloc(self->timeout_ms + 1, sizeof(uint64_t)));
 
+    stats_next->ongoing = self->ongoing;
     stats_next->prev = self->stats_current;
     self->stats_current->next = stats_next;
     self->stats_current = stats_next;

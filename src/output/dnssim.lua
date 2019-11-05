@@ -193,8 +193,13 @@ function DnsSim:export(filename)
                 '"rcode_badalg":', tonumber(stats.rcode_badalg), ',',
                 '"rcode_badtrunc":', tonumber(stats.rcode_badtrunc), ',',
                 '"rcode_badcookie":', tonumber(stats.rcode_badcookie), ',',
-                '"rcode_other":', tonumber(stats.rcode_other),
-            "}")
+                '"rcode_other":', tonumber(stats.rcode_other), ',',
+                '"latency":[')
+        file:write(tonumber(stats.latency[0]))
+        for i=1,tonumber(self.obj.timeout_ms) do
+            file:write(',', tonumber(stats.latency[i]))
+        end
+        file:write("]}")
     end
 
     file:write(

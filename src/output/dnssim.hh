@@ -33,16 +33,14 @@ typedef struct output_dnssim_client {
     uint32_t requests;
     uint32_t answers;
     uint32_t noerror;
-
-    float latency_min;
-    float latency_mean;
-    float latency_max;
 } output_dnssim_client_t;
 
 typedef struct output_dnssim_stats output_dnssim_stats_t;
 struct output_dnssim_stats {
     output_dnssim_stats_t* prev;
     output_dnssim_stats_t* next;
+
+    uint64_t* latency;
 
     uint64_t requests;
     uint64_t ongoing;
