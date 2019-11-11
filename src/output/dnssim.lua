@@ -34,7 +34,7 @@ local C = ffi.C
 
 local DnsSim = {}
 
-local _DNSSIM_JSON_VERSION = 20191010
+local _DNSSIM_JSON_VERSION = 20191111
 
 -- Create a new DnsSim output for up to max_clients.
 function DnsSim.new(max_clients)
