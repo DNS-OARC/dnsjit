@@ -208,6 +208,8 @@ function DnsSim:export(filename)
         "{ ",
             '"version":', _DNSSIM_JSON_VERSION, ',',
             '"merged":false,',
+            '"stats_interval_ms":', tonumber(self.obj.stats_interval_ms), ',',
+            '"timeout_ms":', tonumber(self.obj.timeout_ms), ',',
             '"discarded":', self:discarded(), ',',
             '"stats_sum":')
     write_stats(file, self.obj.stats_sum)

@@ -86,7 +86,8 @@ typedef struct output_dnssim {
     output_dnssim_client_t* client_arr;
     bool free_after_use;
 
-    uint32_t timeout_ms;
+    uint64_t timeout_ms;
+    uint64_t stats_interval_ms;
 } output_dnssim_t;
 
 core_log_t* output_dnssim_log();

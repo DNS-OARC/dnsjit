@@ -79,7 +79,7 @@ static output_dnssim_t _defaults = {
     0, 0, 0,
     NULL, NULL, NULL,
     0, 0, 0,
-    2000
+    2000, 0
 };
 static output_dnssim_client_t _client_defaults = {
     0, 0, 0,
@@ -764,6 +764,11 @@ void output_dnssim_stats_collect(output_dnssim_t* self, uint64_t interval_ms)
     int ret;
     uint64_t now_ms = _now_ms();
     mlassert_self();
+
+    if (self->stats_interval_ms != 0) {
+        lfatal("statistics collection has already started!");
+    }
+    self->stats_interval_ms = interval_ms;
 
     self->stats_sum->since_ms = now_ms;
     self->stats_current->since_ms = now_ms;
