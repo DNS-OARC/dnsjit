@@ -171,6 +171,8 @@ function DnsSim:export(filename)
     local function write_stats(file, stats)
         file:write(
             "{ ",
+                '"since_ms":', tonumber(stats.since_ms), ',',
+                '"until_ms":', tonumber(stats.until_ms), ',',
                 '"requests":', tonumber(stats.requests), ',',
                 '"ongoing":', tonumber(stats.ongoing), ',',
                 '"answers":', tonumber(stats.answers), ',',

@@ -42,6 +42,9 @@ struct output_dnssim_stats {
 
     uint64_t* latency;
 
+    uint64_t since_ms;
+    uint64_t until_ms;
+
     uint64_t requests;
     uint64_t ongoing;
     uint64_t answers;

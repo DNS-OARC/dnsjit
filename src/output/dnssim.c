@@ -87,6 +87,7 @@ static output_dnssim_client_t _client_defaults = {
 static output_dnssim_stats_t _stats_defaults = {
     NULL, NULL,
     NULL,
+    0, 0,
     0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 };
@@ -95,6 +96,22 @@ static output_dnssim_stats_t _stats_defaults = {
 static void _close_query_udp(_output_dnssim_query_udp_t* qry);
 static void _close_request_timeout_cb(uv_handle_t* handle);
 static void _close_request_timeout(uv_timer_t* handle);
+
+uint64_t _now_ms()
+{
+#if HAVE_CLOCK_NANOSLEEP
+    struct timespec ts;
+    uint64_t now_ms;
+    if (clock_gettime(CLOCK_REALTIME, &ts)) {
+        mlfatal("clock_gettime()");
+    }
+    now_ms = ts.tv_sec * 1000;
+    now_ms += ts.tv_nsec / 1000000;
+    return now_ms;
+#else
+    mlfatal("clock_gettime() not available");
+#endif
+}
 
 core_log_t* output_dnssim_log()
 {
@@ -722,6 +739,7 @@ int output_dnssim_run_nowait(output_dnssim_t* self)
 
 static void _stats_timer_cb(uv_timer_t* handle)
 {
+    uint64_t now_ms = _now_ms();
     output_dnssim_t* self = (output_dnssim_t*)handle->data;
     lnotice("total processed:%10ld; answers:%10ld; discarded:%10ld; ongoing:%10ld",
         self->processed, self->stats_sum->answers, self->discarded,
@@ -732,6 +750,9 @@ static void _stats_timer_cb(uv_timer_t* handle)
     *stats_next = _stats_defaults;
     lfatal_oom(stats_next->latency = calloc(self->timeout_ms + 1, sizeof(uint64_t)));
 
+    self->stats_current->until_ms = now_ms;
+    stats_next->since_ms = now_ms;
+
     stats_next->ongoing = self->ongoing;
     stats_next->prev = self->stats_current;
     self->stats_current->next = stats_next;
@@ -741,7 +762,11 @@ static void _stats_timer_cb(uv_timer_t* handle)
 void output_dnssim_stats_collect(output_dnssim_t* self, uint64_t interval_ms)
 {
     int ret;
+    uint64_t now_ms = _now_ms();
     mlassert_self();
+
+    self->stats_sum->since_ms = now_ms;
+    self->stats_current->since_ms = now_ms;
 
     _self->stats_timer.data = (void*)self;
     ret = uv_timer_init(&_self->loop, &_self->stats_timer);
@@ -759,7 +784,11 @@ void output_dnssim_stats_collect(output_dnssim_t* self, uint64_t interval_ms)
 void output_dnssim_stats_finish(output_dnssim_t* self)
 {
     int ret;
+    uint64_t now_ms = _now_ms();
     mlassert_self();
+
+    self->stats_sum->until_ms = now_ms;
+    self->stats_current->until_ms = now_ms;
 
     ret = uv_timer_stop(&_self->stats_timer);
     if (ret < 0) {
