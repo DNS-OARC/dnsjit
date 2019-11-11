@@ -723,7 +723,7 @@ int output_dnssim_run_nowait(output_dnssim_t* self)
 static void _stats_timer_cb(uv_timer_t* handle)
 {
     output_dnssim_t* self = (output_dnssim_t*)handle->data;
-    lnotice("processed:%10ld; answers:%10ld; discarded:%10ld; ongoing:%10ld",
+    lnotice("total processed:%10ld; answers:%10ld; discarded:%10ld; ongoing:%10ld",
         self->processed, self->stats_sum->answers, self->discarded,
         self->ongoing);
 
