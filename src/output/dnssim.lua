@@ -34,6 +34,8 @@ local C = ffi.C
 
 local DnsSim = {}
 
+local _DNSSIM_JSON_VERSION = 20191010
+
 -- Create a new DnsSim output for up to max_clients.
 function DnsSim.new(max_clients)
     local self = {
@@ -197,6 +199,8 @@ function DnsSim:export(filename)
 
     file:write(
         "{ ",
+            '"version":', _DNSSIM_JSON_VERSION, ',',
+            '"merged":false,',
             '"discarded":', self:discarded(), ',',
             '"stats_sum":')
     write_stats(file, self.obj.stats_sum)
