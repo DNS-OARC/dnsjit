@@ -93,5 +93,6 @@ core_object_pcap_t = ffi.metatype(t_name, { __index = Pcap })
 -- dnsjit.input.pcap (3),
 -- dnsjit.input.fpcap (3),
 -- dnsjit.input.mmpcap (3),
--- dnsjit.filter.layer (3)
+-- dnsjit.filter.layer (3),
+-- dnsjit.output.pcap (3)
 return Pcap

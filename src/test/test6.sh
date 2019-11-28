@@ -1,3 +1,4 @@
+#!/bin/sh -e
 # Copyright (c) 2018-2019, OARC, Inc.
 # All rights reserved.
 #
@@ -16,27 +17,7 @@
 # You should have received a copy of the GNU General Public License
 # along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
 
-MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
-CLEANFILES = test*.log test*.trs test*.out \
-  *.pcap-dist
-
-TESTS = test1.sh test2.sh test3.sh test4.sh test5.sh test6.sh
-
-test1.sh: dns.pcap-dist
-
-test2.sh: dns.pcap-dist
-
-test3.sh: dns.pcap-dist
-
-test4.sh: dns.pcap-dist
-
-test5.sh: dns.pcap-dist
-
-test6.sh: dns.pcap-dist
-
-.pcap.pcap-dist:
-	cp "$<" "$@"
-
-EXTRA_DIST = $(TESTS) \
-  dns.pcap \
-  test1.gold test2.gold test3.gold test4.gold
+../dnsjit "$srcdir/../../examples/dumpdns.lua" "$srcdir/dns.pcap" > test6-dns.out
+../dnsjit "$srcdir/../../examples/dumpdns2pcap.lua" "$srcdir/dns.pcap" test6-pcap.out
+../dnsjit "$srcdir/../../examples/dumpdns.lua" test6-pcap.out > test6-dns2.out
+diff test6-dns.out test6-dns2.out
