@@ -28,7 +28,7 @@
 static core_log_t     _log      = LOG_T_INIT("core.channel");
 static core_channel_t _defaults = {
     LOG_T_INIT_OBJ("core.channel"),
-    0, { 0 }, 0,
+    0, { 0 }, 0, 0,
     0, 0
 };
 
@@ -37,17 +37,28 @@ core_log_t* core_channel_log()
     return &_log;
 }
 
-void core_channel_init(core_channel_t* self, size_t size)
+static inline bool _is_pow2(size_t num)
+{
+    while (num != 1) {
+        if (num % 2 != 0)
+            return false;
+        num = num / 2;
+    }
+    return true;
+}
+
+void core_channel_init(core_channel_t* self, size_t capacity)
 {
     mlassert_self();
-    if (!(size = (size >> 2) << 2)) {
-        mlfatal("invalid size");
+    if (capacity < 4 || !_is_pow2(capacity)) {
+        mlfatal("invalid capacity");
     }
 
-    *self = _defaults;
+    *self          = _defaults;
+    self->capacity = capacity;
 
-    lfatal_oom(self->ring_buf = malloc(sizeof(ck_ring_buffer_t) * size));
-    ck_ring_init(&self->ring, size);
+    lfatal_oom(self->ring_buf = malloc(sizeof(ck_ring_buffer_t) * capacity));
+    ck_ring_init(&self->ring, capacity);
 }
 
 void core_channel_destroy(core_channel_t* self)
@@ -64,6 +75,18 @@ void core_channel_put(core_channel_t* self, const void* obj)
     while (!ck_ring_enqueue_spsc(&self->ring, self->ring_buf, (void*)obj)) {
         sched_yield();
     }
+}
+
+int core_channel_try_put(core_channel_t* self, const void* obj)
+{
+    mlassert_self();
+    lassert(self->ring_buf, "ring_buf is nil");
+
+    if (!ck_ring_enqueue_spsc(&self->ring, self->ring_buf, (void*)obj)) {
+        return -1;
+    }
+
+    return 0;
 }
 
 void* core_channel_get(core_channel_t* self)
@@ -94,6 +117,21 @@ void* core_channel_try_get(core_channel_t* self)
     }
 
     return obj;
+}
+
+int core_channel_size(core_channel_t* self)
+{
+    mlassert_self();
+    return ck_ring_size(&self->ring);
+}
+
+bool core_channel_full(core_channel_t* self)
+{
+    mlassert_self();
+    if (ck_ring_size(&self->ring) < self->capacity) {
+        return false;
+    }
+    return true;
 }
 
 void core_channel_close(core_channel_t* self)
