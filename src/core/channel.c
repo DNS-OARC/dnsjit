@@ -37,12 +37,12 @@ core_log_t* core_channel_log()
     return &_log;
 }
 
-bool _is_pow2(size_t num)
+static inline bool _is_pow2(size_t num)
 {
-    while(num != 1) {
-        if(num % 2 != 0)
+    while (num != 1) {
+        if (num % 2 != 0)
             return false;
-        num = num /2;
+        num = num / 2;
     }
     return true;
 }
@@ -54,7 +54,7 @@ void core_channel_init(core_channel_t* self, size_t capacity)
         mlfatal("invalid capacity");
     }
 
-    *self = _defaults;
+    *self          = _defaults;
     self->capacity = capacity;
 
     lfatal_oom(self->ring_buf = malloc(sizeof(ck_ring_buffer_t) * capacity));
@@ -128,7 +128,10 @@ int core_channel_size(core_channel_t* self)
 bool core_channel_full(core_channel_t* self)
 {
     mlassert_self();
-    return (core_channel_size(self) >= (self->capacity - 1));
+    if (ck_ring_size(&self->ring) < self->capacity) {
+        return false;
+    }
+    return true;
 }
 
 void core_channel_close(core_channel_t* self)
