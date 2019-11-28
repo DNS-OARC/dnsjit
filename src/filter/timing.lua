@@ -82,6 +82,22 @@ function Timing:fixed(ns)
     self.obj.fixed = ns
 end
 
+-- Set the timing mode to simulate the timing of packets in realtime.
+-- Packets are processed in batches of given size (default 128) before
+-- adjusting time. Aborts if real time drifts ahead more than given
+-- number of seconds (default 1.0s).
+function Timing:realtime(drift, batch_size)
+    self.obj.mode = "TIMING_MODE_REALTIME"
+    if drift == nil then
+        drift = 1
+    end
+    if batch_size == nil then
+        batch_size = 128
+    end
+    self.obj.rt_batch = batch_size
+    self.obj.rt_drift = math.floor(drift * 1000000000)
+end
+
 -- Return the C functions and context for receiving objects.
 function Timing:receive()
     return C.filter_timing_receiver(), self.obj
