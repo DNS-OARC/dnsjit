@@ -49,7 +49,11 @@ AC_ARG_WITH([extra-ldflags], [AS_HELP_STRING([--with-extra-ldflags=CFLAGS], [Add
 ])
 
 # Checks for support.
-AX_EXT
+AC_ARG_ENABLE([cpuext], [AS_HELP_STRING([--enable-cpuext], [check for and enable all available CPU extensions])], [
+case "${enableval}" in
+  yes) AX_EXT ;;
+  *) ;;
+esac])
 AC_HEADER_TIME
 AX_PTHREAD
 AC_CHECK_LIB([pcap], [pcap_open_live], [], [AC_MSG_ERROR([libpcap not found])])
