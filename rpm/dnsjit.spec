@@ -11,7 +11,12 @@ URL:            https://github.com/DNS-OARC/dnsjit
 Source0:        https://github.com/DNS-OARC/dnsjit/archive/v%{version}.tar.gz?/%{name}_%{version}.orig.tar.gz
 
 BuildRequires:  libpcap-devel
+%if 0%{?suse_version} || 0%{?sle_version}
+BuildRequires:  lua51-luajit = 2.1.0~beta2
+BuildRequires:  lua51-luajit-devel >= 2.0.0
+%else
 BuildRequires:  luajit-devel >= 2.0.0
+%endif
 BuildRequires:  lmdb-devel
 BuildRequires:  ck-devel
 BuildRequires:  gnutls-devel
