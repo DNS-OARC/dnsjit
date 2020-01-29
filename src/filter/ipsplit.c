@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, CZ.NIC, z.s.p.o.
+ * Copyright (c) 2019-2020, CZ.NIC, z.s.p.o.
  * All rights reserved.
  *
  * This file is part of dnsjit.
@@ -20,38 +20,38 @@
 
 #include "config.h"
 
-#include "filter/dnssim.h"
+#include "filter/ipsplit.h"
 
-typedef struct _filter_dnssim {
-    filter_dnssim_t pub;
+typedef struct _filter_ipsplit {
+    filter_ipsplit_t pub;
 
     trie_t* trie;
-} _filter_dnssim_t;
+} _filter_ipsplit_t;
 
 typedef struct _client {
     uint8_t id[4];
-    filter_dnssim_recv_t* recv;
+    filter_ipsplit_recv_t* recv;
 } _client_t;
 
-#define _self ((_filter_dnssim_t*)self)
+#define _self ((_filter_ipsplit_t*)self)
 
-static core_log_t     _log      = LOG_T_INIT("filter.dnssim");
-static filter_dnssim_t _defaults = {
-    LOG_T_INIT_OBJ("filter.dnssim"),
+static core_log_t     _log      = LOG_T_INIT("filter.ipsplit");
+static filter_ipsplit_t _defaults = {
+    LOG_T_INIT_OBJ("filter.ipsplit"),
     0,
     NULL
 };
 
-core_log_t* filter_dnssim_log()
+core_log_t* filter_ipsplit_log()
 {
     return &_log;
 }
 
-filter_dnssim_t* filter_dnssim_new()
+filter_ipsplit_t* filter_ipsplit_new()
 {
-    filter_dnssim_t* self;
+    filter_ipsplit_t* self;
 
-    mlfatal_oom(self = malloc(sizeof(_filter_dnssim_t)));
+    mlfatal_oom(self = malloc(sizeof(_filter_ipsplit_t)));
     *self = _defaults;
     _self->trie = trie_create(NULL);
 
@@ -65,10 +65,10 @@ static int _free_trie_value(trie_val_t *val, void *ctx)
     return 0;
 }
 
-void filter_dnssim_free(filter_dnssim_t* self)
+void filter_ipsplit_free(filter_ipsplit_t* self)
 {
-    filter_dnssim_recv_t* first;
-    filter_dnssim_recv_t* r;
+    filter_ipsplit_recv_t* first;
+    filter_ipsplit_recv_t* r;
     mlassert_self();
 
     trie_apply(_self->trie, _free_trie_value, NULL);
@@ -86,13 +86,13 @@ void filter_dnssim_free(filter_dnssim_t* self)
     free(self);
 }
 
-void filter_dnssim_add(filter_dnssim_t* self, core_receiver_t recv, void* ctx)
+void filter_ipsplit_add(filter_ipsplit_t* self, core_receiver_t recv, void* ctx)
 {
-    filter_dnssim_recv_t* r;
+    filter_ipsplit_recv_t* r;
     mlassert_self();
     lassert(recv, "recv is nil");
 
-    lfatal_oom(r = malloc(sizeof(filter_dnssim_recv_t)));
+    lfatal_oom(r = malloc(sizeof(filter_ipsplit_recv_t)));
     r->recv = recv;
     r->ctx = ctx;
     r->client = 1;
@@ -106,7 +106,7 @@ void filter_dnssim_add(filter_dnssim_t* self, core_receiver_t recv, void* ctx)
     }
 }
 
-static void _receive(filter_dnssim_t* self, const core_object_t* obj)
+static void _receive(filter_ipsplit_t* self, const core_object_t* obj)
 {
     core_object_t* pkt;
     core_object_ip6_t* ip6;
@@ -146,7 +146,7 @@ static void _receive(filter_dnssim_t* self, const core_object_t* obj)
     lwarning("packet discarded (missing ip6 object)");
 }
 
-core_receiver_t filter_dnssim_receiver(filter_dnssim_t* self)
+core_receiver_t filter_ipsplit_receiver(filter_ipsplit_t* self)
 {
     if (!self->recv) {
         lfatal("no receiver(s) set");

@@ -1,4 +1,4 @@
--- Copyright (c) 2019 CZ.NIC, z.s.p.o.
+-- Copyright (c) 2019-2020 CZ.NIC, z.s.p.o.
 -- All rights reserved.
 --
 -- This file is part of dnsjit.
@@ -16,60 +16,61 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
 
--- dnsjit.filter.dnssim
--- Prepare packets for dnssim output layer and optionally split them
--- among multiple receivers in a client-aware (source IP) manner.
---   local filter = require("dnsjit.filter.dnssim").new()
---   filter.receiver(...)
---   filter.receiver(...)
---   filter.receiver(...)
---   input.receiver(filter)
+-- dnsjit.filter.ipsplit
+-- Pass packets to receivers in various ways. Filter is aware of source
+-- IP/IPv6 address and always assigns packets from given source address
+-- to the same receiver.
+--   local ipsplit = require("dnsjit.filter.ipsplit").new()
+--   ipsplit.receiver(...)
+--   ipsplit.receiver(...)
+--   ipsplit.receiver(...)
+--   input.receiver(ipsplit)
 --
--- Filter for preparing packets for dnssim output component.
+-- Filter to pass objects based on source IP to other receivers.
 module(...,package.seeall)
 
-require("dnsjit.filter.dnssim_h")
+require("dnsjit.filter.ipsplit_h")
 local bit = require("bit")
 local object = require("dnsjit.core.objects")
 local ffi = require("ffi")
 local C = ffi.C
 
-local DnsSim = {}
+local IpSplit = {}
 
--- Create a new DnsSim filter.
-function DnsSim.new()
+-- Create a new IpSplit filter.
+function IpSplit.new()
     local self = {
-        obj = C.filter_dnssim_new(),
+        obj = C.filter_ipsplit_new(),
     }
-    ffi.gc(self.obj, C.filter_dnssim_free)
-    return setmetatable(self, { __index = DnsSim })
+    ffi.gc(self.obj, C.filter_ipsplit_free)
+    return setmetatable(self, { __index = IpSplit })
 end
 
 -- Return the Log object to control logging of this instance or module.
-function DnsSim:log()
+function IpSplit:log()
     if self == nil then
-        return C.filter_dnssim_log()
+        return C.filter_ipsplit_log()
     end
     return self.obj._log
 end
 
 -- Return the C functions and context for receiving objects.
-function DnsSim:receive()
-    local recv = C.filter_dnssim_receiver(self.obj)
+function IpSplit:receive()
+    local recv = C.filter_ipsplit_receiver(self.obj)
     return recv, self.obj
 end
 
 -- Set the receiver to pass objects to, this can be called multiple times to
 -- set addtional receivers.
-function DnsSim:receiver(o)
+function IpSplit:receiver(o)
     local recv, ctx = o:receive()
-    C.filter_dnssim_add(self.obj, recv, ctx)
+    C.filter_ipsplit_add(self.obj, recv, ctx)
 end
 
 -- Number of input packets discarded due to various reasons.
 -- To investigate causes, run with increased logging level.
-function DnsSim:discarded()
+function IpSplit:discarded()
     return tonumber(self.obj.discarded)
 end
 
-return DnsSim
+return IpSplit

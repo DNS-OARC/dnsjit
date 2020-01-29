@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, CZ.NIC, z.s.p.o.
+ * Copyright (c) 2019-2020, CZ.NIC, z.s.p.o.
  * All rights reserved.
  *
  * This file is part of dnsjit.
@@ -21,9 +21,9 @@
 //lua:require("dnsjit.core.log")
 //lua:require("dnsjit.core.receiver_h")
 
-typedef struct filter_dnssim_recv filter_dnssim_recv_t;
-struct filter_dnssim_recv {
-    filter_dnssim_recv_t* next;
+typedef struct filter_ipsplit_recv filter_ipsplit_recv_t;
+struct filter_ipsplit_recv {
+    filter_ipsplit_recv_t* next;
 
     core_receiver_t recv;
     void* ctx;
@@ -31,18 +31,18 @@ struct filter_dnssim_recv {
     uint32_t client;
 };
 
-typedef struct filter_dnssim {
+typedef struct filter_ipsplit {
     core_log_t _log;
 
     uint64_t discarded;
 
-    filter_dnssim_recv_t* recv;
-} filter_dnssim_t;
+    filter_ipsplit_recv_t* recv;
+} filter_ipsplit_t;
 
-core_log_t* filter_dnssim_log();
+core_log_t* filter_ipsplit_log();
 
-filter_dnssim_t* filter_dnssim_new();
-void filter_dnssim_free(filter_dnssim_t* self);
-void filter_dnssim_add(filter_dnssim_t* self, core_receiver_t recv, void* ctx);
+filter_ipsplit_t* filter_ipsplit_new();
+void filter_ipsplit_free(filter_ipsplit_t* self);
+void filter_ipsplit_add(filter_ipsplit_t* self, core_receiver_t recv, void* ctx);
 
-core_receiver_t filter_dnssim_receiver(filter_dnssim_t* self);
+core_receiver_t filter_ipsplit_receiver(filter_ipsplit_t* self);

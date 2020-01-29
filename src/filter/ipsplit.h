@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019, OARC, Inc.
+ * Copyright (c) 2019-2020 CZ.NIC, z.s.p.o.
  * All rights reserved.
  *
  * This file is part of dnsjit.
@@ -22,12 +22,12 @@
 #include "core/object/ip6.h"
 #include "core/receiver.h"
 
-#ifndef __dnsjit_filter_dnssim_h
-#define __dnsjit_filter_dnssim_h
+#ifndef __dnsjit_filter_ipsplit_h
+#define __dnsjit_filter_ipsplit_h
 
 #include <string.h>
 #include "contrib/trie.h"
 #include "core/assert.h"
-#include "filter/dnssim.hh"
+#include "filter/ipsplit.hh"
 
 #endif
