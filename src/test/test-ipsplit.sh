@@ -1,4 +1,5 @@
-# Copyright (c) 2018-2019, OARC, Inc.
+#!/bin/sh -e
+# Copyright (c) 2020, CZ.NIC, z.s.p.o.
 # All rights reserved.
 #
 # This file is part of dnsjit.
@@ -16,29 +17,4 @@
 # You should have received a copy of the GNU General Public License
 # along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
 
-MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
-CLEANFILES = test*.log test*.trs test*.out \
-  *.pcap-dist
-
-TESTS = test1.sh test2.sh test3.sh test4.sh test5.sh test6.sh test-ipsplit.sh
-
-test1.sh: dns.pcap-dist
-
-test2.sh: dns.pcap-dist
-
-test3.sh: dns.pcap-dist
-
-test4.sh: dns.pcap-dist
-
-test5.sh: dns.pcap-dist
-
-test6.sh: dns.pcap-dist
-
-test-ipsplit.sh: pellets.pcap-dist
-
-.pcap.pcap-dist:
-	cp "$<" "$@"
-
-EXTRA_DIST = $(TESTS) \
-  dns.pcap pellets.pcap \
-  test1.gold test2.gold test3.gold test4.gold
+../dnsjit "$srcdir/test_ipsplit.lua"
