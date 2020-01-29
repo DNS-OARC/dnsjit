@@ -39,10 +39,7 @@ local DnsSim = {}
 -- Create a new DnsSim filter.
 function DnsSim.new()
     local self = {
-        --receivers = {},
         obj = C.filter_dnssim_new(),
-        --clients = {},
-        --i_receiver = 1,
     }
     ffi.gc(self.obj, C.filter_dnssim_free)
     return setmetatable(self, { __index = DnsSim })
@@ -67,6 +64,12 @@ end
 function DnsSim:receiver(o)
     local recv, ctx = o:receive()
     C.filter_dnssim_add(self.obj, recv, ctx)
+end
+
+-- Number of input packets discarded due to various reasons.
+-- To investigate causes, run with increased logging level.
+function DnsSim:discarded()
+    return tonumber(self.obj.discarded)
 end
 
 return DnsSim
