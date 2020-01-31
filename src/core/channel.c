@@ -128,7 +128,9 @@ int core_channel_size(core_channel_t* self)
 bool core_channel_full(core_channel_t* self)
 {
     mlassert_self();
-    if (ck_ring_size(&self->ring) < self->capacity) {
+
+    /* ck_ring can only hold capacity minus one enties at a time */
+    if (ck_ring_size(&self->ring) < (self->capacity - 1)) {
         return false;
     }
     return true;
