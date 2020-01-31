@@ -42,3 +42,41 @@ end
 -- Post-processing test cases for pellets.pcap
 assert(ipsplit:discarded() == 0, "some valid packets have been discarded")
 assert(out1:packets() + out2:packets() == 91, "some IPv6 packets lost by filter")
+
+
+-----------------------------------------------------
+--        Tests with dns.pcap
+--
+-- Packets use IPv4 and not all packets have IP layer
+-----------------------------------------------------
+local input = require("dnsjit.input.pcap").new()
+local layer = require("dnsjit.filter.layer").new()
+local ipsplit = require("dnsjit.filter.ipsplit").new()
+local out1 = require("dnsjit.output.null").new()
+local out2 = require("dnsjit.output.null").new()
+
+input:open_offline("dns.pcap-dist")
+layer:producer(input)
+ipsplit:receiver(out1)
+ipsplit:receiver(out2)
+
+local prod, pctx = layer:produce()
+local recv, rctx = ipsplit:receive()
+
+-- Check initial state
+assert(out1:packets() == 0)
+assert(out2:packets() == 0)
+
+local i = 1
+while true do
+    local obj = prod(pctx)
+    if obj == nil then break end
+    recv(rctx, obj)
+
+    -- Check packet processing
+
+    i = i + 1
+end
+
+-- Post-processing test cases for dns.pcap
+assert(out1:packets() + out2:packets() == 123, "some IPv4 packets lost by filter")
