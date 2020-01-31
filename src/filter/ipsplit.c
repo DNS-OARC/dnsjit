@@ -29,7 +29,7 @@ typedef struct _filter_ipsplit {
 } _filter_ipsplit_t;
 
 typedef struct _client {
-    uint8_t id[4];
+    uint8_t id[4];  /* Receiver-specific client ID (0..N) in host byte order. */
     filter_ipsplit_recv_t* recv;
 } _client_t;
 
@@ -106,44 +106,86 @@ void filter_ipsplit_add(filter_ipsplit_t* self, core_receiver_t recv, void* ctx)
     }
 }
 
+static void _assign_client_to_receiver(filter_ipsplit_t* self, _client_t* client)
+{
+    uint32_t id;
+
+    /* TODO: Add more algorithms to select receivers. */
+    client->recv = self->recv;
+    self->recv = self->recv->next;
+
+    id = client->recv->client++;
+    memcpy(client->id, &id, sizeof(client->id));
+}
+
+/*
+ * Write client ID into byte 0-3 of IP address in the packet.
+ *
+ * Client ID is a 4-byte array in host byte order.
+ *
+ * TODO: Make this optional, support src address overriding
+ */
+static void _write_client_id(core_object_t* obj, _client_t* client)
+{
+    mlassert(obj, "invalid object");
+
+    switch(obj->obj_type) {
+    case CORE_OBJECT_IP:
+        mlfatal("IP layer not supported yet");
+        break;
+    case CORE_OBJECT_IP6: {
+        core_object_ip6_t* ip6 = (core_object_ip6_t*)obj;
+        memcpy(&ip6->dst, client->id, sizeof(client->id));
+        break;
+    }
+    default:
+        mlfatal("only ip/ip6 objects supported");
+    }
+}
+
 static void _receive(filter_ipsplit_t* self, const core_object_t* obj)
 {
-    core_object_t* pkt;
-    core_object_ip6_t* ip6;
-    _client_t* client;
-    trie_val_t* val;
-    uint32_t id;
     mlassert_self();
 
-    if (!obj) {
+    /* Find ip/ip6 object in chain. */
+    core_object_t* pkt = (core_object_t*)obj;
+    while (pkt != NULL) {
+        if (pkt->obj_type == CORE_OBJECT_IP || pkt->obj_type == CORE_OBJECT_IP6)
+            break;
+        pkt = (core_object_t*)pkt->obj_prev;
+    }
+    if (pkt == NULL) {
         self->discarded++;
-        linfo("packet discarded (no data)");
+        lwarning("packet discarded (missing ip/ip6 object)");
+        return;
     }
 
-    pkt = (core_object_t*)obj;
-    do {
-        if (pkt->obj_type == CORE_OBJECT_IP6) {
-            ip6 = (core_object_ip6_t*)pkt;
-            val = trie_get_ins(_self->trie, ip6->src, sizeof(ip6->src));
-            if (*val == NULL) {  // new client
-                lfatal_oom(client = malloc(sizeof(_client_t)));
-                *val = (void*)client;
-                client->recv = self->recv;
-                self->recv = self->recv->next;
-                id = client->recv->client++;
-                memcpy(client->id, &id, sizeof(client->id));
-            } else {
-                client = (_client_t*)*val;
-            }
-            // put the client ID into dst IP
-            memcpy(&ip6->dst, client->id, sizeof(client->id));
-            client->recv->recv(client->recv->ctx, obj);
-            return;
-        }
-        pkt = (core_object_t*)pkt->obj_prev;
-    } while (pkt != NULL);
+    /* Lookup IPv4/IPv6 address in trie (prefix-tree). Inserts new node if not found. */
+    trie_val_t* node;
+    switch(pkt->obj_type) {
+    case CORE_OBJECT_IP:
+        lfatal("IP layer not supported yet");
+        break;
+    case CORE_OBJECT_IP6: {
+        core_object_ip6_t* ip6 = (core_object_ip6_t*)pkt;
+        node = trie_get_ins(_self->trie, ip6->src, sizeof(ip6->src));
+        break;
+    }
+    default:
+        lfatal("unsupported object type");
+    }
+    lassert(node, "trie failure");
 
-    lwarning("packet discarded (missing ip6 object)");
+    _client_t* client;
+    if (*node == NULL) {  /* IP address not found in tree -> create new client. */
+        lfatal_oom(client = malloc(sizeof(_client_t)));
+        *node = (void*)client;
+        _assign_client_to_receiver(self, client);
+    }
+
+    client = (_client_t*)*node;
+    _write_client_id(pkt, client);
+    client->recv->recv(client->recv->ctx, obj);
 }
 
 core_receiver_t filter_ipsplit_receiver(filter_ipsplit_t* self)
