@@ -130,9 +130,11 @@ static void _write_client_id(core_object_t* obj, _client_t* client)
     mlassert(obj, "invalid object");
 
     switch(obj->obj_type) {
-    case CORE_OBJECT_IP:
-        mlfatal("IP layer not supported yet");
+    case CORE_OBJECT_IP: {
+        core_object_ip_t* ip = (core_object_ip_t*)obj;
+        memcpy(&ip->dst, client->id, sizeof(client->id));
         break;
+    }
     case CORE_OBJECT_IP6: {
         core_object_ip6_t* ip6 = (core_object_ip6_t*)obj;
         memcpy(&ip6->dst, client->id, sizeof(client->id));
@@ -163,9 +165,11 @@ static void _receive(filter_ipsplit_t* self, const core_object_t* obj)
     /* Lookup IPv4/IPv6 address in trie (prefix-tree). Inserts new node if not found. */
     trie_val_t* node;
     switch(pkt->obj_type) {
-    case CORE_OBJECT_IP:
-        lfatal("IP layer not supported yet");
+    case CORE_OBJECT_IP: {
+        core_object_ip_t* ip = (core_object_ip_t*)pkt;
+        node = trie_get_ins(_self->trie, ip->src, sizeof(ip->src));
         break;
+    }
     case CORE_OBJECT_IP6: {
         core_object_ip6_t* ip6 = (core_object_ip6_t*)pkt;
         node = trie_get_ins(_self->trie, ip6->src, sizeof(ip6->src));

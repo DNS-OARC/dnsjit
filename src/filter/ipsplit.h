@@ -19,6 +19,7 @@
  */
 
 #include "core/log.h"
+#include "core/object/ip.h"
 #include "core/object/ip6.h"
 #include "core/receiver.h"
 
