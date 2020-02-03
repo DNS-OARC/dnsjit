@@ -71,4 +71,18 @@ function Copy:receiver(o)
     self.obj.recv, self.obj.recv_ctx = o:receive()
 end
 
+-- Return the C functions and context for producing objects. Note that produce()
+-- returns nil either when the producer has no more data OR when an object is
+-- discarded by the filter (e.g. due to having no layers to copy). For most
+-- use-cases, the receiver interface should be more suitable as it doesn't suffer
+-- from this issue.
+function Copy:produce()
+    return C.filter_copy_producer(self.obj), self.obj
+end
+
+-- Set the producer to get objects from.
+function Copy:producer(o)
+    self.obj.prod, self.obj.prod_ctx = o:produce()
+end
+
 return Copy

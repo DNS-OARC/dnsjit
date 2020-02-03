@@ -20,12 +20,16 @@
 
 //lua:require("dnsjit.core.log")
 //lua:require("dnsjit.core.receiver_h")
+//lua:require("dnsjit.core.producer_h")
 
 typedef struct filter_copy {
     core_log_t _log;
 
     core_receiver_t recv;
     void*           recv_ctx;
+
+    core_producer_t prod;
+    void*           prod_ctx;
 
     uint64_t copy;
 } filter_copy_t;
@@ -38,3 +42,4 @@ void filter_copy_set(filter_copy_t* self, int32_t obj_type);
 uint64_t filter_copy_get(filter_copy_t* self, int32_t obj_type);
 
 core_receiver_t filter_copy_receiver(filter_copy_t* self);
+core_producer_t filter_copy_producer(filter_copy_t* self);

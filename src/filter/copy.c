@@ -203,3 +203,25 @@ core_receiver_t filter_copy_receiver(filter_copy_t* self)
 
     return (core_receiver_t)_receive;
 }
+
+static const core_object_t* _produce(filter_copy_t* self)
+{
+    mlassert_self();
+
+    const core_object_t* obj = self->prod(self->prod_ctx);
+    if (obj == NULL)
+        return NULL;
+
+    return _copy(self, obj);
+}
+
+core_producer_t filter_copy_producer(filter_copy_t* self)
+{
+    mlassert_self();
+
+    if (!self->prod) {
+        lfatal("no producer set");
+    }
+
+    return (core_producer_t)_produce;
+}
