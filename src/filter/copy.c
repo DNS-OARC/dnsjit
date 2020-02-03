@@ -148,10 +148,13 @@ uint64_t filter_copy_get(filter_copy_t* self, int32_t obj_type)
     return 0;
 }
 
-static void _receive(filter_copy_t* self, const core_object_t* obj)
+
+static core_object_t* _copy(filter_copy_t* self, const core_object_t* obj)
 {
     mlassert_self();
-    lassert(obj, "obj is nil");
+
+    if (obj == NULL)
+        return NULL;
 
     core_object_t*       outobj  = NULL;
     core_object_t*       next    = NULL;
@@ -172,12 +175,22 @@ static void _receive(filter_copy_t* self, const core_object_t* obj)
         srcobj = srcobj->obj_prev;
     } while (srcobj != NULL);
 
-    if (outobj == NULL) {
+    return outobj;
+}
+
+static void _receive(filter_copy_t* self, const core_object_t* obj)
+{
+    mlassert_self();
+    lassert(obj, "obj is nil");
+
+    core_object_t* copied = _copy(self, obj);
+
+    if (copied == NULL) {
         lnotice("object discarded (no types to copy)");
         return;
     }
 
-    self->recv(self->recv_ctx, outobj);
+    self->recv(self->recv_ctx, copied);
 }
 
 core_receiver_t filter_copy_receiver(filter_copy_t* self)
