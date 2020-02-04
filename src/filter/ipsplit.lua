@@ -61,10 +61,15 @@ function IpSplit:receive()
 end
 
 -- Set the receiver to pass objects to, this can be called multiple times to
--- set addtional receivers.
-function IpSplit:receiver(o)
+-- set addtional receivers. The weight parameter can be used to adjust
+-- distribution of clients among receivers. Weight must be a positive integer
+-- (default is 1).
+function IpSplit:receiver(o, weight)
     local recv, ctx = o:receive()
-    C.filter_ipsplit_add(self.obj, recv, ctx)
+    if weight == nil then
+        weight = 1
+    end
+    C.filter_ipsplit_add(self.obj, recv, ctx, weight)
 end
 
 -- Number of input packets discarded due to various reasons.

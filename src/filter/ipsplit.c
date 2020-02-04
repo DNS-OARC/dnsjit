@@ -29,7 +29,7 @@ typedef struct _filter_ipsplit {
 } _filter_ipsplit_t;
 
 typedef struct _client {
-    uint8_t id[4];  /* Receiver-specific client ID (0..N) in host byte order. */
+    uint8_t id[4];  /* Receiver-specific client ID (1..N) in host byte order. */
     filter_ipsplit_recv_t* recv;
 } _client_t;
 
@@ -86,16 +86,18 @@ void filter_ipsplit_free(filter_ipsplit_t* self)
     free(self);
 }
 
-void filter_ipsplit_add(filter_ipsplit_t* self, core_receiver_t recv, void* ctx)
+void filter_ipsplit_add(filter_ipsplit_t* self, core_receiver_t recv, void* ctx, uint32_t weight)
 {
     filter_ipsplit_recv_t* r;
     mlassert_self();
     lassert(recv, "recv is nil");
+    lassert(weight > 0, "weight must be positive integer");
 
     lfatal_oom(r = malloc(sizeof(filter_ipsplit_recv_t)));
     r->recv = recv;
     r->ctx = ctx;
-    r->client = 1;
+    r->n_clients = 0;
+    r->weight = weight;
 
     if (!self->recv) {
         r->next = r;
@@ -109,12 +111,17 @@ void filter_ipsplit_add(filter_ipsplit_t* self, core_receiver_t recv, void* ctx)
 static void _assign_client_to_receiver(filter_ipsplit_t* self, _client_t* client)
 {
     uint32_t id;
+    filter_ipsplit_recv_t* recv;
 
     /* TODO: Add more algorithms to select receivers. */
-    client->recv = self->recv;
-    self->recv = self->recv->next;
 
-    id = client->recv->client++;
+    /* Sequential: When *weight* clients are assigned, switch to next receiver. */
+    recv = self->recv;
+    id = ++recv->n_clients;  /* Client ID starts at 1 to avoid issues with lua. */
+    if (recv->n_clients % recv->weight == 0)
+        self->recv = recv->next;
+
+    client->recv = recv;
     memcpy(client->id, &id, sizeof(client->id));
 }
 

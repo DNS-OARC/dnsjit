@@ -28,7 +28,9 @@ struct filter_ipsplit_recv {
     core_receiver_t recv;
     void* ctx;
 
-    uint32_t client;
+    uint32_t n_clients;  /* Total number of clients assigned to this receiver. */
+
+    uint32_t weight;
 };
 
 typedef struct filter_ipsplit {
@@ -43,6 +45,6 @@ core_log_t* filter_ipsplit_log();
 
 filter_ipsplit_t* filter_ipsplit_new();
 void filter_ipsplit_free(filter_ipsplit_t* self);
-void filter_ipsplit_add(filter_ipsplit_t* self, core_receiver_t recv, void* ctx);
+void filter_ipsplit_add(filter_ipsplit_t* self, core_receiver_t recv, void* ctx, uint32_t weight);
 
 core_receiver_t filter_ipsplit_receiver(filter_ipsplit_t* self);
