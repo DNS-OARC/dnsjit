@@ -36,6 +36,10 @@ struct filter_ipsplit_recv {
 typedef struct filter_ipsplit {
     core_log_t _log;
 
+    enum {
+        IPSPLIT_MODE_SEQUENTIAL = 0,
+        IPSPLIT_MODE_RANDOM = 1
+    } mode;
     uint64_t discarded;
 
     filter_ipsplit_recv_t* recv;
@@ -46,5 +50,6 @@ core_log_t* filter_ipsplit_log();
 filter_ipsplit_t* filter_ipsplit_new();
 void filter_ipsplit_free(filter_ipsplit_t* self);
 void filter_ipsplit_add(filter_ipsplit_t* self, core_receiver_t recv, void* ctx, uint32_t weight);
+void filter_ipsplit_srand(unsigned int seed);
 
 core_receiver_t filter_ipsplit_receiver(filter_ipsplit_t* self);

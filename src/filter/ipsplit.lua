@@ -78,4 +78,20 @@ function IpSplit:discarded()
     return tonumber(self.obj.discarded)
 end
 
+-- Set the client assignment mode to sequenatial. Assigns `weight` clients to a
+-- receiver before continuing with the next receiver. (default mode)
+function IpSplit:sequential()
+    self.obj.mode = "IPSPLIT_MODE_SEQUENTIAL"
+end
+
+-- Set the client assignment mode to random. Each client is randomly assigned
+-- to a receiver (weight affects the probability). The client assignment is
+-- stable (and portable) for given seed.
+function IpSplit:random(seed)
+    self.obj.mode = "IPSPLIT_MODE_RANDOM"
+    if seed then
+        C.filter_ipsplit_srand(seed)
+    end
+end
+
 return IpSplit

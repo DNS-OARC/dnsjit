@@ -26,10 +26,14 @@ typedef struct _filter_ipsplit {
     filter_ipsplit_t pub;
 
     trie_t* trie;
+    uint32_t weight_total;
 } _filter_ipsplit_t;
 
 typedef struct _client {
-    uint8_t id[4];  /* Receiver-specific client ID (1..N) in host byte order. */
+    /* Receiver-specific client ID (1..N) in host byte order. */
+    /* Client ID starts at 1 to avoid issues with lua. */
+    uint8_t id[4];
+
     filter_ipsplit_recv_t* recv;
 } _client_t;
 
@@ -38,6 +42,7 @@ typedef struct _client {
 static core_log_t     _log      = LOG_T_INIT("filter.ipsplit");
 static filter_ipsplit_t _defaults = {
     LOG_T_INIT_OBJ("filter.ipsplit"),
+    IPSPLIT_MODE_SEQUENTIAL,
     0,
     NULL
 };
@@ -54,6 +59,7 @@ filter_ipsplit_t* filter_ipsplit_new()
     mlfatal_oom(self = malloc(sizeof(_filter_ipsplit_t)));
     *self = _defaults;
     _self->trie = trie_create(NULL);
+    _self->weight_total = 0;
 
     return self;
 }
@@ -93,6 +99,8 @@ void filter_ipsplit_add(filter_ipsplit_t* self, core_receiver_t recv, void* ctx,
     lassert(recv, "recv is nil");
     lassert(weight > 0, "weight must be positive integer");
 
+    _self->weight_total += weight;
+
     lfatal_oom(r = malloc(sizeof(filter_ipsplit_recv_t)));
     r->recv = recv;
     r->ctx = ctx;
@@ -108,18 +116,53 @@ void filter_ipsplit_add(filter_ipsplit_t* self, core_receiver_t recv, void* ctx,
     }
 }
 
+/*
+ * Use portable pseudo-random number generator.
+ */
+static unsigned long _rand_next = 1;
+
+static unsigned int _rand(unsigned int mod) {
+   mlassert(mod >= 1, "modulus must be positive integer");
+   _rand_next = _rand_next * 1103515245 + 12345;
+   unsigned int ret = (unsigned)(_rand_next/65536) % mod;
+   mldebug("rand: %d", ret);
+   return ret;
+}
+
+void filter_ipsplit_srand(unsigned int seed) {
+   _rand_next = seed;
+   mldebug("rand seed %d", seed);
+}
+
 static void _assign_client_to_receiver(filter_ipsplit_t* self, _client_t* client)
 {
     uint32_t id;
     filter_ipsplit_recv_t* recv;
 
-    /* TODO: Add more algorithms to select receivers. */
-
-    /* Sequential: When *weight* clients are assigned, switch to next receiver. */
-    recv = self->recv;
-    id = ++recv->n_clients;  /* Client ID starts at 1 to avoid issues with lua. */
-    if (recv->n_clients % recv->weight == 0)
-        self->recv = recv->next;
+    switch (self->mode) {
+    case IPSPLIT_MODE_SEQUENTIAL:
+        recv = self->recv;
+        id = ++recv->n_clients;
+        /* When *weight* clients are assigned, switch to next receiver. */
+        if (recv->n_clients % recv->weight == 0)
+            self->recv = recv->next;
+        break;
+    case IPSPLIT_MODE_RANDOM: {
+        /* Get random number from [1, weight_total], then iterate through
+         * receivers until their weights add up to at least this value. */
+        int32_t random = (int32_t)_rand(_self->weight_total) + 1;
+        while (random > 0) {
+            random -= self->recv->weight;
+            if (random > 0)
+                self->recv = self->recv->next;
+        }
+        recv = self->recv;
+        id = ++recv->n_clients;
+        break;
+    }
+    default:
+        lfatal("invalid ipsplit mode");
+    }
 
     client->recv = recv;
     memcpy(client->id, &id, sizeof(client->id));
