@@ -94,4 +94,20 @@ function IpSplit:random(seed)
     end
 end
 
+-- Don't overwrite source or destination IP (default).
+function IpSplit:overwrite_none()
+    self.obj.overwrite = "IPSPLIT_OVERWRITE_NONE"
+end
+
+-- Write receiver-specific client ID to bytes 0-3 of source IP (host byte order).
+function IpSplit:overwrite_src()
+    self.obj.overwrite = "IPSPLIT_OVERWRITE_SRC"
+end
+
+-- Write receiver-specific client ID to bytes 0-3 of destination IP (host byte
+-- order).
+function IpSplit:overwrite_dst()
+    self.obj.overwrite = "IPSPLIT_OVERWRITE_DST"
+end
+
 return IpSplit

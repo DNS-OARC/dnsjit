@@ -42,7 +42,7 @@ typedef struct _client {
 static core_log_t     _log      = LOG_T_INIT("filter.ipsplit");
 static filter_ipsplit_t _defaults = {
     LOG_T_INIT_OBJ("filter.ipsplit"),
-    IPSPLIT_MODE_SEQUENTIAL,
+    IPSPLIT_MODE_SEQUENTIAL, IPSPLIT_OVERWRITE_NONE,
     0,
     NULL
 };
@@ -169,29 +169,42 @@ static void _assign_client_to_receiver(filter_ipsplit_t* self, _client_t* client
 }
 
 /*
- * Write client ID into byte 0-3 of IP address in the packet.
+ * Optionally, write client ID into byte 0-3 of src/dst IP address in the packet.
  *
  * Client ID is a 4-byte array in host byte order.
- *
- * TODO: Make this optional, support src address overriding
  */
-static void _write_client_id(core_object_t* obj, _client_t* client)
+static void _overwrite(filter_ipsplit_t* self, core_object_t* obj, _client_t* client)
 {
+    mlassert_self();
     mlassert(obj, "invalid object");
+    mlassert(client, "invalid client");
 
-    switch(obj->obj_type) {
-    case CORE_OBJECT_IP: {
-        core_object_ip_t* ip = (core_object_ip_t*)obj;
-        memcpy(&ip->dst, client->id, sizeof(client->id));
+    core_object_ip_t* ip;
+    core_object_ip6_t* ip6;
+
+    switch(self->overwrite) {
+    case IPSPLIT_OVERWRITE_NONE:
+        return;
+    case IPSPLIT_OVERWRITE_SRC:
+        if (obj->obj_type == CORE_OBJECT_IP) {
+            ip = (core_object_ip_t*)obj;
+            memcpy(&ip->src, client->id, sizeof(client->id));
+        } else if (obj->obj_type == CORE_OBJECT_IP6) {
+            ip6 = (core_object_ip6_t*)obj;
+            memcpy(&ip6->src, client->id, sizeof(client->id));
+        }
         break;
-    }
-    case CORE_OBJECT_IP6: {
-        core_object_ip6_t* ip6 = (core_object_ip6_t*)obj;
-        memcpy(&ip6->dst, client->id, sizeof(client->id));
+    case IPSPLIT_OVERWRITE_DST:
+        if (obj->obj_type == CORE_OBJECT_IP) {
+            ip = (core_object_ip_t*)obj;
+            memcpy(&ip->dst, client->id, sizeof(client->id));
+        } else if (obj->obj_type == CORE_OBJECT_IP6) {
+            ip6 = (core_object_ip6_t*)obj;
+            memcpy(&ip6->dst, client->id, sizeof(client->id));
+        }
         break;
-    }
     default:
-        mlfatal("only ip/ip6 objects supported");
+        lfatal("invalid overwrite mode");
     }
 }
 
@@ -238,7 +251,7 @@ static void _receive(filter_ipsplit_t* self, const core_object_t* obj)
     }
 
     client = (_client_t*)*node;
-    _write_client_id(pkt, client);
+    _overwrite(self, pkt, client);
     client->recv->recv(client->recv->ctx, obj);
 }
 

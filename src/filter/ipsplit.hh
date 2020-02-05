@@ -40,6 +40,12 @@ typedef struct filter_ipsplit {
         IPSPLIT_MODE_SEQUENTIAL = 0,
         IPSPLIT_MODE_RANDOM = 1
     } mode;
+    enum {
+        IPSPLIT_OVERWRITE_NONE = 0,
+        IPSPLIT_OVERWRITE_SRC = 1,
+        IPSPLIT_OVERWRITE_DST = 2
+    } overwrite;
+
     uint64_t discarded;
 
     filter_ipsplit_recv_t* recv;
