@@ -17,16 +17,20 @@
 -- along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
 
 -- dnsjit.filter.ipsplit
--- Pass packets to receivers in various ways. Filter is aware of source
--- IP/IPv6 address and always assigns packets from given source address
--- to the same receiver.
+-- Pass objects to receivers based on the source IP address
 --   local ipsplit = require("dnsjit.filter.ipsplit").new()
 --   ipsplit.receiver(...)
 --   ipsplit.receiver(...)
 --   ipsplit.receiver(...)
 --   input.receiver(ipsplit)
 --
--- Filter to pass objects based on source IP to other receivers.
+-- The filter passes objects to other receivers. Object chains without
+-- IPv4/IPv6 packet are discarded. Packets which have the same source IP
+-- address are considered to be sent from the same "client". When the first
+-- packet from a client is processed, the client is assigned to a receiver. All
+-- objects from this client will be passed to the assigned receiver.  The
+-- filter can also write a receiver-specific client ID (starting from 1) to the
+-- source or destination IP in the packet.
 module(...,package.seeall)
 
 require("dnsjit.filter.ipsplit_h")
@@ -61,7 +65,7 @@ function IpSplit:receive()
 end
 
 -- Set the receiver to pass objects to, this can be called multiple times to
--- set addtional receivers. The weight parameter can be used to adjust
+-- set additional receivers. The weight parameter can be used to adjust
 -- distribution of clients among receivers. Weight must be a positive integer
 -- (default is 1).
 function IpSplit:receiver(o, weight)
@@ -78,7 +82,7 @@ function IpSplit:discarded()
     return tonumber(self.obj.discarded)
 end
 
--- Set the client assignment mode to sequenatial. Assigns `weight` clients to a
+-- Set the client assignment mode to sequential. Assigns `weight` clients to a
 -- receiver before continuing with the next receiver. (default mode)
 function IpSplit:sequential()
     self.obj.mode = "IPSPLIT_MODE_SEQUENTIAL"
