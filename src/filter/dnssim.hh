@@ -19,13 +19,30 @@
  */
 
 //lua:require("dnsjit.core.log")
+//lua:require("dnsjit.core.receiver_h")
+
+typedef struct filter_dnssim_recv filter_dnssim_recv_t;
+struct filter_dnssim_recv {
+    filter_dnssim_recv_t* next;
+
+    core_receiver_t recv;
+    void* ctx;
+
+    uint32_t client;
+};
 
 typedef struct filter_dnssim {
     core_log_t _log;
+
     uint64_t discarded;
+
+    filter_dnssim_recv_t* recv;
 } filter_dnssim_t;
 
 core_log_t* filter_dnssim_log();
 
-void filter_dnssim_init(filter_dnssim_t* self);
-void filter_dnssim_destroy(filter_dnssim_t* self);
+filter_dnssim_t* filter_dnssim_new();
+void filter_dnssim_free(filter_dnssim_t* self);
+void filter_dnssim_add(filter_dnssim_t* self, core_receiver_t recv, void* ctx);
+
+core_receiver_t filter_dnssim_receiver(filter_dnssim_t* self);

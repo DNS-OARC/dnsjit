@@ -33,7 +33,7 @@ BUILT_SOURCES = core/compat.hh core/log_errstr.c
 
 bin_PROGRAMS = dnsjit
 
-dnsjit_SOURCES = dnsjit.c globals.c
+dnsjit_SOURCES = dnsjit.c globals.c contrib/trie.c
 dist_dnsjit_SOURCES = core.lua lib.lua input.lua filter.lua globals.h \
   output.lua
 lua_hobjects = core/compat.luaho

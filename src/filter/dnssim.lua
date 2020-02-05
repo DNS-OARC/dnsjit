@@ -34,20 +34,17 @@ local object = require("dnsjit.core.objects")
 local ffi = require("ffi")
 local C = ffi.C
 
-local t_name = "filter_dnssim_t"
-local filter_dnssim_t = ffi.typeof(t_name)
 local DnsSim = {}
 
 -- Create a new DnsSim filter.
 function DnsSim.new()
     local self = {
-        receivers = {},
-        obj = filter_dnssim_t(),
-        clients = {},
-        i_receiver = 1,
+        --receivers = {},
+        obj = C.filter_dnssim_new(),
+        --clients = {},
+        --i_receiver = 1,
     }
-    C.filter_dnssim_init(self.obj)
-    ffi.gc(self.obj, C.filter_dnssim_destroy)
+    ffi.gc(self.obj, C.filter_dnssim_free)
     return setmetatable(self, { __index = DnsSim })
 end
 
@@ -61,69 +58,15 @@ end
 
 -- Return the C functions and context for receiving objects.
 function DnsSim:receive()
-    --local receive = C.filter_dnssim_receiver(self.obj)
-    if #self.receivers < 1 then
-        self.obj._log:fatal("no receiver(s) set")
-    end
-    local function lua_recv(_, obj)
-        if obj == nil then
-            self.obj.discarded = self.obj.discarded + 1
-            self.obj._log:warning("packet discarded (no data)")
-            return
-        end
-        local pkt = ffi.cast("core_object_t*", obj)
-        repeat
-            if pkt == nil then
-                self.obj.discarded = self.obj.discarded + 1
-                self.obj._log:warning("packet discarded (missing ip6 object)")
-                return
-            end
-            if pkt.obj_type == object.IP6 then
-                -- get client info from IP
-                local ip6 = pkt:cast()
-                -- IPv6 has to differ in least significant 4 octets
-                local addr_hash = (
-                    ip6.src[15] +
-                    bit.lshift(ip6.src[14], 8) +
-                    bit.lshift(ip6.src[13], 16) +
-                    bit.lshift(ip6.src[12], 32))
-                local client_data = self.clients[addr_hash]
-                local client, receiver
-                if client_data == nil then
-                    receiver = self.receivers[self.i_receiver]
-                    client = {}
-                    client[3] = bit.band(receiver.i_client, 0xff)
-                    client[2] = bit.rshift(bit.band(receiver.i_client, 0xff00), 8)
-                    client[1] = bit.rshift(bit.band(receiver.i_client, 0xff0000), 16)
-                    client[0] = bit.rshift(bit.band(receiver.i_client, 0xff000000), 24)
-                    -- TODO: support other than roundrobin distribution
-                    self.clients[addr_hash] = {client, receiver}
-                    receiver.i_client = receiver.i_client + 1
-                    self.i_receiver = self.i_receiver % #self.receivers + 1
-                else
-                    client = client_data[1]
-                    receiver = client_data[2]
-                end
-
-                -- put the client number into dst IP
-                ip6.dst[3] = client[3]
-                ip6.dst[2] = client[2]
-                ip6.dst[1] = client[1]
-                ip6.dst[0] = client[0]
-
-                return receiver.recv(receiver.ctx, obj)
-            end
-            pkt = pkt.obj_prev
-        until(false)
-    end
-    return lua_recv, self.obj
+    local recv = C.filter_dnssim_receiver(self.obj)
+    return recv, self.obj
 end
 
 -- Set the receiver to pass objects to, this can be called multiple times to
 -- set addtional receivers.
 function DnsSim:receiver(o)
     local recv, ctx = o:receive()
-    table.insert(self.receivers, {recv=recv, ctx=ctx, i_client=0})
+    C.filter_dnssim_add(self.obj, recv, ctx)
 end
 
 return DnsSim
