@@ -38,8 +38,7 @@ local DnsSim = {}
 function DnsSim.new(max_clients)
     local self = {
         obj = C.output_dnssim_new(max_clients),
-        clients = {},
-        i_client = 0,
+        max_clients = max_clients,
     }
     ffi.gc(self.obj, C.output_dnssim_free)
     return setmetatable(self, { __index = DnsSim })
@@ -85,48 +84,12 @@ end
 -- Return the C function and context for receiving objects.
 function DnsSim:receive()
     local receive = C.output_dnssim_receiver()
-    local i = 1
-    function lua_recv(ctx, obj)
-        if obj == nil then
-            self.obj.discarded = self.obj.discarded + 1
-            self.obj._log:warning("packet discarded (no data)")
-            return
-        end
-        local pkt = ffi.cast("core_object_t*", obj)
-        repeat
-            if pkt == nil then
-                self.obj.discarded = self.obj.discarded + 1
-                self.obj._log:warning("packet discarded (missing ip/ip6 object)")
-                return
-            end
-            if pkt.obj_type == object.IP or pkt.obj_type == object.IP6 then
-                -- assign unique client number based on IP
-                local ip = pkt:cast()
-                local client = self.clients[ip:source()]
-                if client == nil then
-                    self.clients[ip:source()] = self.i_client
-                    client = self.i_client
-                    self.i_client = self.i_client + 1
-                end
-                self.obj._log:debug("client(lua): "..client)
-
-                -- put the client number into dst IP
-                ip.dst[3] = bit.band(client, 0xff)
-                ip.dst[2] = bit.rshift(bit.band(client, 0xff00), 8)
-                ip.dst[1] = bit.rshift(bit.band(client, 0xff0000), 16)
-                ip.dst[0] = bit.rshift(bit.band(client, 0xff000000), 24)
-
-                return receive(ctx, obj)
-            end
-            pkt = pkt.obj_prev
-        until(false)
-    end
-    return lua_recv, self.obj
+    return receive, self.obj
 end
 
 -- Set the target server where queries will be sent to. Returns 0 on success.
 function DnsSim:target(ip, port)
-    nport = tonumber(port)
+    local nport = tonumber(port)
     if nport == nil then
         self.obj._log:critical("invalid port: "..port)
         return -1
@@ -160,7 +123,7 @@ end
 -- Number of valid requests (input packets) processed.
 function DnsSim:total()
     local total = 0
-    for i = 0, self.i_client do
+    for i = 0, self.max_clients-1 do
         local n = tonumber(self.obj.client_arr[i].req_total)
         if n ~= nil then
             total = total + n
@@ -172,7 +135,7 @@ end
 -- Number of requests that received an answer
 function DnsSim:answered()
     local answered = 0
-    for i = 0, self.i_client do
+    for i = 0, self.max_clients-1 do
         local n = tonumber(self.obj.client_arr[i].req_answered)
         if n ~= nil then
             answered = answered + n
@@ -184,7 +147,7 @@ end
 -- Number of requests that received a NOERROR response
 function DnsSim:noerror()
     local noerror = 0
-    for i = 0, self.i_client do
+    for i = 0, self.max_clients-1 do
         local n = tonumber(self.obj.client_arr[i].req_noerror)
         if n ~= nil then
             noerror = noerror + n
