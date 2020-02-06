@@ -17,10 +17,10 @@
 -- along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
 
 -- dnsjit.core.object.tcp
--- A TCP packet
+-- A TCP segment header
 --
--- A TCP packet which is usually at the top of the object chain
--- after parsing with, for example, Layer filter.
+-- A TCP segment header. The data itself is in the payload object, which is the
+-- next object in the chain after parsing with, for example, Layer filter.
 -- .SS Attributes
 -- .TP
 -- sport
@@ -58,12 +58,6 @@
 -- .TP
 -- opts_len
 -- Length of the TCP options.
--- .TP
--- payload
--- A pointer to the payload.
--- .TP
--- len
--- The length of the payload.
 module(...,package.seeall)
 
 require("dnsjit.core.object.tcp_h")
@@ -107,5 +101,6 @@ end
 core_object_tcp_t = ffi.metatype(t_name, { __index = Tcp })
 
 -- dnsjit.core.object (3),
+-- dnsjit.core.object.payload (3),
 -- dnsjit.filter.layer (3)
 return Tcp
