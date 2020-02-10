@@ -28,13 +28,6 @@ typedef enum output_dnssim_transport {
     OUTPUT_DNSSIM_TRANSPORT_TLS
 } output_dnssim_transport_t;
 
-typedef struct output_dnssim_client {
-    // TODO use stats instead
-    uint32_t requests;
-    uint32_t answers;
-    uint32_t noerror;
-} output_dnssim_client_t;
-
 typedef struct output_dnssim_stats output_dnssim_stats_t;
 struct output_dnssim_stats {
     output_dnssim_stats_t* prev;
@@ -83,7 +76,6 @@ typedef struct output_dnssim {
     output_dnssim_stats_t* stats_first;
 
     size_t max_clients;
-    output_dnssim_client_t* client_arr;
     bool free_after_use;
 
     uint64_t timeout_ms;

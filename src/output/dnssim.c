@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, CZ.NIC, z.s.p.o.
+ * Copyright (c) 2019-2020, CZ.NIC, z.s.p.o.
  * All rights reserved.
  *
  * This file is part of dnsjit.
@@ -27,13 +27,59 @@
 #include "core/object/payload.h"
 #include "core/object/dns.h"
 
-typedef struct _output_dnssim_source _output_dnssim_source_t;
-struct _output_dnssim_source {
+typedef struct _output_dnssim_s _output_dnssim_t;
+typedef struct _output_dnssim_client_s _output_dnssim_client_t;
+typedef struct _output_dnssim_request_s _output_dnssim_request_t;
+typedef struct _output_dnssim_connection_s _output_dnssim_connection_t;
+typedef struct _output_dnssim_query_s _output_dnssim_query_t;
+typedef struct _output_dnssim_query_udp_s _output_dnssim_query_udp_t;
+typedef struct _output_dnssim_query_tcp_s _output_dnssim_query_tcp_t;
+typedef struct _output_dnssim_source_s _output_dnssim_source_t;
+
+struct _output_dnssim_source_s {
     _output_dnssim_source_t* next;
     struct sockaddr_storage addr;
 };
 
-typedef struct _output_dnssim {
+struct _output_dnssim_connection_s {
+    _output_dnssim_connection_t* next;
+
+    uv_tcp_t handle;
+    uv_connect_t req;  // TODO rename
+
+    /* List of queries that have been sent over this connection. */
+    _output_dnssim_query_t* sent;
+
+    _output_dnssim_client_t* client;
+};
+
+struct _output_dnssim_client_s {
+    // TODO use stats instead
+    uint32_t requests;
+    uint32_t answers;
+    uint32_t noerror;
+
+    float latency_min;
+    float latency_mean;
+    float latency_max;
+
+    /* TODO: TCP-related objects */
+
+    /* List of connections.
+     * Multiple connections may be used (e.g. some are already closed for writing).
+     */
+    _output_dnssim_connection_t* conn;
+
+    /* List of queries that are pending to be sent over any available connection. */
+    _output_dnssim_query_t* pending;
+
+    // enum {
+    //     _OUTPUT_DNSSIM_STATE_CONNECTING,
+    //     _OUTPUT_DNSSIM_STATE_CONNECTED,
+    // } state;
+};
+
+struct _output_dnssim_s {
     output_dnssim_t pub;
 
     output_dnssim_transport_t transport;
@@ -41,28 +87,45 @@ typedef struct _output_dnssim {
     struct sockaddr_storage target;
     _output_dnssim_source_t* source;
 
+    _output_dnssim_client_t* client_arr;
+
     uv_timer_t stats_timer;
 
-    void (*create_request)(output_dnssim_t*, output_dnssim_client_t*,
+    void (*create_request)(output_dnssim_t*, _output_dnssim_client_t*,
         core_object_payload_t*);
-} _output_dnssim_t;
-
-typedef struct _output_dnssim_query _output_dnssim_query_t;
-struct _output_dnssim_query {
-    _output_dnssim_query_t* qry_prev;
-    output_dnssim_transport_t transport;
 };
 
-typedef struct _output_dnssim_query_udp {
+struct _output_dnssim_query_s {
+    _output_dnssim_query_t* qry_prev;  // TODO unify to next, use macro
+    output_dnssim_transport_t transport;
+    _output_dnssim_request_t* req;  // TODO: can this simplify UDP?
+
+    /* Query state, currently used only for TCP. */
+    enum {
+        _OUTPUT_DNSSIM_QUERY_PENDING_WRITE,
+        _OUTPUT_DNSSIM_QUERY_PENDING_WRITE_CB,
+        _OUTPUT_DNSSIM_QUERY_SENT
+    } state;
+};
+
+struct _output_dnssim_query_udp_s {
     _output_dnssim_query_t qry;
     uv_udp_t* handle;
     uv_buf_t buf;
     //uv_timer_t* qry_retransmit;
-} _output_dnssim_query_udp_t;
+};
 
-typedef struct _output_dnssim_request {
+struct _output_dnssim_query_tcp_s {
+    _output_dnssim_query_t qry;
+    _output_dnssim_connection_t* conn;
+
+    uv_write_t write_req;
+    uv_buf_t bufs[2];
+};
+
+struct _output_dnssim_request_s {
     _output_dnssim_query_t* qry;
-    output_dnssim_client_t* client;
+    _output_dnssim_client_t* client;
     core_object_payload_t* payload;
     core_object_dns_t* dns_q;
     uint64_t created_at;
@@ -70,18 +133,20 @@ typedef struct _output_dnssim_request {
     uv_timer_t* timeout;
     uint8_t timeout_closing;
     uint8_t ongoing;
+    // enum {
+    //     _OUTPUT_DNSSIM_
     output_dnssim_t* dnssim;
-} _output_dnssim_request_t;
+};
 
 static core_log_t _log = LOG_T_INIT("output.dnssim");
 static output_dnssim_t _defaults = {
     LOG_T_INIT_OBJ("output.dnssim"),
     0, 0, 0,
     NULL, NULL, NULL,
-    0, 0, 0,
+    0, 0,
     2000, 0
 };
-static output_dnssim_client_t _client_defaults = {
+static _output_dnssim_client_t _client_defaults = {  // TODO
     0, 0, 0,
 };
 static output_dnssim_stats_t _stats_defaults = {
@@ -94,6 +159,7 @@ static output_dnssim_stats_t _stats_defaults = {
 
 // forward declarations
 static void _close_query_udp(_output_dnssim_query_udp_t* qry);
+static void _close_query_tcp(_output_dnssim_query_tcp_t* qry);
 static void _close_request_timeout_cb(uv_handle_t* handle);
 static void _close_request_timeout(uv_timer_t* handle);
 
@@ -143,6 +209,9 @@ static void _close_query(_output_dnssim_query_t* qry)
     switch(qry->transport) {
     case OUTPUT_DNSSIM_TRANSPORT_UDP:
         _close_query_udp((_output_dnssim_query_udp_t*)qry);
+        break;
+    case OUTPUT_DNSSIM_TRANSPORT_TCP:
+        _close_query_tcp((_output_dnssim_query_tcp_t*)qry);
         break;
     default:
         mlnotice("failed to close query: unsupported transport");
@@ -444,7 +513,7 @@ failure:
     return ret;
 }
 
-static void _create_request_udp(output_dnssim_t* self, output_dnssim_client_t* client,
+static void _create_request_udp(output_dnssim_t* self, _output_dnssim_client_t* client,
     core_object_payload_t* payload)
 {
     mlassert_self();
@@ -501,6 +570,251 @@ failure:
     return;
 }
 
+
+/*
+ * TCP dnssim
+ *
+ * TODO: extract functions common to tcp/udp into separate functions
+ */
+static void _write_tcp_query_cb(uv_write_t* req, int status)
+{
+    _output_dnssim_query_tcp_t* qry = (_output_dnssim_query_tcp_t*)req->data;
+    if (status < 0) {  // TODO: handle more gracefully?
+        qry->qry.state = _OUTPUT_DNSSIM_QUERY_PENDING_WRITE;
+        mlwarning("tcp write failed: %s", uv_strerror(status));
+        return;
+    }
+
+    /* Mark query as sent and move assign it to connection. */
+    mlassert(qry->conn, "qry must be associated with connection");
+    qry->qry.state = _OUTPUT_DNSSIM_QUERY_SENT;  // TODO use this acccess to prefix struct everywhere
+
+    // TODO macro?
+    qry->qry.qry_prev = qry->conn->sent;
+    qry->conn->sent = &qry->qry;
+
+    /* Remove query from client->pending. */
+    mlassert(qry->conn->client, "conn must be associated with client");
+    _output_dnssim_query_t* pending = qry->conn->client->pending;
+    _output_dnssim_query_t* pending_parent = pending;
+    mlassert(pending, "associated client has no queries");
+
+    while (pending != &qry->qry) {
+        pending_parent = pending;
+        pending = pending->qry_prev;
+        mlassert(pending, "query isn't associated with the connection");
+    }
+
+    if (pending == pending_parent) {  /* Only item in list. */
+        qry->conn->client->pending = NULL;
+    } else {
+        pending_parent->qry_prev = pending->qry_prev;
+    }
+
+
+    free(((_output_dnssim_query_tcp_t*)qry)->bufs[0].base);
+}
+
+static void _write_tcp_query(_output_dnssim_query_tcp_t* qry_tcp, _output_dnssim_connection_t* conn)
+{
+    _output_dnssim_query_t* qry = (_output_dnssim_query_t*)qry_tcp;
+    mlassert(qry, "qry can't be null");
+    mlassert(qry->state == _OUTPUT_DNSSIM_QUERY_PENDING_WRITE, "qry must be pending write");
+    mlassert(qry->req, "req can't be null");
+    mlassert(qry->req->dns_q, "dns_q can't be null");
+    mlassert(qry->req->dns_q->obj_prev, "payload can't be null");
+    mlassert(conn, "conn can't be null");
+
+    core_object_payload_t* payload = (core_object_payload_t*)qry->req->dns_q->obj_prev;
+    uint16_t* len;
+    mlfatal_oom(len = malloc(sizeof(uint16_t)));
+    *len = htons(payload->len);
+    qry_tcp->bufs[0] = uv_buf_init((char*)len, 2);
+    qry_tcp->bufs[1] = uv_buf_init((char*)payload->payload, payload->len);
+
+    qry_tcp->write_req.data = (void*)qry;
+    uv_write(&qry_tcp->write_req, (uv_stream_t*)&conn->handle, qry_tcp->bufs, 2, _write_tcp_query_cb);
+    qry->state = _OUTPUT_DNSSIM_QUERY_PENDING_WRITE_CB;
+}
+
+static void _send_pending_queries(_output_dnssim_connection_t* conn)
+{
+    _output_dnssim_query_t* qry = conn->client->pending;
+
+    while (qry != NULL) {
+        if (qry->state == _OUTPUT_DNSSIM_QUERY_PENDING_WRITE) {
+            _write_tcp_query((_output_dnssim_query_tcp_t*)qry, conn);
+        }
+        qry = qry->qry_prev;
+    }
+}
+
+static void _connect_tcp_cb(uv_connect_t* req, int status)
+{
+    mldebug("_connect_tcp_cb");
+    if (status < 0) {  // TODO: handle more gracefully?
+        mlwarning("tcp connect failed: %s", uv_strerror(status));
+        return;
+    }
+    mldebug("tcp connected");
+    _output_dnssim_connection_t* conn = (_output_dnssim_connection_t*)req->handle->data;
+    _send_pending_queries(conn);
+}
+
+static void _create_tcp_connection(output_dnssim_t* self, _output_dnssim_connection_t* conn)
+{
+    mlassert_self();
+    lassert(conn, "connection can't be null");
+
+    uv_tcp_init(&_self->loop, &conn->handle);
+    conn->handle.data = (void*)conn;
+
+    /* Bind before connect to be able to send from different source IPs. */
+    if (_self->source != NULL) {
+        int ret = uv_tcp_bind(&conn->handle, (struct sockaddr*)&_self->source->addr, 0);
+        if (ret < 0) {
+            lwarning("failed to bind to address: %s", uv_strerror(ret));
+            return;
+        }
+        _self->source = _self->source->next;
+    }
+
+    // TODO: set connection parameters
+    uv_tcp_nodelay(&conn->handle, 1);  // TODO exit codes?
+    //uv_tcp_keepalive(&conn->handle, 1, 3);
+
+    uv_tcp_connect(&conn->req, &conn->handle, (struct sockaddr*)&_self->target, _connect_tcp_cb);
+}
+
+static int _create_query_tcp(output_dnssim_t* self, _output_dnssim_request_t* req)
+{
+    mlassert_self();
+    lassert(req->client, "request must have a client associated with it");
+
+    int ret;
+    _output_dnssim_query_tcp_t* qry;
+    _output_dnssim_connection_t* conn;
+    core_object_payload_t* payload = (core_object_payload_t*)req->dns_q->obj_prev;
+
+    lfatal_oom(qry = calloc(1, sizeof(_output_dnssim_query_tcp_t)));  // TODO free
+
+    qry->qry.transport = OUTPUT_DNSSIM_TRANSPORT_TCP;
+    qry->qry.qry_prev = req->qry;
+    qry->qry.req = req;
+
+    /* Enqueue query as pending to be sent. */
+    if (req->client->pending == NULL) {
+        req->client->pending = (_output_dnssim_query_t*)qry;
+    } else {
+        ((_output_dnssim_query_t*)qry)->qry_prev = req->client->pending;
+        req->client->pending = (_output_dnssim_query_t*)qry;
+    }
+
+    /* Get an open TCP connection. */
+    conn = req->client->conn;
+    while (conn != NULL && !uv_is_closing((uv_handle_t*)&conn->handle)) {
+        // TODO check uv_closing() returns 1 when uv_tcp is no longer writable
+        conn = conn->next;
+    }
+
+    if (conn == NULL) {  /* Open a new TCP connection. */
+        lfatal_oom(conn = calloc(1, sizeof(_output_dnssim_connection_t)));  // TODO free
+        conn->client = req->client;
+        _create_tcp_connection(self, conn);  // TODO add exit code, possible failure?
+        qry->conn = conn;
+
+        /* Add connection to list. */
+        if (req->client->conn == NULL) {
+            req->client->conn = conn;
+        } else {
+            _output_dnssim_connection_t* current = req->client->conn;
+            while (current->next != NULL);  /* Iterate to the end of list. */
+            current->next = conn;
+        }
+    } else {
+        qry->conn = conn;
+        _send_pending_queries(conn);
+    }
+
+    return 0;  // TODO: any error states to handle?
+}
+
+static void _create_request_tcp(output_dnssim_t* self, _output_dnssim_client_t* client,
+    core_object_payload_t* payload)
+{
+    mlassert_self();
+
+    int ret;
+    _output_dnssim_request_t* req;
+
+    lfatal_oom(req = malloc(sizeof(_output_dnssim_request_t)));
+    memset(req, 0, sizeof(_output_dnssim_request_t));
+    req->dnssim = self;
+    req->client = client;
+    req->payload = payload;
+    req->dns_q = core_object_dns_new();
+    req->dns_q->obj_prev = (core_object_t*)req->payload;
+    req->ongoing = 1;
+    req->dnssim->ongoing++;
+
+    ret = core_object_dns_parse_header(req->dns_q);
+    if (ret != 0) {
+        ldebug("discarded malformed dns query: couldn't parse header");
+        goto failure;
+    }
+
+    req->client->requests++;
+    req->dnssim->stats_sum->requests++;
+    req->dnssim->stats_current->requests++;
+
+    ret = _create_query_tcp(self, req);
+    if (ret < 0) {
+        goto failure;
+    }
+
+    lfatal_oom(req->timeout = malloc(sizeof(uv_timer_t)));
+    ret = uv_timer_init(&_self->loop, req->timeout);
+    req->timeout->data = req;
+    if (ret < 0) {
+        ldebug("failed uv_timer_init(): %s", uv_strerror(ret));
+        free(req->timeout);
+        req->timeout = NULL;
+        goto failure;
+    }
+    ret = uv_timer_start(req->timeout, _close_request_timeout, self->timeout_ms, 0);
+    if (ret < 0) {
+        ldebug("failed uv_timer_start(): %s", uv_strerror(ret));
+        goto failure;
+    }
+
+    return;
+failure:
+    self->discarded++;
+    _close_request(req);
+    return;
+}
+
+static void _close_query_tcp(_output_dnssim_query_tcp_t* qry)
+{
+    /* Iterate through the linked list and remove the query from connection. */
+    _output_dnssim_query_t* sent = qry->conn->sent;
+    _output_dnssim_query_t* sent_parent = sent;
+    mlassert(sent, "associated connection has no queries");
+
+    while (sent != (_output_dnssim_query_t*)qry) {
+        sent_parent = sent;
+        sent = sent->qry_prev;
+        mlassert(sent, "query isn't associated with the connection");
+    }
+
+    if (sent == sent_parent) {  /* Only item in list. */
+        qry->conn->sent = NULL;
+    } else {
+        sent_parent->qry_prev = sent->qry_prev;
+    }
+}
+
+
 /*** dnssim functions ***/
 output_dnssim_t* output_dnssim_new(size_t max_clients)
 {
@@ -524,10 +838,10 @@ output_dnssim_t* output_dnssim_new(size_t max_clients)
     _self->transport = OUTPUT_DNSSIM_TRANSPORT_UDP_ONLY;
     _self->create_request = _create_request_udp;
 
-    lfatal_oom(self->client_arr = calloc(
-        max_clients, sizeof(output_dnssim_client_t)));
+    lfatal_oom(_self->client_arr = calloc(
+        max_clients, sizeof(_output_dnssim_client_t)));
     for (int i = 0; i < self->max_clients; i++) {
-        *self->client_arr = _client_defaults;
+        *_self->client_arr = _client_defaults;
     }
     self->max_clients = max_clients;
 
@@ -566,7 +880,7 @@ void output_dnssim_free(output_dnssim_t* self)
         } while (_self->source != first);
     }
 
-    free(self->client_arr);
+    free(_self->client_arr);
 
     ret = uv_loop_close(&_self->loop);
     if (ret < 0) {
@@ -654,7 +968,7 @@ static void _receive(output_dnssim_t* self, const core_object_t* obj)
     }
 
     ldebug("client(c): %d", client);
-    _self->create_request(self, &self->client_arr[client], payload);
+    _self->create_request(self, &_self->client_arr[client], payload);
 }
 
 core_receiver_t output_dnssim_receiver()
@@ -670,8 +984,11 @@ void output_dnssim_set_transport(output_dnssim_t* self, output_dnssim_transport_
         _self->create_request = _create_request_udp;
         lnotice("transport set to UDP (no TCP fallback)");
         break;
-    case OUTPUT_DNSSIM_TRANSPORT_UDP:
     case OUTPUT_DNSSIM_TRANSPORT_TCP:
+        _self->create_request = _create_request_tcp;
+        lnotice("transport set to TCP");
+        break;
+    case OUTPUT_DNSSIM_TRANSPORT_UDP:
     case OUTPUT_DNSSIM_TRANSPORT_TLS:
     default:
         lfatal("unknown or unsupported transport");

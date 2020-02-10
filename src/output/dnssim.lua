@@ -63,13 +63,11 @@ end
 -- for individual queries if TC bit is set in received answer.
 function DnsSim:udp()
     C.output_dnssim_set_transport(self.obj, C.OUTPUT_DNSSIM_TRANSPORT_UDP)
-    self.obj.transport = "OUTPUT_DNSSIM_TRANSPORT_UDP"
 end
 
 -- Set the transport to TCP.
 function DnsSim:tcp()
     C.output_dnssim_set_transport(self.obj, C.OUTPUT_DNSSIM_TRANSPORT_TCP)
-    self.obj.transport = "OUTPUT_DNSSIM_TRANSPORT_TCP"
 end
 
 -- Set the transport to TLS.
