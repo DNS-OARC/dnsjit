@@ -77,7 +77,7 @@ struct _output_dnssim_connection_s {
     _output_dnssim_connection_t* next;
 
     uv_tcp_t handle;
-    uv_connect_t req;  // TODO rename
+    uv_connect_t conn_req;
 
     /* List of queries that have been sent over this connection. */
     _output_dnssim_query_t* sent;
@@ -599,7 +599,7 @@ static void _write_tcp_query_cb(uv_write_t* req, int status)
         return;
     }
 
-    /* Mark query as sent and move assign it to connection. */
+    /* Mark query as sent and assign it to connection. */
     mlassert(qry->conn, "qry must be associated with connection");
     qry->qry.state = _OUTPUT_DNSSIM_QUERY_SENT;  // TODO use this acccess to prefix struct everywhere
 
@@ -645,15 +645,14 @@ static void _send_pending_queries(_output_dnssim_connection_t* conn)
     }
 }
 
-static void _connect_tcp_cb(uv_connect_t* req, int status)
+static void _connect_tcp_cb(uv_connect_t* conn_req, int status)
 {
-    mldebug("_connect_tcp_cb");
     if (status < 0) {  // TODO: handle more gracefully?
         mlwarning("tcp connect failed: %s", uv_strerror(status));
         return;
     }
     mldebug("tcp connected");
-    _output_dnssim_connection_t* conn = (_output_dnssim_connection_t*)req->handle->data;
+    _output_dnssim_connection_t* conn = (_output_dnssim_connection_t*)conn_req->handle->data;
     _send_pending_queries(conn);
 }
 
@@ -679,7 +678,7 @@ static void _create_tcp_connection(output_dnssim_t* self, _output_dnssim_connect
     uv_tcp_nodelay(&conn->handle, 1);  // TODO exit codes?
     //uv_tcp_keepalive(&conn->handle, 1, 3);
 
-    uv_tcp_connect(&conn->req, &conn->handle, (struct sockaddr*)&_self->target, _connect_tcp_cb);
+    uv_tcp_connect(&conn->conn_req, &conn->handle, (struct sockaddr*)&_self->target, _connect_tcp_cb);
 }
 
 static int _create_query_tcp(output_dnssim_t* self, _output_dnssim_request_t* req)
