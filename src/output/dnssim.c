@@ -228,11 +228,9 @@ static void _maybe_free_request(_output_dnssim_request_t* req)
     if (req->qry == NULL && req->timeout == NULL) {
         if (req->dnssim->free_after_use) {
             core_object_payload_free(req->payload);
-            mldebug("payload freed");
         }
         core_object_dns_free(req->dns_q);
         free(req);
-        mldebug("req freed");
     }
 }
 
@@ -276,7 +274,6 @@ static void _close_request_timeout_cb(uv_handle_t* handle)
 {
     _output_dnssim_request_t* req = (_output_dnssim_request_t*)handle->data;
     free(handle);
-    mldebug("req timer freed");
     req->timeout = NULL;
     _close_request(req);
 }
@@ -451,7 +448,6 @@ static void _close_query_udp_cb(uv_handle_t* handle)
 
     _ll_remove(req->qry, &qry->qry);
     free(qry);
-    mldebug("freed udp query %p", qry);
 
     if (req->qry == NULL)
         _maybe_free_request(req);
