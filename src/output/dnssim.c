@@ -86,17 +86,6 @@ struct _output_dnssim_connection_s {
 };
 
 struct _output_dnssim_client_s {
-    // TODO use stats instead
-    uint32_t requests;
-    uint32_t answers;
-    uint32_t noerror;
-
-    float latency_min;
-    float latency_mean;
-    float latency_max;
-
-    /* TODO: TCP-related objects */
-
     /* List of connections.
      * Multiple connections may be used (e.g. some are already closed for writing).
      */
@@ -325,13 +314,11 @@ static int _process_udp_response(uv_udp_t* handle, ssize_t nread, const uv_buf_t
         req->ended_at = req->created_at + req->dnssim->timeout_ms;
     }
 
-    req->client->answers++;
     req->dnssim->stats_sum->answers++;
     req->dnssim->stats_current->answers++;
 
     switch(dns_a.rcode) {
     case CORE_OBJECT_DNS_RCODE_NOERROR:
-        req->client->noerror++;
         req->dnssim->stats_sum->rcode_noerror++;
         req->dnssim->stats_current->rcode_noerror++;
         break;
@@ -545,7 +532,6 @@ static void _create_request_udp(output_dnssim_t* self, _output_dnssim_client_t* 
         goto failure;
     }
 
-    req->client->requests++;
     req->dnssim->stats_sum->requests++;
     req->dnssim->stats_current->requests++;
 
@@ -737,7 +723,6 @@ static void _create_request_tcp(output_dnssim_t* self, _output_dnssim_client_t* 
         goto failure;
     }
 
-    req->client->requests++;
     req->dnssim->stats_sum->requests++;
     req->dnssim->stats_current->requests++;
 
