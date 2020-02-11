@@ -27,6 +27,38 @@
 #include "core/object/payload.h"
 #include "core/object/dns.h"
 
+#define _ll_append(list, element) \
+    { \
+        if ((list) == NULL) \
+            (list) = (element); \
+        else if ((element) != NULL) \
+        { \
+            glassert((element)->next, "element->next can't be null when appending"); \
+            typeof(list) _current = (list)->next; \
+            while (_current->next != NULL) \
+                _current = _current->next; \
+            _current->next = element; \
+        } \
+    }
+
+#define _ll_remove(list, element) \
+    { \
+        glassert((list), "list can't be null when removing elements"); \
+        if ((element) != NULL) { \
+            if ((list) == (element)) { \
+                (list) = (element)->next; \
+            } else { \
+                typeof(list) _current = (list); \
+                while (_current->next != (element)) { \
+                    glassert((_current->next), "list doesn't contain the element to be removed"); \
+                    _current = _current->next; \
+                } \
+                _current->next = (element)->next; \
+            } \
+            (element)->next = NULL; \
+        } \
+    }
+
 typedef struct _output_dnssim_s _output_dnssim_t;
 typedef struct _output_dnssim_client_s _output_dnssim_client_t;
 typedef struct _output_dnssim_request_s _output_dnssim_request_t;
@@ -96,9 +128,10 @@ struct _output_dnssim_s {
 };
 
 struct _output_dnssim_query_s {
-    _output_dnssim_query_t* qry_prev;  // TODO unify to next, use macro
+    _output_dnssim_query_t* next;  // TODO unify to next, use macro
+    _output_dnssim_query_t* qry_prev;  // TODO remove
     output_dnssim_transport_t transport;
-    _output_dnssim_request_t* req;  // TODO: can this simplify UDP?
+    _output_dnssim_request_t* req;
 
     /* Query state, currently used only for TCP. */
     enum {
@@ -235,7 +268,7 @@ static void _close_request(_output_dnssim_request_t* req)
     _output_dnssim_query_t* qry = req->qry;
     while (qry != NULL) {
         _close_query(qry);
-        qry = qry->qry_prev;
+        qry = qry->next;
     }
     _maybe_free_request(req);
 }
@@ -270,7 +303,8 @@ static void _close_request_timeout(uv_timer_t* handle)
 /*** UDP dnssim ***/
 static int _process_udp_response(uv_udp_t* handle, ssize_t nread, const uv_buf_t* buf)
 {
-    _output_dnssim_request_t* req = (_output_dnssim_request_t*)handle->data;
+    _output_dnssim_query_udp_t* qry = (_output_dnssim_query_udp_t*)handle->data;
+    _output_dnssim_request_t* req = qry->qry.req;
     core_object_payload_t payload = CORE_OBJECT_PAYLOAD_INIT(NULL);
     core_object_dns_t dns_a = CORE_OBJECT_DNS_INIT(&payload);
 
@@ -411,36 +445,17 @@ static void _query_udp_recv_cb(uv_udp_t* handle, ssize_t nread, const uv_buf_t* 
 
 static void _close_query_udp_cb(uv_handle_t* handle)
 {
-    _output_dnssim_request_t* req = (_output_dnssim_request_t*)handle->data;
-    _output_dnssim_query_t* qry = req->qry;
-    _output_dnssim_query_t* parent_qry = req->qry;
-    _output_dnssim_query_udp_t* udp_qry;
+    _output_dnssim_query_udp_t* qry = (_output_dnssim_query_udp_t*)handle->data;
+    _output_dnssim_request_t* req = qry->qry.req;
 
-    for (;;) {  // find the query the handle belongs to
-        if (qry->transport == OUTPUT_DNSSIM_TRANSPORT_UDP) {
-            udp_qry = (_output_dnssim_query_udp_t*)qry;
-            if (udp_qry->handle == (uv_udp_t*)handle) {
-                free(udp_qry->handle);
+    free(qry->handle);
 
-                // free and remove from query list
-                if (req->qry == qry) {
-                    req->qry = qry->qry_prev;
-                    _maybe_free_request(req);
-                } else {
-                    parent_qry->qry_prev = qry->qry_prev;
-                }
-                free(qry);
-                mldebug("freed udp query %p", qry);
-                return;
-            }
-        }
-        if (qry->qry_prev == NULL) {
-            mlwarning("failed to free udp_query memory");
-            return;
-        }
-        parent_qry = qry;
-        qry = qry->qry_prev;
-    }
+    _ll_remove(req->qry, &qry->qry);
+    free(qry);
+    mldebug("freed udp query %p", qry);
+
+    if (req->qry == NULL)
+        _maybe_free_request(req);
 }
 
 static void _close_query_udp(_output_dnssim_query_udp_t* qry)
@@ -463,19 +478,19 @@ static int _create_query_udp(output_dnssim_t* self, _output_dnssim_request_t* re
     _output_dnssim_query_udp_t* qry;
     core_object_payload_t* payload = (core_object_payload_t*)req->dns_q->obj_prev;
 
-    lfatal_oom(qry = malloc(sizeof(_output_dnssim_query_udp_t)));
+    lfatal_oom(qry = calloc(1, sizeof(_output_dnssim_query_udp_t)));
     lfatal_oom(qry->handle = malloc(sizeof(uv_udp_t)));
 
     qry->qry.transport = OUTPUT_DNSSIM_TRANSPORT_UDP;
-    qry->qry.qry_prev = req->qry;
+    qry->qry.req = req;
     qry->buf = uv_buf_init((char*)payload->payload, payload->len);
     ret = uv_udp_init(&_self->loop, qry->handle);
     if (ret < 0) {
         lwarning("failed to init uv_udp_t");
         goto failure;
     }
-    qry->handle->data = (void*)req;
-    req->qry = (_output_dnssim_query_t*)qry;
+    qry->handle->data = (void*)qry;
+    _ll_append(req->qry, &qry->qry);
 
     // bind to IP address
     if (_self->source != NULL) {
