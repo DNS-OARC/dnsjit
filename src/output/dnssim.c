@@ -581,7 +581,7 @@ static void _write_tcp_query_cb(uv_write_t* req, int status)
 
     /* Mark query as sent and assign it to connection. */
     mlassert(qry->conn, "qry must be associated with connection");
-    qry->qry.state = _OUTPUT_DNSSIM_QUERY_SENT;  // TODO use this acccess to prefix struct everywhere
+    qry->qry.state = _OUTPUT_DNSSIM_QUERY_SENT;
 
     mlassert(qry->conn->client, "conn must be associated with client");
     mlassert(qry->conn->client->pending, "associated client has no queries");
@@ -591,37 +591,35 @@ static void _write_tcp_query_cb(uv_write_t* req, int status)
     free(((_output_dnssim_query_tcp_t*)qry)->bufs[0].base);
 }
 
-static void _write_tcp_query(_output_dnssim_query_tcp_t* qry_tcp, _output_dnssim_connection_t* conn)
+static void _write_tcp_query(_output_dnssim_query_tcp_t* qry, _output_dnssim_connection_t* conn)
 {
-    _output_dnssim_query_t* qry = (_output_dnssim_query_t*)qry_tcp;
     mlassert(qry, "qry can't be null");
-    mlassert(qry->state == _OUTPUT_DNSSIM_QUERY_PENDING_WRITE, "qry must be pending write");
-    mlassert(qry->req, "req can't be null");
-    mlassert(qry->req->dns_q, "dns_q can't be null");
-    mlassert(qry->req->dns_q->obj_prev, "payload can't be null");
+    mlassert(qry->qry.state == _OUTPUT_DNSSIM_QUERY_PENDING_WRITE, "qry must be pending write");
+    mlassert(qry->qry.req, "req can't be null");
+    mlassert(qry->qry.req->dns_q, "dns_q can't be null");
+    mlassert(qry->qry.req->dns_q->obj_prev, "payload can't be null");
     mlassert(conn, "conn can't be null");
 
-    core_object_payload_t* payload = (core_object_payload_t*)qry->req->dns_q->obj_prev;
+    core_object_payload_t* payload = (core_object_payload_t*)qry->qry.req->dns_q->obj_prev;
     uint16_t* len;
     mlfatal_oom(len = malloc(sizeof(uint16_t)));
     *len = htons(payload->len);
-    qry_tcp->bufs[0] = uv_buf_init((char*)len, 2);
-    qry_tcp->bufs[1] = uv_buf_init((char*)payload->payload, payload->len);
+    qry->bufs[0] = uv_buf_init((char*)len, 2);
+    qry->bufs[1] = uv_buf_init((char*)payload->payload, payload->len);
 
-    qry_tcp->write_req.data = (void*)qry;
-    uv_write(&qry_tcp->write_req, (uv_stream_t*)&conn->handle, qry_tcp->bufs, 2, _write_tcp_query_cb);
-    qry->state = _OUTPUT_DNSSIM_QUERY_PENDING_WRITE_CB;
+    qry->write_req.data = (void*)qry;
+    uv_write(&qry->write_req, (uv_stream_t*)&conn->handle, qry->bufs, 2, _write_tcp_query_cb);
+    qry->qry.state = _OUTPUT_DNSSIM_QUERY_PENDING_WRITE_CB;
 }
 
 static void _send_pending_queries(_output_dnssim_connection_t* conn)
 {
-    _output_dnssim_query_t* qry = conn->client->pending;
+    _output_dnssim_query_tcp_t* qry = (_output_dnssim_query_tcp_t*)conn->client->pending;
 
     while (qry != NULL) {
-        if (qry->state == _OUTPUT_DNSSIM_QUERY_PENDING_WRITE) {
-            _write_tcp_query((_output_dnssim_query_tcp_t*)qry, conn);
-        }
-        qry = qry->next;
+        if (qry->qry.state == _OUTPUT_DNSSIM_QUERY_PENDING_WRITE)
+            _write_tcp_query(qry, conn);
+        qry = (_output_dnssim_query_tcp_t*)qry->qry.next;
     }
 }
 
@@ -828,7 +826,7 @@ void output_dnssim_free(output_dnssim_t* self)
     free(_self->client_arr);
 
     ret = uv_loop_close(&_self->loop);
-    if (ret < 0) {
+    if (ret < 0) {  // TODO wait for TCP connections to close
         lcritical("failed to close uv_loop (%s)", uv_strerror(ret));
     } else {
         ldebug("closed uv_loop");
