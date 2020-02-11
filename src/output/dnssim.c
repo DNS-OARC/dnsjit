@@ -33,8 +33,8 @@
             (list) = (element); \
         else if ((element) != NULL) \
         { \
-            glassert((element)->next, "element->next can't be null when appending"); \
-            typeof(list) _current = (list)->next; \
+            glassert((element)->next == NULL, "element->next must be null when appending"); \
+            typeof(list) _current = (list); \
             while (_current->next != NULL) \
                 _current = _current->next; \
             _current->next = element; \
@@ -128,8 +128,7 @@ struct _output_dnssim_s {
 };
 
 struct _output_dnssim_query_s {
-    _output_dnssim_query_t* next;  // TODO unify to next, use macro
-    _output_dnssim_query_t* qry_prev;  // TODO remove
+    _output_dnssim_query_t* next;
     output_dnssim_transport_t transport;
     _output_dnssim_request_t* req;
 
@@ -604,28 +603,10 @@ static void _write_tcp_query_cb(uv_write_t* req, int status)
     mlassert(qry->conn, "qry must be associated with connection");
     qry->qry.state = _OUTPUT_DNSSIM_QUERY_SENT;  // TODO use this acccess to prefix struct everywhere
 
-    // TODO macro?
-    qry->qry.qry_prev = qry->conn->sent;
-    qry->conn->sent = &qry->qry;
-
-    /* Remove query from client->pending. */
     mlassert(qry->conn->client, "conn must be associated with client");
-    _output_dnssim_query_t* pending = qry->conn->client->pending;
-    _output_dnssim_query_t* pending_parent = pending;
-    mlassert(pending, "associated client has no queries");
-
-    while (pending != &qry->qry) {
-        pending_parent = pending;
-        pending = pending->qry_prev;
-        mlassert(pending, "query isn't associated with the connection");
-    }
-
-    if (pending == pending_parent) {  /* Only item in list. */
-        qry->conn->client->pending = NULL;
-    } else {
-        pending_parent->qry_prev = pending->qry_prev;
-    }
-
+    mlassert(qry->conn->client->pending, "associated client has no queries");
+    _ll_remove(qry->conn->client->pending, &qry->qry);
+    _ll_append(qry->conn->sent, &qry->qry);
 
     free(((_output_dnssim_query_tcp_t*)qry)->bufs[0].base);
 }
@@ -660,7 +641,7 @@ static void _send_pending_queries(_output_dnssim_connection_t* conn)
         if (qry->state == _OUTPUT_DNSSIM_QUERY_PENDING_WRITE) {
             _write_tcp_query((_output_dnssim_query_tcp_t*)qry, conn);
         }
-        qry = qry->qry_prev;
+        qry = qry->next;
     }
 }
 
@@ -714,16 +695,9 @@ static int _create_query_tcp(output_dnssim_t* self, _output_dnssim_request_t* re
     lfatal_oom(qry = calloc(1, sizeof(_output_dnssim_query_tcp_t)));  // TODO free
 
     qry->qry.transport = OUTPUT_DNSSIM_TRANSPORT_TCP;
-    qry->qry.qry_prev = req->qry;
     qry->qry.req = req;
-
-    /* Enqueue query as pending to be sent. */
-    if (req->client->pending == NULL) {
-        req->client->pending = (_output_dnssim_query_t*)qry;
-    } else {
-        ((_output_dnssim_query_t*)qry)->qry_prev = req->client->pending;
-        req->client->pending = (_output_dnssim_query_t*)qry;
-    }
+    _ll_append(req->qry, &qry->qry);
+    _ll_append(req->client->pending, &qry->qry);
 
     /* Get an open TCP connection. */
     conn = req->client->conn;
@@ -737,15 +711,7 @@ static int _create_query_tcp(output_dnssim_t* self, _output_dnssim_request_t* re
         conn->client = req->client;
         _create_tcp_connection(self, conn);  // TODO add exit code, possible failure?
         qry->conn = conn;
-
-        /* Add connection to list. */
-        if (req->client->conn == NULL) {
-            req->client->conn = conn;
-        } else {
-            _output_dnssim_connection_t* current = req->client->conn;
-            while (current->next != NULL);  /* Iterate to the end of list. */
-            current->next = conn;
-        }
+        _ll_append(req->client->conn, conn);
     } else {
         qry->conn = conn;
         _send_pending_queries(conn);
@@ -811,22 +777,11 @@ failure:
 
 static void _close_query_tcp(_output_dnssim_query_tcp_t* qry)
 {
-    /* Iterate through the linked list and remove the query from connection. */
-    _output_dnssim_query_t* sent = qry->conn->sent;
-    _output_dnssim_query_t* sent_parent = sent;
-    mlassert(sent, "associated connection has no queries");
+    mlassert(qry, "qry can't be null");
+    mlassert(qry->conn, "query must have associated connection");
+    mlassert(qry->conn->sent, "associated connection has no queries");
 
-    while (sent != (_output_dnssim_query_t*)qry) {
-        sent_parent = sent;
-        sent = sent->qry_prev;
-        mlassert(sent, "query isn't associated with the connection");
-    }
-
-    if (sent == sent_parent) {  /* Only item in list. */
-        qry->conn->sent = NULL;
-    } else {
-        sent_parent->qry_prev = sent->qry_prev;
-    }
+    _ll_remove(qry->conn->sent, &qry->qry);
 }
 
 
