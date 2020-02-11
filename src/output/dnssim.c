@@ -178,9 +178,7 @@ static output_dnssim_t _defaults = {
     0, 0,
     2000, 0
 };
-static _output_dnssim_client_t _client_defaults = {  // TODO
-    0, 0, 0,
-};
+
 static output_dnssim_stats_t _stats_defaults = {
     NULL, NULL,
     NULL,
@@ -805,9 +803,6 @@ output_dnssim_t* output_dnssim_new(size_t max_clients)
 
     lfatal_oom(_self->client_arr = calloc(
         max_clients, sizeof(_output_dnssim_client_t)));
-    for (int i = 0; i < self->max_clients; i++) {
-        *_self->client_arr = _client_defaults;
-    }
     self->max_clients = max_clients;
 
     ret = uv_loop_init(&_self->loop);
