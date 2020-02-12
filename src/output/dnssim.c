@@ -625,7 +625,8 @@ static void _send_pending_queries(_output_dnssim_connection_t* conn)
 
 static void _connect_tcp_cb(uv_connect_t* conn_req, int status)
 {
-    if (status < 0) {  // TODO: handle more gracefully?
+    if (status < 0) {
+        // TODO: handle this the same way as UDP retransmit - attempt reconnect after a period of time
         mlwarning("tcp connect failed: %s", uv_strerror(status));
         return;
     }
@@ -652,9 +653,16 @@ static void _create_tcp_connection(output_dnssim_t* self, _output_dnssim_connect
         _self->source = _self->source->next;
     }
 
-    // TODO: set connection parameters
-    uv_tcp_nodelay(&conn->handle, 1);  // TODO exit codes?
-    //uv_tcp_keepalive(&conn->handle, 1, 3);
+    /* Set connection parameters. */
+    int ret;
+    ret = uv_tcp_nodelay(&conn->handle, 1);
+    if (ret < 0)
+        lwarning("tcp: failed to set TCP_NODELAY: %s", uv_strerror(ret));
+
+    // TODO: make this configurable
+    // ret = uv_tcp_keepalive(&conn->handle, 1, 5);
+    // if (ret < 0)
+    //     mlwarning("tcp: failed to set TCP_KEEPALIVE: %s", uv_strerror(ret));
 
     uv_tcp_connect(&conn->conn_req, &conn->handle, (struct sockaddr*)&_self->target, _connect_tcp_cb);
 }
