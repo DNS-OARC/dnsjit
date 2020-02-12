@@ -83,6 +83,14 @@ struct _output_dnssim_connection_s {
     _output_dnssim_query_t* sent;
 
     _output_dnssim_client_t* client;
+
+    enum {
+        _OUTPUT_DNSSIM_CONN_INITIALIZED,
+        _OUTPUT_DNSSIM_CONN_CONNECTING,
+        // _OUTPUT_DNSSIM_CONN_CONNECTED,
+        _OUTPUT_DNSSIM_CONN_ACTIVE,
+        _OUTPUT_DNSSIM_CONN_CLOSING
+    } state;
 };
 
 struct _output_dnssim_client_s {
@@ -93,11 +101,6 @@ struct _output_dnssim_client_s {
 
     /* List of queries that are pending to be sent over any available connection. */
     _output_dnssim_query_t* pending;
-
-    // enum {
-    //     _OUTPUT_DNSSIM_STATE_CONNECTING,
-    //     _OUTPUT_DNSSIM_STATE_CONNECTED,
-    // } state;
 };
 
 struct _output_dnssim_s {
@@ -573,6 +576,7 @@ failure:
 static void _write_tcp_query_cb(uv_write_t* req, int status)
 {
     _output_dnssim_query_tcp_t* qry = (_output_dnssim_query_tcp_t*)req->data;
+
     if (status < 0) {  // TODO: handle more gracefully?
         qry->qry.state = _OUTPUT_DNSSIM_QUERY_PENDING_WRITE;
         mlwarning("tcp write failed: %s", uv_strerror(status));
@@ -599,6 +603,7 @@ static void _write_tcp_query(_output_dnssim_query_tcp_t* qry, _output_dnssim_con
     mlassert(qry->qry.req->dns_q, "dns_q can't be null");
     mlassert(qry->qry.req->dns_q->obj_prev, "payload can't be null");
     mlassert(conn, "conn can't be null");
+    mlassert(conn->state == _OUTPUT_DNSSIM_CONN_ACTIVE, "connection state != ACTIVE");
 
     core_object_payload_t* payload = (core_object_payload_t*)qry->qry.req->dns_q->obj_prev;
     uint16_t* len;
@@ -625,13 +630,17 @@ static void _send_pending_queries(_output_dnssim_connection_t* conn)
 
 static void _connect_tcp_cb(uv_connect_t* conn_req, int status)
 {
+    _output_dnssim_connection_t* conn = (_output_dnssim_connection_t*)conn_req->handle->data;
+    mlassert(conn->state == _OUTPUT_DNSSIM_CONN_CONNECTING, "connection state != CONNECTING");
+
     if (status < 0) {
         // TODO: handle this the same way as UDP retransmit - attempt reconnect after a period of time
         mlwarning("tcp connect failed: %s", uv_strerror(status));
+        // TODO: close and remove handle
         return;
     }
-    mldebug("tcp connected");
-    _output_dnssim_connection_t* conn = (_output_dnssim_connection_t*)conn_req->handle->data;
+
+    conn->state = _OUTPUT_DNSSIM_CONN_ACTIVE;
     _send_pending_queries(conn);
 }
 
@@ -639,6 +648,7 @@ static void _create_tcp_connection(output_dnssim_t* self, _output_dnssim_connect
 {
     mlassert_self();
     lassert(conn, "connection can't be null");
+    lassert(conn->state == _OUTPUT_DNSSIM_CONN_INITIALIZED, "connection state != INITIALIZED");
 
     uv_tcp_init(&_self->loop, &conn->handle);
     conn->handle.data = (void*)conn;
@@ -665,6 +675,7 @@ static void _create_tcp_connection(output_dnssim_t* self, _output_dnssim_connect
     //     mlwarning("tcp: failed to set TCP_KEEPALIVE: %s", uv_strerror(ret));
 
     uv_tcp_connect(&conn->conn_req, &conn->handle, (struct sockaddr*)&_self->target, _connect_tcp_cb);
+    conn->state = _OUTPUT_DNSSIM_CONN_CONNECTING;
 }
 
 static int _create_query_tcp(output_dnssim_t* self, _output_dnssim_request_t* req)
@@ -684,23 +695,28 @@ static int _create_query_tcp(output_dnssim_t* self, _output_dnssim_request_t* re
     _ll_append(req->qry, &qry->qry);
     _ll_append(req->client->pending, &qry->qry);
 
-    /* Get an open TCP connection. */
+    /* Get active TCP connection or find out whether new connection has to be opened. */
+    bool is_connecting = false;
     conn = req->client->conn;
-    while (conn != NULL && !uv_is_closing((uv_handle_t*)&conn->handle)) {
-        // TODO check uv_closing() returns 1 when uv_tcp is no longer writable
+    while (conn != NULL) {
+        if (conn->state == _OUTPUT_DNSSIM_CONN_ACTIVE)
+            break;
+        else if (conn->state == _OUTPUT_DNSSIM_CONN_CONNECTING)
+            is_connecting = true;
         conn = conn->next;
     }
 
-    if (conn == NULL) {  /* Open a new TCP connection. */
+    if (conn != NULL) {  /* Send data right away over active connection. */
+        qry->conn = conn;
+        _send_pending_queries(conn);
+    } else if (!is_connecting) {  /* No active or connecting connection -> open a new one. */
         lfatal_oom(conn = calloc(1, sizeof(_output_dnssim_connection_t)));  // TODO free
+        conn->state = _OUTPUT_DNSSIM_CONN_INITIALIZED;
         conn->client = req->client;
         _create_tcp_connection(self, conn);  // TODO add exit code, possible failure?
         qry->conn = conn;
         _ll_append(req->client->conn, conn);
-    } else {
-        qry->conn = conn;
-        _send_pending_queries(conn);
-    }
+    } /* Otherwise, pending queries wil be sent after connected callback. */
 
     return 0;  // TODO: any error states to handle?
 }
