@@ -73,6 +73,13 @@ struct _output_dnssim_source_s {
     struct sockaddr_storage addr;
 };
 
+typedef enum _output_dnssim_read_state {
+    _OUTPUT_DNSSIM_READ_STATE_CLEAN,
+    _OUTPUT_DNSSIM_READ_STATE_DNSLEN,
+    _OUTPUT_DNSSIM_READ_STATE_DNSMSG,
+    _OUTPUT_DNSSIM_READ_STATE_INVALID
+} _output_dnssim_read_state_t;
+
 struct _output_dnssim_connection_s {
     _output_dnssim_connection_t* next;
 
@@ -91,6 +98,18 @@ struct _output_dnssim_connection_s {
         _OUTPUT_DNSSIM_CONN_ACTIVE,
         _OUTPUT_DNSSIM_CONN_CLOSING
     } state;
+
+    _output_dnssim_read_state_t read_state;
+
+    /* Total length of the expected stream data (either 2 for dnslen, or dnslen itself). */
+    size_t recv_len;
+
+    /* Current position in the receive buffer. */
+    size_t recv_pos;
+
+    /* Receive buffer used for incomplete messages or dnslen. */
+    char* recv_data;
+    bool recv_free_after_use;
 };
 
 struct _output_dnssim_client_s {
@@ -406,7 +425,7 @@ static int _process_udp_response(uv_udp_t* handle, ssize_t nread, const uv_buf_t
     return 0;
 }
 
-static void _query_udp_alloc_cb(uv_handle_t* handle, size_t suggested_size, uv_buf_t* buf)
+static void _uv_alloc_cb(uv_handle_t* handle, size_t suggested_size, uv_buf_t* buf)
 {
     mlfatal_oom(buf->base = malloc(suggested_size));
     buf->len = suggested_size;
@@ -498,7 +517,7 @@ static int _create_query_udp(output_dnssim_t* self, _output_dnssim_request_t* re
     ldebug("sent udp from port: %d", ntohs(src.sin6_port));
 
     // listen for reply
-    ret = uv_udp_recv_start(qry->handle, _query_udp_alloc_cb, _query_udp_recv_cb);
+    ret = uv_udp_recv_start(qry->handle, _uv_alloc_cb, _query_udp_recv_cb);
     if (ret < 0) {
         lwarning("failed uv_udp_recv_start(): %s", uv_strerror(ret));
         return ret;
@@ -580,6 +599,9 @@ static void _write_tcp_query_cb(uv_write_t* req, int status)
     if (status < 0) {  // TODO: handle more gracefully?
         qry->qry.state = _OUTPUT_DNSSIM_QUERY_PENDING_WRITE;
         mlwarning("tcp write failed: %s", uv_strerror(status));
+        // TODO: check if connection is writable, then check state.
+        // if state == active, close the connection
+        // this is called when conn is closed with uv_close() and there are peding write reqs
         return;
     }
 
@@ -628,6 +650,141 @@ static void _send_pending_queries(_output_dnssim_connection_t* conn)
     }
 }
 
+void _process_tcp_dnsmsg(_output_dnssim_connection_t* conn)
+{
+    mlassert(conn, "conn can't be nil");
+
+    core_object_payload_t payload = CORE_OBJECT_PAYLOAD_INIT(NULL);
+    core_object_dns_t dns_a = CORE_OBJECT_DNS_INIT(&payload);
+
+    payload.payload = conn->recv_data;
+    payload.len = conn->recv_len;
+
+    dns_a.obj_prev = (core_object_t*)&payload;
+    int ret = core_object_dns_parse_header(&dns_a);
+    if (ret != 0) {
+        mlwarning("dnsmsg malformed");
+        return;
+    }
+    mldebug("tcp recv dnsmsg id: %04x", dns_a.id);
+
+    // TODO: handle dnsmsg data
+    // TODO: deduplicate code with udp
+}
+
+void _parse_recv_data(_output_dnssim_connection_t* conn)
+{
+    mlassert(conn, "conn can't be nil");
+    mlassert(conn->recv_pos == conn->recv_len, "attempt to parse incomplete dnslen");
+
+    switch(conn->read_state) {
+    case _OUTPUT_DNSSIM_READ_STATE_CLEAN:
+        return;
+    case _OUTPUT_DNSSIM_READ_STATE_DNSLEN: {
+        uint16_t* p_dnslen = (uint16_t*)conn->recv_data;
+        conn->recv_len = ntohs(*p_dnslen);
+        mldebug("tcp dnslen: %d", conn->recv_len);
+        conn->read_state = _OUTPUT_DNSSIM_READ_STATE_DNSMSG;
+        break;
+    }
+    case _OUTPUT_DNSSIM_READ_STATE_DNSMSG:
+        _process_tcp_dnsmsg(conn);
+        conn->recv_len = 0;
+        conn->read_state = _OUTPUT_DNSSIM_READ_STATE_CLEAN;
+        break;
+    default:
+        mlfatal("tcp invalid connection read_state");
+        break;
+    }
+
+    conn->recv_pos = 0;
+    if (conn->recv_free_after_use) {
+        conn->recv_free_after_use = false;
+        free(conn->recv_data);
+    }
+    conn->recv_data = NULL;
+}
+
+size_t _handle_conn_data(_output_dnssim_connection_t* conn, char* data, size_t len)
+{
+    mlassert(conn, "conn can't be nil");
+    mlassert(data, "data can't be nil");
+    mlassert(len > 0, "data can't be nil");
+
+    size_t expected = conn->recv_len - conn->recv_pos;
+    mlassert(expected > 0, "no data expected");
+
+    if (expected > len || conn->recv_free_after_use) {
+        if (conn->recv_pos == 0) {
+            mlassert(conn->recv_len > 0, "conn->recv_len must be set");
+            mlassert(!conn->recv_free_after_use, "conn->recv_free_after_use shouldn't be set when pos=0");
+            mlfatal_oom(conn->recv_data = malloc(conn->recv_len * sizeof(char)));
+            conn->recv_free_after_use = true;
+        }
+        char* dest = conn->recv_data + conn->recv_pos;
+        memcpy(dest, data, len);
+        conn->recv_pos += len;
+        return len;
+    } else {
+        conn->recv_data = data;
+        conn->recv_pos = conn->recv_len;
+        return expected;
+    }
+}
+
+unsigned int _read_stream_data(_output_dnssim_connection_t* conn, size_t pos, const uv_buf_t* buf)
+{
+    mlassert(conn, "conn can't be nil");
+    mlassert(buf, "buf can't be nil");
+    mlassert(buf->len >= pos, "invalid position");
+    mlassert(conn->read_state != _OUTPUT_DNSSIM_READ_STATE_INVALID, "connection has invalid read_state");
+
+    char* data = buf->base + pos;
+    size_t available = buf->len - pos;
+
+    if (available == 0)
+        return pos;
+
+    if (conn->read_state == _OUTPUT_DNSSIM_READ_STATE_CLEAN) {
+        conn->recv_len = 2;
+        conn->recv_pos = 0;
+        conn->recv_free_after_use = false;
+        conn->read_state = _OUTPUT_DNSSIM_READ_STATE_DNSLEN;
+    }
+
+    pos += _handle_conn_data(conn, data, available);
+
+    if (conn->recv_len == conn->recv_pos)
+        _parse_recv_data(conn);
+
+    return pos;
+}
+
+static void _close_tcp_connection_cb(uv_handle_t* handle)
+{
+    // TODO free unneeded, fail/reassign queries (+timers)
+    // _output_dnssim_connection_t* conn = (_output_dnssim_connection_t*)handle->data;
+}
+
+static void _tcp_read_cb(uv_stream_t* handle, ssize_t nread, const uv_buf_t* buf)
+{
+    _output_dnssim_connection_t* conn = (_output_dnssim_connection_t*)handle->data;
+    if (nread > 0) {
+        int pos = 0;
+        while (pos < nread)
+            pos = _read_stream_data(conn, pos, buf);
+        mlassert(pos == nread, "tcp data read invalid, pos != nread");
+    } else if (nread < 0) {
+        if (nread != UV_EOF)
+            mlwarning("tcp conn unexpected close: %s", uv_strerror(nread));
+        _ll_remove(conn->client->conn, conn);
+        uv_close((uv_handle_t*)handle, _close_tcp_connection_cb);
+    }
+
+    if (buf->base != NULL)
+        free(buf->base);
+}
+
 static void _connect_tcp_cb(uv_connect_t* conn_req, int status)
 {
     _output_dnssim_connection_t* conn = (_output_dnssim_connection_t*)conn_req->handle->data;
@@ -640,7 +797,15 @@ static void _connect_tcp_cb(uv_connect_t* conn_req, int status)
         return;
     }
 
+    int ret = uv_read_start((uv_stream_t*)&conn->handle, _uv_alloc_cb, _tcp_read_cb);
+    if (ret < 0) {
+        // TODO: handle this
+        mlwarning("tcp uv_read_start() failed: %s", uv_strerror(ret));
+        return;
+    }
+
     conn->state = _OUTPUT_DNSSIM_CONN_ACTIVE;
+    conn->read_state = _OUTPUT_DNSSIM_READ_STATE_CLEAN;
     _send_pending_queries(conn);
 }
 
@@ -779,6 +944,7 @@ static void _close_query_tcp(_output_dnssim_query_tcp_t* qry)
 {
     mlassert(qry, "qry can't be null");
     mlassert(qry->conn, "query must have associated connection");
+    // TODO: fix a case when query failed to be sent
     mlassert(qry->conn->sent, "associated connection has no queries");
 
     _ll_remove(qry->conn->sent, &qry->qry);
