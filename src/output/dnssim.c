@@ -41,23 +41,31 @@
         } \
     }
 
-#define _ll_remove(list, element) \
+#define _ll_remove_template(list, element, strict) \
     { \
-        glassert((list), "list can't be null when removing elements"); \
-        if ((element) != NULL) { \
+        if (strict) \
+            glassert((list), "list can't be null when removing elements"); \
+        if ((list) != NULL && (element) != NULL) { \
             if ((list) == (element)) { \
                 (list) = (element)->next; \
+                (element)->next = NULL; \
             } else { \
                 typeof(list) _current = (list); \
-                while (_current->next != (element)) { \
-                    glassert((_current->next), "list doesn't contain the element to be removed"); \
+                while (_current != NULL && _current->next != (element)) { \
+                    if (strict) \
+                        glassert((_current->next), "list doesn't contain the element to be removed"); \
                     _current = _current->next; \
                 } \
-                _current->next = (element)->next; \
+                if (_current != NULL) { \
+                    _current->next = (element)->next; \
+                    (element)->next = NULL; \
+                } \
             } \
-            (element)->next = NULL; \
         } \
     }
+
+#define _ll_remove(list, element) _ll_remove_template((list), (element), true)
+#define _ll_try_remove(list, element) _ll_remove_template((list), (element), false)
 
 typedef struct _output_dnssim_s _output_dnssim_t;
 typedef struct _output_dnssim_client_s _output_dnssim_client_t;
@@ -85,6 +93,9 @@ struct _output_dnssim_connection_s {
 
     uv_tcp_t handle;
     uv_connect_t conn_req;
+
+    /* List of queries that have been queued (pending write callback). */
+    _output_dnssim_query_t* queued;
 
     /* List of queries that have been sent over this connection. */
     _output_dnssim_query_t* sent;
@@ -304,42 +315,12 @@ static void _close_request_timeout(uv_timer_t* handle)
     }
 }
 
-
-/*** UDP dnssim ***/
-static int _process_udp_response(uv_udp_t* handle, ssize_t nread, const uv_buf_t* buf)
+static void _request_answered(_output_dnssim_request_t* req, core_object_dns_t* msg)
 {
-    _output_dnssim_query_udp_t* qry = (_output_dnssim_query_udp_t*)handle->data;
-    _output_dnssim_request_t* req = qry->qry.req;
-    core_object_payload_t payload = CORE_OBJECT_PAYLOAD_INIT(NULL);
-    core_object_dns_t dns_a = CORE_OBJECT_DNS_INIT(&payload);
-
-    payload.payload = buf->base;
-    payload.len = nread;
-
-    dns_a.obj_prev = (core_object_t*)&payload;
-    int ret = core_object_dns_parse_header(&dns_a);
-    if (ret != 0) {
-        mldebug("udp response malformed");
-        return _ERR_MALFORMED;
-    }
-    if (dns_a.id != req->dns_q->id) {
-        mldebug("udp response msgid mismatch %x(q) != %x(a)", req->dns_q->id, dns_a.id);
-        return _ERR_MSGID;
-    }
-    if (dns_a.tc == 1) {
-        mldebug("udp response has TC=1");
-        return _ERR_TC;
-    }
-
-    req->ended_at = uv_now(&((_output_dnssim_t*)req->dnssim)->loop);
-    if (req->ended_at > (req->created_at + req->dnssim->timeout_ms)) {
-        req->ended_at = req->created_at + req->dnssim->timeout_ms;
-    }
-
     req->dnssim->stats_sum->answers++;
     req->dnssim->stats_current->answers++;
 
-    switch(dns_a.rcode) {
+    switch(msg->rcode) {
     case CORE_OBJECT_DNS_RCODE_NOERROR:
         req->dnssim->stats_sum->rcode_noerror++;
         req->dnssim->stats_current->rcode_noerror++;
@@ -420,7 +401,41 @@ static int _process_udp_response(uv_udp_t* handle, ssize_t nread, const uv_buf_t
         req->dnssim->stats_sum->rcode_other++;
         req->dnssim->stats_current->rcode_other++;
     }
+}
 
+
+/*** UDP dnssim ***/
+static int _process_udp_response(uv_udp_t* handle, ssize_t nread, const uv_buf_t* buf)
+{
+    _output_dnssim_query_udp_t* qry = (_output_dnssim_query_udp_t*)handle->data;
+    _output_dnssim_request_t* req = qry->qry.req;
+    core_object_payload_t payload = CORE_OBJECT_PAYLOAD_INIT(NULL);
+    core_object_dns_t dns_a = CORE_OBJECT_DNS_INIT(&payload);
+
+    payload.payload = buf->base;
+    payload.len = nread;
+
+    dns_a.obj_prev = (core_object_t*)&payload;
+    int ret = core_object_dns_parse_header(&dns_a);
+    if (ret != 0) {
+        mldebug("udp response malformed");
+        return _ERR_MALFORMED;
+    }
+    if (dns_a.id != req->dns_q->id) {
+        mldebug("udp response msgid mismatch %x(q) != %x(a)", req->dns_q->id, dns_a.id);
+        return _ERR_MSGID;
+    }
+    if (dns_a.tc == 1) {
+        mldebug("udp response has TC=1");
+        return _ERR_TC;
+    }
+
+    req->ended_at = uv_now(&((_output_dnssim_t*)req->dnssim)->loop);
+    if (req->ended_at > (req->created_at + req->dnssim->timeout_ms)) {
+        req->ended_at = req->created_at + req->dnssim->timeout_ms;
+    }
+
+    _request_answered(req, &dns_a);
     _close_request(req);
     return 0;
 }
@@ -609,9 +624,8 @@ static void _write_tcp_query_cb(uv_write_t* req, int status)
     mlassert(qry->conn, "qry must be associated with connection");
     qry->qry.state = _OUTPUT_DNSSIM_QUERY_SENT;
 
-    mlassert(qry->conn->client, "conn must be associated with client");
-    mlassert(qry->conn->client->pending, "associated client has no queries");
-    _ll_remove(qry->conn->client->pending, &qry->qry);
+    mlassert(qry->conn->queued, "conn has no queued queries");
+    _ll_remove(qry->conn->queued, &qry->qry);
     _ll_append(qry->conn->sent, &qry->qry);
 
     free(((_output_dnssim_query_tcp_t*)qry)->bufs[0].base);
@@ -626,6 +640,10 @@ static void _write_tcp_query(_output_dnssim_query_tcp_t* qry, _output_dnssim_con
     mlassert(qry->qry.req->dns_q->obj_prev, "payload can't be null");
     mlassert(conn, "conn can't be null");
     mlassert(conn->state == _OUTPUT_DNSSIM_CONN_ACTIVE, "connection state != ACTIVE");
+    mlassert(conn->client, "conn must be associated with client");
+    mlassert(conn->client->pending, "conn has no pending queries");
+
+    mldebug("tcp write dnsmsg id: %04x", qry->qry.req->dns_q->id);
 
     core_object_payload_t* payload = (core_object_payload_t*)qry->qry.req->dns_q->obj_prev;
     uint16_t* len;
@@ -633,6 +651,10 @@ static void _write_tcp_query(_output_dnssim_query_tcp_t* qry, _output_dnssim_con
     *len = htons(payload->len);
     qry->bufs[0] = uv_buf_init((char*)len, 2);
     qry->bufs[1] = uv_buf_init((char*)payload->payload, payload->len);
+
+    qry->conn = conn;
+    _ll_remove(conn->client->pending, &qry->qry);
+    _ll_append(conn->queued, &qry->qry);
 
     qry->write_req.data = (void*)qry;
     uv_write(&qry->write_req, (uv_stream_t*)&conn->handle, qry->bufs, 2, _write_tcp_query_cb);
@@ -644,9 +666,10 @@ static void _send_pending_queries(_output_dnssim_connection_t* conn)
     _output_dnssim_query_tcp_t* qry = (_output_dnssim_query_tcp_t*)conn->client->pending;
 
     while (qry != NULL) {
-        if (qry->qry.state == _OUTPUT_DNSSIM_QUERY_PENDING_WRITE)
-            _write_tcp_query(qry, conn);
-        qry = (_output_dnssim_query_tcp_t*)qry->qry.next;
+        mlassert(qry->qry.state == _OUTPUT_DNSSIM_QUERY_PENDING_WRITE, "query isn't in PENDING_WRITE state");
+        _output_dnssim_query_tcp_t* next = (_output_dnssim_query_tcp_t*)qry->qry.next;
+        _write_tcp_query(qry, conn);
+        qry = next;
     }
 }
 
@@ -656,6 +679,7 @@ void _process_tcp_dnsmsg(_output_dnssim_connection_t* conn)
 
     core_object_payload_t payload = CORE_OBJECT_PAYLOAD_INIT(NULL);
     core_object_dns_t dns_a = CORE_OBJECT_DNS_INIT(&payload);
+    _output_dnssim_request_t* req;
 
     payload.payload = conn->recv_data;
     payload.len = conn->recv_len;
@@ -668,8 +692,18 @@ void _process_tcp_dnsmsg(_output_dnssim_connection_t* conn)
     }
     mldebug("tcp recv dnsmsg id: %04x", dns_a.id);
 
-    // TODO: handle dnsmsg data
-    // TODO: deduplicate code with udp
+    // TODO consider using _output_dnssim_query_t
+    _output_dnssim_query_tcp_t* qry = (_output_dnssim_query_tcp_t*)conn->sent;
+    while (qry != NULL) {
+        req = qry->qry.req;
+        if (req->dns_q->id == dns_a.id) {
+            _request_answered(req, &dns_a);
+            _ll_remove(conn->sent, &qry->qry);
+            _close_request(req);  // TODO might need more polishing to ensure free works
+            break;
+        }
+        qry = (_output_dnssim_query_tcp_t*)qry->qry.next;
+    }
 }
 
 void _parse_recv_data(_output_dnssim_connection_t* conn)
@@ -872,14 +906,12 @@ static int _create_query_tcp(output_dnssim_t* self, _output_dnssim_request_t* re
     }
 
     if (conn != NULL) {  /* Send data right away over active connection. */
-        qry->conn = conn;
         _send_pending_queries(conn);
     } else if (!is_connecting) {  /* No active or connecting connection -> open a new one. */
         lfatal_oom(conn = calloc(1, sizeof(_output_dnssim_connection_t)));  // TODO free
         conn->state = _OUTPUT_DNSSIM_CONN_INITIALIZED;
         conn->client = req->client;
         _create_tcp_connection(self, conn);  // TODO add exit code, possible failure?
-        qry->conn = conn;
         _ll_append(req->client->conn, conn);
     } /* Otherwise, pending queries wil be sent after connected callback. */
 
@@ -944,10 +976,9 @@ static void _close_query_tcp(_output_dnssim_query_tcp_t* qry)
 {
     mlassert(qry, "qry can't be null");
     mlassert(qry->conn, "query must have associated connection");
-    // TODO: fix a case when query failed to be sent
-    mlassert(qry->conn->sent, "associated connection has no queries");
 
-    _ll_remove(qry->conn->sent, &qry->qry);
+    _ll_try_remove(qry->conn->queued, &qry->qry);
+    _ll_try_remove(qry->conn->sent, &qry->qry);
 }
 
 
