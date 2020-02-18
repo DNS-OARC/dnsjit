@@ -316,7 +316,8 @@ static void clear_trie(node_t *trie, knot_mm_t *mm)
 	} else {
 		branch_t *b = &trie->branch;
 		int len = bitmap_weight(b->bitmap);
-		for (int i = 0; i < len; ++i)
+		int i;
+		for (i = 0; i < len; ++i)
 			clear_trie(b->twigs + i, mm);
 		mm_free(mm, b->twigs);
 	}
@@ -834,7 +835,8 @@ static int apply_trie(node_t *t, int (*f)(trie_val_t *, void *), void *d)
 	if (!isbranch(t))
 		return f(&t->leaf.val, d);
 	int child_count = bitmap_weight(t->branch.bitmap);
-	for (int i = 0; i < child_count; ++i)
+	int i;
+	for (i = 0; i < child_count; ++i)
 		ERR_RETURN(apply_trie(twig(t, i), f, d));
 	return KNOT_EOK;
 }

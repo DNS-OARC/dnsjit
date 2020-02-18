@@ -28,7 +28,6 @@
 
 #include <string.h>
 #include "contrib/trie.h"
-#include "core/assert.h"
 #include "filter/ipsplit.hh"
 
 #endif

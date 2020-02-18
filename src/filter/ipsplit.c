@@ -21,11 +21,12 @@
 #include "config.h"
 
 #include "filter/ipsplit.h"
+#include "core/assert.h"
 
 typedef struct _filter_ipsplit {
     filter_ipsplit_t pub;
 
-    trie_t* trie;
+    trie_t*  trie;
     uint32_t weight_total;
 } _filter_ipsplit_t;
 
@@ -39,7 +40,7 @@ typedef struct _client {
 
 #define _self ((_filter_ipsplit_t*)self)
 
-static core_log_t     _log      = LOG_T_INIT("filter.ipsplit");
+static core_log_t       _log      = LOG_T_INIT("filter.ipsplit");
 static filter_ipsplit_t _defaults = {
     LOG_T_INIT_OBJ("filter.ipsplit"),
     IPSPLIT_MODE_SEQUENTIAL, IPSPLIT_OVERWRITE_NONE,
@@ -57,16 +58,15 @@ filter_ipsplit_t* filter_ipsplit_new()
     filter_ipsplit_t* self;
 
     mlfatal_oom(self = malloc(sizeof(_filter_ipsplit_t)));
-    *self = _defaults;
-    _self->trie = trie_create(NULL);
+    *self               = _defaults;
+    _self->trie         = trie_create(NULL);
     _self->weight_total = 0;
 
     return self;
 }
 
-static int _free_trie_value(trie_val_t *val, void *ctx)
+static int _free_trie_value(trie_val_t* val, void* ctx)
 {
-    (void*)ctx;
     free(*val);
     return 0;
 }
@@ -102,16 +102,16 @@ void filter_ipsplit_add(filter_ipsplit_t* self, core_receiver_t recv, void* ctx,
     _self->weight_total += weight;
 
     lfatal_oom(r = malloc(sizeof(filter_ipsplit_recv_t)));
-    r->recv = recv;
-    r->ctx = ctx;
+    r->recv      = recv;
+    r->ctx       = ctx;
     r->n_clients = 0;
-    r->weight = weight;
+    r->weight    = weight;
 
     if (!self->recv) {
-        r->next = r;
+        r->next    = r;
         self->recv = r;
     } else {
-        r->next = self->recv->next;
+        r->next          = self->recv->next;
         self->recv->next = r;
     }
 }
@@ -121,28 +121,30 @@ void filter_ipsplit_add(filter_ipsplit_t* self, core_receiver_t recv, void* ctx,
  */
 static unsigned long _rand_next = 1;
 
-static unsigned int _rand(unsigned int mod) {
-   mlassert(mod >= 1, "modulus must be positive integer");
-   _rand_next = _rand_next * 1103515245 + 12345;
-   unsigned int ret = (unsigned)(_rand_next/65536) % mod;
-   mldebug("rand: %d", ret);
-   return ret;
+static unsigned int _rand(unsigned int mod)
+{
+    mlassert(mod >= 1, "modulus must be positive integer");
+    _rand_next       = _rand_next * 1103515245 + 12345;
+    unsigned int ret = (unsigned)(_rand_next / 65536) % mod;
+    mldebug("rand: %d", ret);
+    return ret;
 }
 
-void filter_ipsplit_srand(unsigned int seed) {
-   _rand_next = seed;
-   mldebug("rand seed %d", seed);
+void filter_ipsplit_srand(unsigned int seed)
+{
+    _rand_next = seed;
+    mldebug("rand seed %d", seed);
 }
 
 static void _assign_client_to_receiver(filter_ipsplit_t* self, _client_t* client)
 {
-    uint32_t id;
-    filter_ipsplit_recv_t* recv;
+    uint32_t               id = 0;
+    filter_ipsplit_recv_t* recv = 0;
 
     switch (self->mode) {
     case IPSPLIT_MODE_SEQUENTIAL:
         recv = self->recv;
-        id = ++recv->n_clients;
+        id   = ++recv->n_clients;
         /* When *weight* clients are assigned, switch to next receiver. */
         if (recv->n_clients % recv->weight == 0)
             self->recv = recv->next;
@@ -157,7 +159,7 @@ static void _assign_client_to_receiver(filter_ipsplit_t* self, _client_t* client
                 self->recv = self->recv->next;
         }
         recv = self->recv;
-        id = ++recv->n_clients;
+        id   = ++recv->n_clients;
         break;
     }
     default:
@@ -179,10 +181,10 @@ static void _overwrite(filter_ipsplit_t* self, core_object_t* obj, _client_t* cl
     mlassert(obj, "invalid object");
     mlassert(client, "invalid client");
 
-    core_object_ip_t* ip;
+    core_object_ip_t*  ip;
     core_object_ip6_t* ip6;
 
-    switch(self->overwrite) {
+    switch (self->overwrite) {
     case IPSPLIT_OVERWRITE_NONE:
         return;
     case IPSPLIT_OVERWRITE_SRC:
@@ -226,16 +228,16 @@ static void _receive(filter_ipsplit_t* self, const core_object_t* obj)
     }
 
     /* Lookup IPv4/IPv6 address in trie (prefix-tree). Inserts new node if not found. */
-    trie_val_t* node;
-    switch(pkt->obj_type) {
+    trie_val_t* node = 0;
+    switch (pkt->obj_type) {
     case CORE_OBJECT_IP: {
         core_object_ip_t* ip = (core_object_ip_t*)pkt;
-        node = trie_get_ins(_self->trie, ip->src, sizeof(ip->src));
+        node                 = trie_get_ins(_self->trie, (char*)ip->src, sizeof(ip->src));
         break;
     }
     case CORE_OBJECT_IP6: {
         core_object_ip6_t* ip6 = (core_object_ip6_t*)pkt;
-        node = trie_get_ins(_self->trie, ip6->src, sizeof(ip6->src));
+        node                   = trie_get_ins(_self->trie, (char*)ip6->src, sizeof(ip6->src));
         break;
     }
     default:
@@ -244,7 +246,7 @@ static void _receive(filter_ipsplit_t* self, const core_object_t* obj)
     lassert(node, "trie failure");
 
     _client_t* client;
-    if (*node == NULL) {  /* IP address not found in tree -> create new client. */
+    if (*node == NULL) { /* IP address not found in tree -> create new client. */
         lfatal_oom(client = malloc(sizeof(_client_t)));
         *node = (void*)client;
         _assign_client_to_receiver(self, client);

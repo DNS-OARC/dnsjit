@@ -24,6 +24,7 @@
 module(...,package.seeall)
 
 -- dnsjit.filter.copy (3),
+-- dnsjit.filter.ipsplit (3),
 -- dnsjit.filter.layer (3),
 -- dnsjit.filter.split (3),
 -- dnsjit.filter.timing (3)

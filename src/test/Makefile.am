@@ -40,5 +40,5 @@ test-ipsplit.sh: pellets.pcap-dist
 	cp "$<" "$@"
 
 EXTRA_DIST = $(TESTS) \
-  dns.pcap pellets.pcap \
+  dns.pcap pellets.pcap test_ipsplit.lua \
   test1.gold test2.gold test3.gold test4.gold

@@ -24,13 +24,15 @@
 --   ipsplit.receiver(...)
 --   input.receiver(ipsplit)
 --
--- The filter passes objects to other receivers. Object chains without
--- IPv4/IPv6 packet are discarded. Packets which have the same source IP
--- address are considered to be sent from the same "client". When the first
--- packet from a client is processed, the client is assigned to a receiver. All
--- objects from this client will be passed to the assigned receiver.  The
--- filter can also write a receiver-specific client ID (starting from 1) to the
--- source or destination IP in the packet.
+-- The filter passes objects to other receivers.
+-- Object chains without IPv4/IPv6 packet are discarded.
+-- Packets which have the same source IP address are considered to be sent
+-- from the same "client".
+-- When the first packet from a client is processed, the client is assigned
+-- to a receiver.
+-- All objects from this client will be passed to the assigned receiver.
+-- The filter can also write a receiver-specific client ID (starting from 1)
+-- to the source or destination IP in the packet.
 module(...,package.seeall)
 
 require("dnsjit.filter.ipsplit_h")
@@ -65,9 +67,10 @@ function IpSplit:receive()
 end
 
 -- Set the receiver to pass objects to, this can be called multiple times to
--- set additional receivers. The weight parameter can be used to adjust
--- distribution of clients among receivers. Weight must be a positive integer
--- (default is 1).
+-- set additional receivers.
+-- The weight parameter can be used to adjust distribution of clients among
+-- receivers.
+-- Weight must be a positive integer (default is 1).
 function IpSplit:receiver(o, weight)
     local recv, ctx = o:receive()
     if weight == nil then
@@ -82,15 +85,17 @@ function IpSplit:discarded()
     return tonumber(self.obj.discarded)
 end
 
--- Set the client assignment mode to sequential. Assigns `weight` clients to a
--- receiver before continuing with the next receiver. (default mode)
+-- Set the client assignment mode to sequential.
+-- Assigns `weight` clients to a receiver before continuing with the next
+-- receiver (default mode).
 function IpSplit:sequential()
     self.obj.mode = "IPSPLIT_MODE_SEQUENTIAL"
 end
 
--- Set the client assignment mode to random. Each client is randomly assigned
--- to a receiver (weight affects the probability). The client assignment is
--- stable (and portable) for given seed.
+-- Set the client assignment mode to random.
+-- Each client is randomly assigned to a receiver (weight affects the
+-- probability).
+-- The client assignment is stable (and portable) for given seed.
 function IpSplit:random(seed)
     self.obj.mode = "IPSPLIT_MODE_RANDOM"
     if seed then

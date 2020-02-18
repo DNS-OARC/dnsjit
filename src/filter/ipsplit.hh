@@ -26,9 +26,9 @@ struct filter_ipsplit_recv {
     filter_ipsplit_recv_t* next;
 
     core_receiver_t recv;
-    void* ctx;
+    void*           ctx;
 
-    uint32_t n_clients;  /* Total number of clients assigned to this receiver. */
+    uint32_t n_clients; /* Total number of clients assigned to this receiver. */
 
     uint32_t weight;
 };
@@ -38,12 +38,12 @@ typedef struct filter_ipsplit {
 
     enum {
         IPSPLIT_MODE_SEQUENTIAL = 0,
-        IPSPLIT_MODE_RANDOM = 1
+        IPSPLIT_MODE_RANDOM     = 1
     } mode;
     enum {
         IPSPLIT_OVERWRITE_NONE = 0,
-        IPSPLIT_OVERWRITE_SRC = 1,
-        IPSPLIT_OVERWRITE_DST = 2
+        IPSPLIT_OVERWRITE_SRC  = 1,
+        IPSPLIT_OVERWRITE_DST  = 2
     } overwrite;
 
     uint64_t discarded;
