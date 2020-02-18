@@ -28,7 +28,7 @@ core_timespec_t lib_clock_getres(lib_clock_clkid_t clkid)
 {
     struct timespec ts;
     core_timespec_t ret = { 0, 0 };
-    clockid_t clk_id;
+    clockid_t       clk_id;
 
     switch (clkid) {
     case LIB_CLOCK_REALTIME:
@@ -53,7 +53,7 @@ core_timespec_t lib_clock_gettime(lib_clock_clkid_t clkid)
 {
     struct timespec ts;
     core_timespec_t ret = { 0, 0 };
-    clockid_t clk_id;
+    clockid_t       clk_id;
 
     switch (clkid) {
     case LIB_CLOCK_REALTIME:
