@@ -20,8 +20,10 @@
 -- Application data payload
 --
 -- Payload object contains the data carried by the underlying transport
--- protocol. Payload is usually at the top of the object chain after parsing
--- with, for example, Layer filter.
+-- protocol.
+-- Payload is usually at the top of the object chain after parsing with,
+-- for example,
+-- .IR dnsjit.filter.layer .
 -- .SS Attributes
 -- .TP
 -- payload

@@ -19,8 +19,12 @@
 -- dnsjit.core.object.tcp
 -- A TCP segment header
 --
--- A TCP segment header. The data itself is in the payload object, which is the
--- next object in the chain after parsing with, for example, Layer filter.
+-- A TCP segment header.
+-- The data itself is in the
+-- .I dnsjit.core.object.payload
+-- object, which is the next object in the chain after parsing with,
+-- for example,
+-- .IR dnsjit.filter.layer .
 -- .SS Attributes
 -- .TP
 -- sport

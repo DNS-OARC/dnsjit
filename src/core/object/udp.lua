@@ -19,9 +19,14 @@
 -- dnsjit.core.object.udp
 -- A UDP datagram header
 --
--- A UDP datagram header. The data itself is in the payload object, which is
--- the next object in the chain after parsing with, for example, Layer filter.
--- .SS Attributes .TP
+-- A UDP datagram header.
+-- The data itself is in the
+-- .I dnsjit.core.object.payload
+-- object, which is the next object in the chain after parsing with,
+-- for example,
+-- .IR dnsjit.filter.layer .
+-- .SS Attributes
+-- .TP
 -- sport
 -- Source port.
 -- .TP
