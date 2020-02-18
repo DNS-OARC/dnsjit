@@ -119,18 +119,18 @@ void filter_ipsplit_add(filter_ipsplit_t* self, core_receiver_t recv, void* ctx,
 /*
  * Use portable pseudo-random number generator.
  */
-static unsigned long _rand_next = 1;
+static uint32_t _rand_next = 1;
 
-static unsigned int _rand(unsigned int mod)
+static uint32_t _rand(uint32_t mod)
 {
     mlassert(mod >= 1, "modulus must be positive integer");
-    _rand_next       = _rand_next * 1103515245 + 12345;
-    unsigned int ret = (unsigned)(_rand_next / 65536) % mod;
+    _rand_next   = _rand_next * 1103515245 + 12345;
+    uint32_t ret = (uint32_t)(_rand_next / 65536) % mod;
     mldebug("rand: %d", ret);
     return ret;
 }
 
-void filter_ipsplit_srand(unsigned int seed)
+void filter_ipsplit_srand(uint32_t seed)
 {
     _rand_next = seed;
     mldebug("rand seed %d", seed);
