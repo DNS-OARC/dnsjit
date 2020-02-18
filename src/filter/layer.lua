@@ -88,5 +88,6 @@ end
 -- dnsjit.core.object.icmp (3),
 -- dnsjit.core.object.icmp6 (3),
 -- dnsjit.core.object.udp (3),
--- dnsjit.core.object.tcp (3)
+-- dnsjit.core.object.tcp (3),
+-- dnsjit.core.object.payload (3)
 return Layer
