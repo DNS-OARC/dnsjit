@@ -317,6 +317,11 @@ static void _close_request_timeout(uv_timer_t* handle)
 
 static void _request_answered(_output_dnssim_request_t* req, core_object_dns_t* msg)
 {
+    req->ended_at = uv_now(&((_output_dnssim_t*)req->dnssim)->loop);
+    if (req->ended_at > (req->created_at + req->dnssim->timeout_ms)) {
+        req->ended_at = req->created_at + req->dnssim->timeout_ms;
+    }
+
     req->dnssim->stats_sum->answers++;
     req->dnssim->stats_current->answers++;
 
@@ -428,11 +433,6 @@ static int _process_udp_response(uv_udp_t* handle, ssize_t nread, const uv_buf_t
     if (dns_a.tc == 1) {
         mldebug("udp response has TC=1");
         return _ERR_TC;
-    }
-
-    req->ended_at = uv_now(&((_output_dnssim_t*)req->dnssim)->loop);
-    if (req->ended_at > (req->created_at + req->dnssim->timeout_ms)) {
-        req->ended_at = req->created_at + req->dnssim->timeout_ms;
     }
 
     _request_answered(req, &dns_a);
@@ -950,6 +950,8 @@ static void _create_request_tcp(output_dnssim_t* self, _output_dnssim_client_t* 
         goto failure;
     }
 
+    req->created_at = uv_now(&_self->loop);
+    req->ended_at = req->created_at + self->timeout_ms;
     lfatal_oom(req->timeout = malloc(sizeof(uv_timer_t)));
     ret = uv_timer_init(&_self->loop, req->timeout);
     req->timeout->data = req;
