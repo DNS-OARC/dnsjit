@@ -812,6 +812,7 @@ static void _tcp_read_cb(uv_stream_t* handle, ssize_t nread, const uv_buf_t* buf
         if (nread != UV_EOF)
             mlwarning("tcp conn unexpected close: %s", uv_strerror(nread));
         _ll_remove(conn->client->conn, conn);
+        uv_read_stop(handle);
         uv_close((uv_handle_t*)handle, _close_tcp_connection_cb);
     }
 
