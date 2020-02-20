@@ -978,10 +978,11 @@ failure:
 static void _close_query_tcp(_output_dnssim_query_tcp_t* qry)
 {
     mlassert(qry, "qry can't be null");
-    mlassert(qry->conn, "query must have associated connection");
 
-    _ll_try_remove(qry->conn->queued, &qry->qry);
-    _ll_try_remove(qry->conn->sent, &qry->qry);
+    if (qry->conn) {
+        _ll_try_remove(qry->conn->queued, &qry->qry);
+        _ll_try_remove(qry->conn->sent, &qry->qry);
+    }
 }
 
 
