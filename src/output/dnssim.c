@@ -107,7 +107,8 @@ struct _output_dnssim_connection_s {
         _OUTPUT_DNSSIM_CONN_CONNECTING,
         // _OUTPUT_DNSSIM_CONN_CONNECTED,
         _OUTPUT_DNSSIM_CONN_ACTIVE,
-        _OUTPUT_DNSSIM_CONN_CLOSING
+        _OUTPUT_DNSSIM_CONN_CLOSING,
+        _OUTPUT_DNSSIM_CONN_CLOSED
     } state;
 
     _output_dnssim_read_state_t read_state;
@@ -607,6 +608,13 @@ failure:
  *
  * TODO: extract functions common to tcp/udp into separate functions
  */
+static void _close_tcp_connection_cb(uv_handle_t* handle)
+{
+    // TODO free unneeded, fail/reassign queries (+timers)
+    _output_dnssim_connection_t* conn = (_output_dnssim_connection_t*)handle->data;
+    conn->state = _OUTPUT_DNSSIM_CONN_CLOSED;
+}
+
 static void _write_tcp_query_cb(uv_write_t* req, int status)
 {
     _output_dnssim_query_tcp_t* qry = (_output_dnssim_query_tcp_t*)req->data;
@@ -617,6 +625,19 @@ static void _write_tcp_query_cb(uv_write_t* req, int status)
         // TODO: check if connection is writable, then check state.
         // if state == active, close the connection
         // this is called when conn is closed with uv_close() and there are peding write reqs
+        mlassert(qry->conn, "written query must have connection");
+        switch(status) {
+        case UV_ECONNRESET:
+        case UV_EPIPE:
+            if (qry->conn->state != _OUTPUT_DNSSIM_CONN_CLOSING) {
+                qry->conn->state = _OUTPUT_DNSSIM_CONN_CLOSING;
+                uv_close((uv_handle_t*)&qry->conn, _close_tcp_connection_cb);
+            }
+            break;
+        case UV_ECANCELED:
+        default:
+            break;
+        }
         return;
     }
 
@@ -792,12 +813,6 @@ unsigned int _read_stream_data(_output_dnssim_connection_t* conn, size_t pos, co
         _parse_recv_data(conn);
 
     return pos;
-}
-
-static void _close_tcp_connection_cb(uv_handle_t* handle)
-{
-    // TODO free unneeded, fail/reassign queries (+timers)
-    // _output_dnssim_connection_t* conn = (_output_dnssim_connection_t*)handle->data;
 }
 
 static void _tcp_read_cb(uv_stream_t* handle, ssize_t nread, const uv_buf_t* buf)
