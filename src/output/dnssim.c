@@ -645,9 +645,11 @@ static void _write_tcp_query_cb(uv_write_t* req, int status)
     mlassert(qry->conn, "qry must be associated with connection");
     qry->qry.state = _OUTPUT_DNSSIM_QUERY_SENT;
 
-    mlassert(qry->conn->queued, "conn has no queued queries");
-    _ll_remove(qry->conn->queued, &qry->qry);
-    _ll_append(qry->conn->sent, &qry->qry);
+    if (qry->conn->state == _OUTPUT_DNSSIM_CONN_ACTIVE) {
+        mlassert(qry->conn->queued, "conn has no queued queries");
+        _ll_remove(qry->conn->queued, &qry->qry);
+        _ll_append(qry->conn->sent, &qry->qry);
+    }
 
     free(((_output_dnssim_query_tcp_t*)qry)->bufs[0].base);
 }
