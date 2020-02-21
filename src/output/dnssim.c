@@ -760,7 +760,7 @@ void _parse_recv_data(_output_dnssim_connection_t* conn)
     conn->recv_data = NULL;
 }
 
-size_t _handle_conn_data(_output_dnssim_connection_t* conn, char* data, size_t len)
+size_t _handle_conn_data(_output_dnssim_connection_t* conn, const char* data, size_t len)
 {
     mlassert(conn, "conn can't be nil");
     mlassert(data, "data can't be nil");
@@ -786,24 +786,18 @@ size_t _handle_conn_data(_output_dnssim_connection_t* conn, char* data, size_t l
         return len;
     } else {  /* Complete and clean read. */
         mlassert(expected <= len, "not enough data to perform complete read");
-        conn->recv_data = data;
+        conn->recv_data = (char*)data;
         conn->recv_pos = conn->recv_len;
         return expected;
     }
 }
 
-unsigned int _read_stream_data(_output_dnssim_connection_t* conn, size_t pos, const uv_buf_t* buf)
+unsigned int _read_stream_data(_output_dnssim_connection_t* conn, size_t len, const char* data)
 {
     mlassert(conn, "conn can't be nil");
-    mlassert(buf, "buf can't be nil");
-    mlassert(buf->len >= pos, "invalid position");
+    mlassert(data, "data can't be nil");
+    mlassert(len > 0, "no data to read");
     mlassert(conn->read_state != _OUTPUT_DNSSIM_READ_STATE_INVALID, "connection has invalid read_state");
-
-    char* data = buf->base + pos;
-    size_t available = buf->len - pos;
-
-    if (available == 0)
-        return pos;
 
     if (conn->read_state == _OUTPUT_DNSSIM_READ_STATE_CLEAN) {
         conn->recv_len = 2;
@@ -812,12 +806,12 @@ unsigned int _read_stream_data(_output_dnssim_connection_t* conn, size_t pos, co
         conn->read_state = _OUTPUT_DNSSIM_READ_STATE_DNSLEN;
     }
 
-    pos += _handle_conn_data(conn, data, available);
+    int read = _handle_conn_data(conn, data, len);
 
     if (conn->recv_len == conn->recv_pos)
         _parse_recv_data(conn);
 
-    return pos;
+    return read;
 }
 
 static void _tcp_read_cb(uv_stream_t* handle, ssize_t nread, const uv_buf_t* buf)
@@ -825,8 +819,9 @@ static void _tcp_read_cb(uv_stream_t* handle, ssize_t nread, const uv_buf_t* buf
     _output_dnssim_connection_t* conn = (_output_dnssim_connection_t*)handle->data;
     if (nread > 0) {
         int pos = 0;
+        char* data = buf->base;
         while (pos < nread)
-            pos = _read_stream_data(conn, pos, buf);
+            pos += _read_stream_data(conn, nread - pos, data + pos);
         mlassert(pos == nread, "tcp data read invalid, pos != nread");
     } else if (nread < 0) {
         if (nread != UV_EOF)
