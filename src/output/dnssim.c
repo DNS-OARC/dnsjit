@@ -769,18 +769,23 @@ size_t _handle_conn_data(_output_dnssim_connection_t* conn, char* data, size_t l
     size_t expected = conn->recv_len - conn->recv_pos;
     mlassert(expected > 0, "no data expected");
 
-    if (expected > len || conn->recv_free_after_use) {
-        if (conn->recv_pos == 0) {
-            mlassert(conn->recv_len > 0, "conn->recv_len must be set");
-            mlassert(!conn->recv_free_after_use, "conn->recv_free_after_use shouldn't be set when pos=0");
-            mlfatal_oom(conn->recv_data = malloc(conn->recv_len * sizeof(char)));
-            conn->recv_free_after_use = true;
-        }
+    if (conn->recv_free_after_use == false && expected > len) {
+        /* Start of partial read. */
+        mlassert(conn->recv_pos == 0, "conn->recv_pos must be 0 at start of partial read");
+        mlassert(conn->recv_len > 0, "conn->recv_len must be set at start of partial read");
+        mlfatal_oom(conn->recv_data = malloc(conn->recv_len * sizeof(char)));
+        conn->recv_free_after_use = true;
+    }
+
+    if (conn->recv_free_after_use) {  /* Partial read is in progress. */
         char* dest = conn->recv_data + conn->recv_pos;
+        if (expected < len)
+            len = expected;
         memcpy(dest, data, len);
         conn->recv_pos += len;
         return len;
-    } else {
+    } else {  /* Complete and clean read. */
+        mlassert(expected <= len, "not enough data to perform complete read");
         conn->recv_data = data;
         conn->recv_pos = conn->recv_len;
         return expected;
