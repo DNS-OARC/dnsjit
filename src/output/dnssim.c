@@ -621,7 +621,7 @@ static void _write_tcp_query_cb(uv_write_t* req, int status)
 
     if (status < 0) {  // TODO: handle more gracefully?
         qry->qry.state = _OUTPUT_DNSSIM_QUERY_PENDING_WRITE;
-        mlwarning("tcp write failed: %s", uv_strerror(status));
+        mlinfo("tcp write failed: %s", uv_strerror(status));
         // TODO: check if connection is writable, then check state.
         // if state == active, close the connection
         // this is called when conn is closed with uv_close() and there are peding write reqs
@@ -825,7 +825,7 @@ static void _tcp_read_cb(uv_stream_t* handle, ssize_t nread, const uv_buf_t* buf
         mlassert(pos == nread, "tcp data read invalid, pos != nread");
     } else if (nread < 0) {
         if (nread != UV_EOF)
-            mlwarning("tcp conn unexpected close: %s", uv_strerror(nread));
+            mlinfo("tcp conn unexpected close: %s", uv_strerror(nread));
         _ll_remove(conn->client->conn, conn);
         uv_read_stop(handle);
         uv_close((uv_handle_t*)handle, _close_tcp_connection_cb);
