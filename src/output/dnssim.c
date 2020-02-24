@@ -29,11 +29,11 @@
 
 #define _ll_append(list, element) \
     { \
+        glassert((element)->next == NULL, "element->next must be null when appending"); \
         if ((list) == NULL) \
             (list) = (element); \
         else if ((element) != NULL) \
         { \
-            glassert((element)->next == NULL, "element->next must be null when appending"); \
             typeof(list) _current = (list); \
             while (_current->next != NULL) \
                 _current = _current->next; \
