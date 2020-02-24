@@ -629,15 +629,15 @@ static void _write_tcp_query_cb(uv_write_t* req, int status)
         // this is called when conn is closed with uv_close() and there are peding write reqs
         mlassert(qry->conn, "written query must have connection");
         switch(status) {
+        case UV_ECANCELED:
+            break;
         case UV_ECONNRESET:
         case UV_EPIPE:
+        default:
             if (qry->conn->state != _OUTPUT_DNSSIM_CONN_CLOSING) {
                 qry->conn->state = _OUTPUT_DNSSIM_CONN_CLOSING;
                 uv_close((uv_handle_t*)&qry->conn, _close_tcp_connection_cb);
             }
-            break;
-        case UV_ECANCELED:
-        default:
             break;
         }
         return;
