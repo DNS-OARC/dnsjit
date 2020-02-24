@@ -159,7 +159,8 @@ struct _output_dnssim_query_s {
     enum {
         _OUTPUT_DNSSIM_QUERY_PENDING_WRITE,
         _OUTPUT_DNSSIM_QUERY_PENDING_WRITE_CB,
-        _OUTPUT_DNSSIM_QUERY_SENT
+        _OUTPUT_DNSSIM_QUERY_SENT,
+        _OUTPUT_DNSSIM_QUERY_CLOSED
     } state;
 };
 
@@ -620,7 +621,8 @@ static void _write_tcp_query_cb(uv_write_t* req, int status)
     _output_dnssim_query_tcp_t* qry = (_output_dnssim_query_tcp_t*)req->data;
 
     if (status < 0) {  // TODO: handle more gracefully?
-        qry->qry.state = _OUTPUT_DNSSIM_QUERY_PENDING_WRITE;
+        if (qry->qry.state == _OUTPUT_DNSSIM_QUERY_PENDING_WRITE_CB)
+            qry->qry.state = _OUTPUT_DNSSIM_QUERY_PENDING_WRITE;
         mlinfo("tcp write failed: %s", uv_strerror(status));
         // TODO: check if connection is writable, then check state.
         // if state == active, close the connection
@@ -643,12 +645,15 @@ static void _write_tcp_query_cb(uv_write_t* req, int status)
 
     /* Mark query as sent and assign it to connection. */
     mlassert(qry->conn, "qry must be associated with connection");
-    qry->qry.state = _OUTPUT_DNSSIM_QUERY_SENT;
 
-    if (qry->conn->state == _OUTPUT_DNSSIM_CONN_ACTIVE) {
-        mlassert(qry->conn->queued, "conn has no queued queries");
-        _ll_remove(qry->conn->queued, &qry->qry);
-        _ll_append(qry->conn->sent, &qry->qry);
+    if (qry->qry.state == _OUTPUT_DNSSIM_QUERY_PENDING_WRITE_CB) {
+        qry->qry.state = _OUTPUT_DNSSIM_QUERY_SENT;
+
+        if (qry->conn->state == _OUTPUT_DNSSIM_CONN_ACTIVE) {
+            mlassert(qry->conn->queued, "conn has no queued queries");
+            _ll_remove(qry->conn->queued, &qry->qry);
+            _ll_append(qry->conn->sent, &qry->qry);
+        }
     }
 
     free(((_output_dnssim_query_tcp_t*)qry)->bufs[0].base);
@@ -995,6 +1000,7 @@ failure:
 static void _close_query_tcp(_output_dnssim_query_tcp_t* qry)
 {
     mlassert(qry, "qry can't be null");
+    qry->qry.state = _OUTPUT_DNSSIM_QUERY_CLOSED;
 
     if (qry->conn) {
         _ll_try_remove(qry->conn->queued, &qry->qry);
