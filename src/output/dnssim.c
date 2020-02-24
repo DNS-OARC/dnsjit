@@ -694,9 +694,18 @@ static void _send_pending_queries(_output_dnssim_connection_t* conn)
     _output_dnssim_query_tcp_t* qry = (_output_dnssim_query_tcp_t*)conn->client->pending;
 
     while (qry != NULL) {
-        mlassert(qry->qry.state == _OUTPUT_DNSSIM_QUERY_PENDING_WRITE, "query isn't in PENDING_WRITE state");
         _output_dnssim_query_tcp_t* next = (_output_dnssim_query_tcp_t*)qry->qry.next;
-        _write_tcp_query(qry, conn);
+        switch(qry->qry.state) {
+        case _OUTPUT_DNSSIM_QUERY_PENDING_WRITE:
+            _write_tcp_query(qry, conn);
+            break;
+        case _OUTPUT_DNSSIM_QUERY_CLOSED:
+            /* Query was closed (timeout) before any TCP connection was established. */
+            _ll_remove(conn->client->pending, &qry->qry);
+            break;
+        default:
+            mlfatal("pending query is in invalid state");
+        }
         qry = next;
     }
 }
@@ -914,6 +923,7 @@ static int _create_query_tcp(output_dnssim_t* self, _output_dnssim_request_t* re
 
     qry->qry.transport = OUTPUT_DNSSIM_TRANSPORT_TCP;
     qry->qry.req = req;
+    qry->qry.state = _OUTPUT_DNSSIM_QUERY_PENDING_WRITE;
     _ll_append(req->qry, &qry->qry);
     _ll_append(req->client->pending, &qry->qry);
 
