@@ -859,7 +859,7 @@ static void _connect_tcp_cb(uv_connect_t* conn_req, int status)
     if (status < 0) {
         // TODO: handle this the same way as UDP retransmit - attempt reconnect after a period of time
         mlwarning("tcp connect failed: %s", uv_strerror(status));
-        // TODO: close and remove handle
+        uv_close((uv_handle_t*)conn_req->handle, _close_tcp_connection_cb);
         return;
     }
 
