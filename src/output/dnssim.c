@@ -266,7 +266,7 @@ static void _close_query(_output_dnssim_query_t* qry)
         _close_query_tcp((_output_dnssim_query_tcp_t*)qry);
         break;
     default:
-        mlnotice("failed to close query: unsupported transport");
+        mlfatal("invalid query transport");
         break;
     }
 }
@@ -636,7 +636,7 @@ static void _write_tcp_query_cb(uv_write_t* req, int status)
         default:
             if (qry->conn->state != _OUTPUT_DNSSIM_CONN_CLOSING) {
                 qry->conn->state = _OUTPUT_DNSSIM_CONN_CLOSING;
-                uv_close((uv_handle_t*)&qry->conn, _close_tcp_connection_cb);
+                uv_close((uv_handle_t*)&qry->conn->handle, _close_tcp_connection_cb);
             }
             break;
         }
