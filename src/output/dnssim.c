@@ -93,6 +93,7 @@ struct _output_dnssim_connection_s {
 
     uv_tcp_t handle;
     uv_connect_t conn_req;
+    uv_timer_t timeout;
 
     /* List of queries that have been queued (pending write callback). */
     _output_dnssim_query_t* queued;
@@ -216,6 +217,7 @@ static void _close_query_udp(_output_dnssim_query_udp_t* qry);
 static void _close_query_tcp(_output_dnssim_query_tcp_t* qry);
 static void _close_request_timeout_cb(uv_handle_t* handle);
 static void _close_request_timeout(uv_timer_t* handle);
+static void _close_tcp_connection(_output_dnssim_connection_t* conn);
 
 uint64_t _now_ms()
 {
@@ -614,6 +616,7 @@ static void _close_tcp_connection_cb(uv_handle_t* handle)
     // TODO free unneeded, fail/reassign queries (+timers)
     _output_dnssim_connection_t* conn = (_output_dnssim_connection_t*)handle->data;
     conn->state = _OUTPUT_DNSSIM_CONN_CLOSED;
+    // TODO before memory can be freed, the timeout callback has to have been called
 }
 
 static void _write_tcp_query_cb(uv_write_t* req, int status)
@@ -629,15 +632,12 @@ static void _write_tcp_query_cb(uv_write_t* req, int status)
         // this is called when conn is closed with uv_close() and there are peding write reqs
         mlassert(qry->conn, "written query must have connection");
         switch(status) {
-        case UV_ECANCELED:
+        case UV_ECANCELED:  // TODO: maybe the switch is useless and _close_tcp_connection() can always be called?
             break;
         case UV_ECONNRESET:
         case UV_EPIPE:
         default:
-            if (qry->conn->state != _OUTPUT_DNSSIM_CONN_CLOSING) {
-                qry->conn->state = _OUTPUT_DNSSIM_CONN_CLOSING;
-                uv_close((uv_handle_t*)&qry->conn->handle, _close_tcp_connection_cb);
-            }
+            _close_tcp_connection(qry->conn);
             break;
         }
         return;
@@ -842,9 +842,7 @@ static void _tcp_read_cb(uv_stream_t* handle, ssize_t nread, const uv_buf_t* buf
     } else if (nread < 0) {
         if (nread != UV_EOF)
             mlinfo("tcp conn unexpected close: %s", uv_strerror(nread));
-        _ll_remove(conn->client->conn, conn);
-        uv_read_stop(handle);
-        uv_close((uv_handle_t*)handle, _close_tcp_connection_cb);
+        _close_tcp_connection(conn);
     }
 
     if (buf->base != NULL)
@@ -854,15 +852,15 @@ static void _tcp_read_cb(uv_stream_t* handle, ssize_t nread, const uv_buf_t* buf
 static void _connect_tcp_cb(uv_connect_t* conn_req, int status)
 {
     _output_dnssim_connection_t* conn = (_output_dnssim_connection_t*)conn_req->handle->data;
-    mlassert(conn->state == _OUTPUT_DNSSIM_CONN_CONNECTING, "connection state != CONNECTING");
 
     if (status < 0) {
         // TODO: handle this the same way as UDP retransmit - attempt reconnect after a period of time
         mlwarning("tcp connect failed: %s", uv_strerror(status));
-        uv_close((uv_handle_t*)conn_req->handle, _close_tcp_connection_cb);
+        _close_tcp_connection(conn);
         return;
     }
 
+    mlassert(conn->state == _OUTPUT_DNSSIM_CONN_CONNECTING, "connection state != CONNECTING");
     int ret = uv_read_start((uv_stream_t*)&conn->handle, _uv_alloc_cb, _tcp_read_cb);
     if (ret < 0) {
         // TODO: handle this
@@ -873,6 +871,40 @@ static void _connect_tcp_cb(uv_connect_t* conn_req, int status)
     conn->state = _OUTPUT_DNSSIM_CONN_ACTIVE;
     conn->read_state = _OUTPUT_DNSSIM_READ_STATE_CLEAN;
     _send_pending_queries(conn);
+}
+
+static void _close_tcp_connection(_output_dnssim_connection_t* conn)
+{
+    mlassert(conn, "conn can't be nil");
+    if (conn->state == _OUTPUT_DNSSIM_CONN_CLOSING || conn->state == _OUTPUT_DNSSIM_CONN_CLOSED)
+        return;
+
+    // TODO: if try_remove the best approach? when should this be called?
+    if (conn->client != NULL)
+        _ll_try_remove(conn->client->conn, conn);
+
+    conn->state = _OUTPUT_DNSSIM_CONN_CLOSING;
+    uv_timer_stop(&conn->timeout);
+    uv_close((uv_handle_t*)&conn->timeout, NULL);
+    uv_read_stop((uv_stream_t*)&conn->handle);
+    uv_close((uv_handle_t*)&conn->handle, _close_tcp_connection_cb);
+}
+
+static void _on_tcp_connection_timeout(uv_timer_t* handle)
+{
+    _output_dnssim_connection_t* conn = (_output_dnssim_connection_t*)handle->data;
+    _close_tcp_connection(conn);
+}
+
+static void _refresh_tcp_connection_timeout(_output_dnssim_connection_t* conn)
+{
+    mlassert(conn, "conn can't be nil");
+    if (conn->state == _OUTPUT_DNSSIM_CONN_CLOSING || conn->state == _OUTPUT_DNSSIM_CONN_CLOSED)
+        return;
+
+    int ret = uv_timer_start(&conn->timeout, _on_tcp_connection_timeout, 15000, 0);  // TODO: un-hardcode
+    if (ret < 0)
+        mlfatal("failed uv_timer_start(): %s", uv_strerror(ret));
 }
 
 static void _create_tcp_connection(output_dnssim_t* self, _output_dnssim_connection_t* conn)
@@ -904,6 +936,14 @@ static void _create_tcp_connection(output_dnssim_t* self, _output_dnssim_connect
     // ret = uv_tcp_keepalive(&conn->handle, 1, 5);
     // if (ret < 0)
     //     mlwarning("tcp: failed to set TCP_KEEPALIVE: %s", uv_strerror(ret));
+
+    /* Set connection inactivity timeout. */
+    ret = uv_timer_init(&_self->loop, &conn->timeout);
+    conn->timeout.data = (void*)conn;
+    if (ret < 0) {  // TODO make handling less strict
+        mlfatal("failed uv_timer_init(): %s", uv_strerror(ret));
+    }
+    _refresh_tcp_connection_timeout(conn);
 
     uv_tcp_connect(&conn->conn_req, &conn->handle, (struct sockaddr*)&_self->target, _connect_tcp_cb);
     conn->state = _OUTPUT_DNSSIM_CONN_CONNECTING;
