@@ -21,51 +21,12 @@
 #include "config.h"
 
 #include "output/dnssim.h"
+#include "output/dnssim_ll.h"
 #include "core/assert.h"
 #include "core/object/ip.h"
 #include "core/object/ip6.h"
 #include "core/object/payload.h"
 #include "core/object/dns.h"
-
-#define _ll_append(list, element) \
-    { \
-        glassert((element)->next == NULL, "element->next must be null when appending"); \
-        if ((list) == NULL) \
-            (list) = (element); \
-        else if ((element) != NULL) \
-        { \
-            typeof(list) _current = (list); \
-            while (_current->next != NULL) \
-                _current = _current->next; \
-            _current->next = element; \
-        } \
-    }
-
-#define _ll_remove_template(list, element, strict) \
-    { \
-        if (strict) \
-            glassert((list), "list can't be null when removing elements"); \
-        if ((list) != NULL && (element) != NULL) { \
-            if ((list) == (element)) { \
-                (list) = (element)->next; \
-                (element)->next = NULL; \
-            } else { \
-                typeof(list) _current = (list); \
-                while (_current != NULL && _current->next != (element)) { \
-                    if (strict) \
-                        glassert((_current->next), "list doesn't contain the element to be removed"); \
-                    _current = _current->next; \
-                } \
-                if (_current != NULL) { \
-                    _current->next = (element)->next; \
-                    (element)->next = NULL; \
-                } \
-            } \
-        } \
-    }
-
-#define _ll_remove(list, element) _ll_remove_template((list), (element), true)
-#define _ll_try_remove(list, element) _ll_remove_template((list), (element), false)
 
 typedef struct _output_dnssim_s _output_dnssim_t;
 typedef struct _output_dnssim_client_s _output_dnssim_client_t;

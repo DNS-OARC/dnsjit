@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019, CZ.NIC, z.s.p.o.
+ * Copyright (c) 2018-2020, CZ.NIC, z.s.p.o.
  * All rights reserved.
  *
  * This file is part of dnsjit.
