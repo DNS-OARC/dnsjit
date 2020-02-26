@@ -38,7 +38,7 @@
 #include <ck_ring.h>
 
 #include "output/dnssim.hh"
-#include "output/dnssim_internal.h"
-#include "output/dnssim_ll.h"
+#include "output/dnssim/internal.h"
+#include "output/dnssim/ll.h"
 
 #endif
