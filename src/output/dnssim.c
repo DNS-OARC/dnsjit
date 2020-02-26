@@ -17,12 +17,9 @@
  * You should have received a copy of the GNU General Public License
  * along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
  */
-
-#include "config.h"
-
 #include "output/dnssim.h"
-#include "output/dnssim_ll.h"
 
+#include "output/dnssim/udp.c"
 
 uint64_t _now_ms()
 {
@@ -44,11 +41,6 @@ core_log_t* output_dnssim_log()
 {
     return &_log;
 }
-
-#define _self ((_output_dnssim_t*)self)
-#define _ERR_MALFORMED -2
-#define _ERR_MSGID -3
-#define _ERR_TC -4
 
 
 /*** request/query ***/
@@ -218,196 +210,11 @@ static void _request_answered(_output_dnssim_request_t* req, core_object_dns_t* 
 }
 
 
-/*** UDP dnssim ***/
-static int _process_udp_response(uv_udp_t* handle, ssize_t nread, const uv_buf_t* buf)
-{
-    _output_dnssim_query_udp_t* qry = (_output_dnssim_query_udp_t*)handle->data;
-    _output_dnssim_request_t* req = qry->qry.req;
-    core_object_payload_t payload = CORE_OBJECT_PAYLOAD_INIT(NULL);
-    core_object_dns_t dns_a = CORE_OBJECT_DNS_INIT(&payload);
-
-    payload.payload = buf->base;
-    payload.len = nread;
-
-    dns_a.obj_prev = (core_object_t*)&payload;
-    int ret = core_object_dns_parse_header(&dns_a);
-    if (ret != 0) {
-        mldebug("udp response malformed");
-        return _ERR_MALFORMED;
-    }
-    if (dns_a.id != req->dns_q->id) {
-        mldebug("udp response msgid mismatch %x(q) != %x(a)", req->dns_q->id, dns_a.id);
-        return _ERR_MSGID;
-    }
-    if (dns_a.tc == 1) {
-        mldebug("udp response has TC=1");
-        return _ERR_TC;
-    }
-
-    _request_answered(req, &dns_a);
-    _close_request(req);
-    return 0;
-}
-
+/* Common network-related stuff. */
 static void _uv_alloc_cb(uv_handle_t* handle, size_t suggested_size, uv_buf_t* buf)
 {
     mlfatal_oom(buf->base = malloc(suggested_size));
     buf->len = suggested_size;
-}
-
-static void _query_udp_recv_cb(uv_udp_t* handle, ssize_t nread, const uv_buf_t* buf,
-    const struct sockaddr* addr, unsigned flags)
-{
-    if (nread > 0) {
-        mldebug("udp recv: %d", nread);
-
-        // TODO handle TC=1
-        _process_udp_response(handle, nread, buf);
-    }
-
-    if (buf->base != NULL) {
-        free(buf->base);
-    }
-}
-
-static void _close_query_udp_cb(uv_handle_t* handle)
-{
-    _output_dnssim_query_udp_t* qry = (_output_dnssim_query_udp_t*)handle->data;
-    _output_dnssim_request_t* req = qry->qry.req;
-
-    free(qry->handle);
-
-    _ll_remove(req->qry, &qry->qry);
-    free(qry);
-
-    if (req->qry == NULL)
-        _maybe_free_request(req);
-}
-
-static void _close_query_udp(_output_dnssim_query_udp_t* qry)
-{
-    int ret;
-
-    ret = uv_udp_recv_stop(qry->handle);
-    if (ret < 0) {
-        mldebug("failed uv_udp_recv_stop(): %s", uv_strerror(ret));
-    }
-
-    uv_close((uv_handle_t*)qry->handle, _close_query_udp_cb);
-}
-
-static int _create_query_udp(output_dnssim_t* self, _output_dnssim_request_t* req)
-{
-    mlassert_self();
-
-    int ret;
-    _output_dnssim_query_udp_t* qry;
-    core_object_payload_t* payload = (core_object_payload_t*)req->dns_q->obj_prev;
-
-    lfatal_oom(qry = calloc(1, sizeof(_output_dnssim_query_udp_t)));
-    lfatal_oom(qry->handle = malloc(sizeof(uv_udp_t)));
-
-    qry->qry.transport = OUTPUT_DNSSIM_TRANSPORT_UDP;
-    qry->qry.req = req;
-    qry->buf = uv_buf_init((char*)payload->payload, payload->len);
-    ret = uv_udp_init(&_self->loop, qry->handle);
-    if (ret < 0) {
-        lwarning("failed to init uv_udp_t");
-        goto failure;
-    }
-    qry->handle->data = (void*)qry;
-    _ll_append(req->qry, &qry->qry);
-
-    // bind to IP address
-    if (_self->source != NULL) {
-        ret = uv_udp_bind(qry->handle, (struct sockaddr*)&_self->source->addr, 0);
-        if (ret < 0) {
-            lwarning("failed to bind to address: %s", uv_strerror(ret));
-            return ret;
-        }
-        _self->source = _self->source->next;
-    }
-
-    ret = uv_udp_try_send(qry->handle, &qry->buf, 1, (struct sockaddr*)&_self->target);
-    if (ret < 0) {
-        lwarning("failed to send udp packet: %s", uv_strerror(ret));
-        return ret;
-    }
-
-    // TODO IPv4
-    struct sockaddr_in6 src;
-    int addr_len = sizeof(src);
-    uv_udp_getsockname(qry->handle, (struct sockaddr*)&src, &addr_len);
-    ldebug("sent udp from port: %d", ntohs(src.sin6_port));
-
-    // listen for reply
-    ret = uv_udp_recv_start(qry->handle, _uv_alloc_cb, _query_udp_recv_cb);
-    if (ret < 0) {
-        lwarning("failed uv_udp_recv_start(): %s", uv_strerror(ret));
-        return ret;
-    }
-
-    return 0;
-failure:
-    free(qry->handle);
-    free(qry);
-    return ret;
-}
-
-static void _create_request_udp(output_dnssim_t* self, _output_dnssim_client_t* client,
-    core_object_payload_t* payload)
-{
-    mlassert_self();
-
-    int ret;
-    _output_dnssim_request_t* req;
-
-    lfatal_oom(req = malloc(sizeof(_output_dnssim_request_t)));
-    memset(req, 0, sizeof(_output_dnssim_request_t));
-    req->dnssim = self;
-    req->client = client;
-    req->payload = payload;
-    req->dns_q = core_object_dns_new();
-    req->dns_q->obj_prev = (core_object_t*)req->payload;
-    req->ongoing = 1;
-    req->dnssim->ongoing++;
-
-    ret = core_object_dns_parse_header(req->dns_q);
-    if (ret != 0) {
-        ldebug("discarded malformed dns query: couldn't parse header");
-        goto failure;
-    }
-
-    req->dnssim->stats_sum->requests++;
-    req->dnssim->stats_current->requests++;
-
-    ret = _create_query_udp(self, req);
-    if (ret < 0) {
-        goto failure;
-    }
-
-    req->created_at = uv_now(&_self->loop);
-    req->ended_at = req->created_at + self->timeout_ms;
-    lfatal_oom(req->timeout = malloc(sizeof(uv_timer_t)));
-    ret = uv_timer_init(&_self->loop, req->timeout);
-    req->timeout->data = req;
-    if (ret < 0) {
-        ldebug("failed uv_timer_init(): %s", uv_strerror(ret));
-        free(req->timeout);
-        req->timeout = NULL;
-        goto failure;
-    }
-    ret = uv_timer_start(req->timeout, _close_request_timeout, self->timeout_ms, 0);
-    if (ret < 0) {
-        ldebug("failed uv_timer_start(): %s", uv_strerror(ret));
-        goto failure;
-    }
-
-    return;
-failure:
-    self->discarded++;
-    _close_request(req);
-    return;
 }
 
 

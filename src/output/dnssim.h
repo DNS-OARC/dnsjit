@@ -18,6 +18,7 @@
  * along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "config.h"
 #include "core/assert.h"
 #include "core/log.h"
 #include "core/object/dns.h"
@@ -38,5 +39,6 @@
 
 #include "output/dnssim.hh"
 #include "output/dnssim_internal.h"
+#include "output/dnssim_ll.h"
 
 #endif

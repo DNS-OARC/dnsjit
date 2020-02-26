@@ -20,9 +20,16 @@
 #ifndef __dnsjit_output_dnssim_internal_h
 #define __dnsjit_output_dnssim_internal_h
 
+#define _self ((_output_dnssim_t*)self)
+#define _ERR_MALFORMED -2
+#define _ERR_MSGID -3
+#define _ERR_TC -4
+
+
 typedef struct _output_dnssim_request _output_dnssim_request_t;
 typedef struct _output_dnssim_connection _output_dnssim_connection_t;
 typedef struct _output_dnssim_client _output_dnssim_client_t;
+
 
 /*
  * Query-related structures.
@@ -198,6 +205,13 @@ static void _close_query_tcp(_output_dnssim_query_tcp_t* qry);
 static void _close_request_timeout_cb(uv_handle_t* handle);
 static void _close_request_timeout(uv_timer_t* handle);
 static void _close_tcp_connection(_output_dnssim_connection_t* conn);
+static void _create_request_udp(output_dnssim_t* self, _output_dnssim_client_t* client, core_object_payload_t* payload);
+static void _request_answered(_output_dnssim_request_t* req, core_object_dns_t* msg);
+static void _close_request(_output_dnssim_request_t* req);
+static void _maybe_free_request(_output_dnssim_request_t* req);
+static void _close_query(_output_dnssim_query_t* qry);
+static void _close_request_timeout_cb(uv_handle_t* handle);  // TODO rename
+static void _uv_alloc_cb(uv_handle_t* handle, size_t suggested_size, uv_buf_t* buf);  // TODO rename
 
 
 /*

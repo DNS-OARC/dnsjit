@@ -44,7 +44,7 @@ dnsjit_LDADD = $(PTHREAD_LIBS) $(luajit_LIBS)
 
 # C source and headers';
 
-echo "dnsjit_SOURCES +=`find core lib input filter output -type f -name '*.c' -printf ' %p'|sort`"
+echo "dnsjit_SOURCES +=`find core lib input filter output -type f -name '*.c' -printf ' %p'|sed -e 's% output/dnssim/[^ ]*%%g'|sort`"
 echo "dist_dnsjit_SOURCES +=`find core lib input filter output -type f -name '*.h' -printf ' %p'|sort`"
 
 echo '
