@@ -105,9 +105,9 @@ struct _output_dnssim_request {
 
 /* Read-state of connection's data stream. */
 typedef enum _output_dnssim_read_state {
-    _OUTPUT_DNSSIM_READ_STATE_CLEAN,    /* Expecting dnslen. */
-    _OUTPUT_DNSSIM_READ_STATE_DNSLEN,   /* Reading of dnslen in progress. */
-    _OUTPUT_DNSSIM_READ_STATE_DNSMSG,   /* Reading of dnsmsg in progress. */
+    _OUTPUT_DNSSIM_READ_STATE_CLEAN,
+    _OUTPUT_DNSSIM_READ_STATE_DNSLEN,   /* Expecting bytes of dnslen. */
+    _OUTPUT_DNSSIM_READ_STATE_DNSMSG,   /* Expecting bytes of dnsmsg. */
     _OUTPUT_DNSSIM_READ_STATE_INVALID
 } _output_dnssim_read_state_t;
 
@@ -205,7 +205,7 @@ static void _close_query_udp(_output_dnssim_query_udp_t* qry);
 static void _close_query_tcp(_output_dnssim_query_tcp_t* qry);
 static void _close_request_timeout_cb(uv_handle_t* handle);
 static void _close_request_timeout(uv_timer_t* handle);
-static void _close_tcp_connection(_output_dnssim_connection_t* conn);
+static void _close_connection(_output_dnssim_connection_t* conn);
 static void _request_answered(_output_dnssim_request_t* req, core_object_dns_t* msg);
 static void _close_request(_output_dnssim_request_t* req);
 static void _maybe_free_request(_output_dnssim_request_t* req);

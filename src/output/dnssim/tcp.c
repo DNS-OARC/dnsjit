@@ -23,7 +23,7 @@
  *
  * TODO: extract functions common to tcp/udp into separate functions
  */
-static void _close_tcp_connection_cb(uv_handle_t* handle)
+static void _on_tcp_handle_closed(uv_handle_t* handle)
 {
     // TODO free unneeded, fail/reassign queries (+timers)
     _output_dnssim_connection_t* conn = (_output_dnssim_connection_t*)handle->data;
@@ -44,12 +44,12 @@ static void _write_tcp_query_cb(uv_write_t* req, int status)
         // this is called when conn is closed with uv_close() and there are peding write reqs
         mlassert(qry->conn, "written query must have connection");
         switch(status) {
-        case UV_ECANCELED:  // TODO: maybe the switch is useless and _close_tcp_connection() can always be called?
+        case UV_ECANCELED:  // TODO: maybe the switch is useless and _close_connection() can always be called?
             break;
         case UV_ECONNRESET:
         case UV_EPIPE:
         default:
-            _close_tcp_connection(qry->conn);
+            _close_connection(qry->conn);
             break;
         }
         return;
@@ -158,11 +158,9 @@ void _process_tcp_dnsmsg(_output_dnssim_connection_t* conn)
 void _parse_recv_data(_output_dnssim_connection_t* conn)
 {
     mlassert(conn, "conn can't be nil");
-    mlassert(conn->recv_pos == conn->recv_len, "attempt to parse incomplete dnslen");
+    mlassert(conn->recv_pos == conn->recv_len, "attempt to parse incomplete recv_data");
 
     switch(conn->read_state) {
-    case _OUTPUT_DNSSIM_READ_STATE_CLEAN:
-        return;
     case _OUTPUT_DNSSIM_READ_STATE_DNSLEN: {
         uint16_t* p_dnslen = (uint16_t*)conn->recv_data;
         conn->recv_len = ntohs(*p_dnslen);
@@ -172,8 +170,8 @@ void _parse_recv_data(_output_dnssim_connection_t* conn)
     }
     case _OUTPUT_DNSSIM_READ_STATE_DNSMSG:
         _process_tcp_dnsmsg(conn);
-        conn->recv_len = 0;
-        conn->read_state = _OUTPUT_DNSSIM_READ_STATE_CLEAN;
+        conn->recv_len = 2;
+        conn->read_state = _OUTPUT_DNSSIM_READ_STATE_DNSLEN;
         break;
     default:
         mlfatal("tcp invalid connection read_state");
@@ -188,12 +186,16 @@ void _parse_recv_data(_output_dnssim_connection_t* conn)
     conn->recv_data = NULL;
 }
 
-size_t _handle_conn_data(_output_dnssim_connection_t* conn, const char* data, size_t len)
+unsigned int _read_tcp_stream(_output_dnssim_connection_t* conn, size_t len, const char* data)
 {
     mlassert(conn, "conn can't be nil");
     mlassert(data, "data can't be nil");
-    mlassert(len > 0, "data can't be nil");
+    mlassert(len > 0, "no data to read");
+    mlassert((conn->read_state == _OUTPUT_DNSSIM_READ_STATE_DNSLEN ||
+              conn->read_state == _OUTPUT_DNSSIM_READ_STATE_DNSMSG),
+             "connection has invalid read_state");
 
+    unsigned int nread;
     size_t expected = conn->recv_len - conn->recv_pos;
     mlassert(expected > 0, "no data expected");
 
@@ -211,85 +213,75 @@ size_t _handle_conn_data(_output_dnssim_connection_t* conn, const char* data, si
             len = expected;
         memcpy(dest, data, len);
         conn->recv_pos += len;
-        return len;
+        nread = len;
     } else {  /* Complete and clean read. */
         mlassert(expected <= len, "not enough data to perform complete read");
         conn->recv_data = (char*)data;
         conn->recv_pos = conn->recv_len;
-        return expected;
-    }
-}
-
-unsigned int _read_stream_data(_output_dnssim_connection_t* conn, size_t len, const char* data)
-{
-    mlassert(conn, "conn can't be nil");
-    mlassert(data, "data can't be nil");
-    mlassert(len > 0, "no data to read");
-    mlassert(conn->read_state != _OUTPUT_DNSSIM_READ_STATE_INVALID, "connection has invalid read_state");
-
-    if (conn->read_state == _OUTPUT_DNSSIM_READ_STATE_CLEAN) {
-        conn->recv_len = 2;
-        conn->recv_pos = 0;
-        conn->recv_free_after_use = false;
-        conn->read_state = _OUTPUT_DNSSIM_READ_STATE_DNSLEN;
+        nread = expected;
     }
 
-    int read = _handle_conn_data(conn, data, len);
-
+    /* If entire dnslen/dnsmsg was read, parse it. */
     if (conn->recv_len == conn->recv_pos)
         _parse_recv_data(conn);
 
-    return read;
+    return nread;
 }
 
-static void _tcp_read_cb(uv_stream_t* handle, ssize_t nread, const uv_buf_t* buf)
+static void _on_tcp_read(uv_stream_t* handle, ssize_t nread, const uv_buf_t* buf)
 {
     _output_dnssim_connection_t* conn = (_output_dnssim_connection_t*)handle->data;
     if (nread > 0) {
         int pos = 0;
         char* data = buf->base;
         while (pos < nread)
-            pos += _read_stream_data(conn, nread - pos, data + pos);
+            pos += _read_tcp_stream(conn, nread - pos, data + pos);
         mlassert(pos == nread, "tcp data read invalid, pos != nread");
     } else if (nread < 0) {
         if (nread != UV_EOF)
             mlinfo("tcp conn unexpected close: %s", uv_strerror(nread));
-        _close_tcp_connection(conn);
+        _close_connection(conn);
     }
 
     if (buf->base != NULL)
         free(buf->base);
 }
 
-static void _connect_tcp_cb(uv_connect_t* conn_req, int status)
+static void _on_tcp_handle_connected(uv_connect_t* conn_req, int status)
 {
     _output_dnssim_connection_t* conn = (_output_dnssim_connection_t*)conn_req->handle->data;
 
     if (status < 0) {
-        // TODO: handle this the same way as UDP retransmit - attempt reconnect after a period of time
         mlwarning("tcp connect failed: %s", uv_strerror(status));
-        _close_tcp_connection(conn);
+        _close_connection(conn);
         return;
     }
 
     mlassert(conn->state == _OUTPUT_DNSSIM_CONN_CONNECTING, "connection state != CONNECTING");
-    int ret = uv_read_start((uv_stream_t*)&conn->handle, _uv_alloc_cb, _tcp_read_cb);
+    int ret = uv_read_start((uv_stream_t*)&conn->handle, _uv_alloc_cb, _on_tcp_read);
     if (ret < 0) {
-        // TODO: handle this
         mlwarning("tcp uv_read_start() failed: %s", uv_strerror(ret));
+        _close_connection(conn);
         return;
     }
 
     conn->state = _OUTPUT_DNSSIM_CONN_ACTIVE;
-    conn->read_state = _OUTPUT_DNSSIM_READ_STATE_CLEAN;
+    conn->read_state = _OUTPUT_DNSSIM_READ_STATE_DNSLEN;
+    conn->recv_len = 2;
+    conn->recv_pos = 0;
+    conn->recv_free_after_use = false;
+
     _send_pending_queries(conn);
 }
 
-static void _close_tcp_connection(_output_dnssim_connection_t* conn)
+static void _close_connection(_output_dnssim_connection_t* conn)
 {
     mlassert(conn, "conn can't be nil");
     if (conn->state == _OUTPUT_DNSSIM_CONN_CLOSING || conn->state == _OUTPUT_DNSSIM_CONN_CLOSED)
         return;
+
+    // TODO move queries to pending
+    // TODO if client has pending queries and no active/connecting connections, establish new
 
     // TODO: if try_remove the best approach? when should this be called?
     if (conn->client != NULL)
@@ -299,13 +291,13 @@ static void _close_tcp_connection(_output_dnssim_connection_t* conn)
     uv_timer_stop(&conn->timeout);
     uv_close((uv_handle_t*)&conn->timeout, NULL);
     uv_read_stop((uv_stream_t*)&conn->handle);
-    uv_close((uv_handle_t*)&conn->handle, _close_tcp_connection_cb);
+    uv_close((uv_handle_t*)&conn->handle, _on_tcp_handle_closed);
 }
 
-static void _on_tcp_connection_timeout(uv_timer_t* handle)
+static void _on_connection_timeout(uv_timer_t* handle)
 {
     _output_dnssim_connection_t* conn = (_output_dnssim_connection_t*)handle->data;
-    _close_tcp_connection(conn);
+    _close_connection(conn);
 }
 
 static void _refresh_tcp_connection_timeout(_output_dnssim_connection_t* conn)
@@ -314,7 +306,7 @@ static void _refresh_tcp_connection_timeout(_output_dnssim_connection_t* conn)
     if (conn->state == _OUTPUT_DNSSIM_CONN_CLOSING || conn->state == _OUTPUT_DNSSIM_CONN_CLOSED)
         return;
 
-    int ret = uv_timer_start(&conn->timeout, _on_tcp_connection_timeout, 15000, 0);  // TODO: un-hardcode
+    int ret = uv_timer_start(&conn->timeout, _on_connection_timeout, 15000, 0);  // TODO: un-hardcode
     if (ret < 0)
         mlfatal("failed uv_timer_start(): %s", uv_strerror(ret));
 }
@@ -325,16 +317,16 @@ static int _connect_tcp_handle(output_dnssim_t* self, _output_dnssim_connection_
     lassert(conn, "connection can't be null");
     lassert(conn->state == _OUTPUT_DNSSIM_CONN_INITIALIZED, "connection state != INITIALIZED");
 
+    conn->handle.data = (void*)conn;
     int ret = uv_tcp_init(&_self->loop, &conn->handle);
     if (ret < 0) {
         lwarning("failed to init uv_tcp_t");
-        return -1;
+        goto failure;
     }
-    conn->handle.data = (void*)conn;
 
     ret = _bind_before_connect(self, (uv_handle_t*)&conn->handle);
     if (ret < 0)
-        return ret;
+        goto failure;
 
     /* Set connection parameters. */
     ret = uv_tcp_nodelay(&conn->handle, 1);
@@ -348,14 +340,20 @@ static int _connect_tcp_handle(output_dnssim_t* self, _output_dnssim_connection_
 
     /* Set connection inactivity timeout. */
     ret = uv_timer_init(&_self->loop, &conn->timeout);
-    conn->timeout.data = (void*)conn;
-    if (ret < 0) {  // TODO make handling less strict
+    if (ret < 0)
         mlfatal("failed uv_timer_init(): %s", uv_strerror(ret));
-    }
+    conn->timeout.data = (void*)conn;
     _refresh_tcp_connection_timeout(conn);
 
-    uv_tcp_connect(&conn->conn_req, &conn->handle, (struct sockaddr*)&_self->target, _connect_tcp_cb);
+    ret = uv_tcp_connect(&conn->conn_req, &conn->handle, (struct sockaddr*)&_self->target, _on_tcp_handle_connected);
+    if (ret < 0)
+        goto failure;
+
     conn->state = _OUTPUT_DNSSIM_CONN_CONNECTING;
+    return 0;
+failure:
+    _close_connection(conn);
+    return ret;
 }
 
 static int _create_query_tcp(output_dnssim_t* self, _output_dnssim_request_t* req)
@@ -393,11 +391,13 @@ static int _create_query_tcp(output_dnssim_t* self, _output_dnssim_request_t* re
         lfatal_oom(conn = calloc(1, sizeof(_output_dnssim_connection_t)));  // TODO free
         conn->state = _OUTPUT_DNSSIM_CONN_INITIALIZED;
         conn->client = req->client;
-        _connect_tcp_handle(self, conn);  // TODO add exit code, possible failure?
+        ret = _connect_tcp_handle(self, conn);
+        if (ret < 0)
+            return ret;
         _ll_append(req->client->conn, conn);
     } /* Otherwise, pending queries wil be sent after connected callback. */
 
-    return 0;  // TODO: any error states to handle?
+    return 0;
 }
 
 static void _close_query_tcp(_output_dnssim_query_tcp_t* qry)

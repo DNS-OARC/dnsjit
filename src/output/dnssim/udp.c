@@ -103,12 +103,12 @@ static int _create_query_udp(output_dnssim_t* self, _output_dnssim_request_t* re
     qry->qry.transport = OUTPUT_DNSSIM_TRANSPORT_UDP;
     qry->qry.req = req;
     qry->buf = uv_buf_init((char*)payload->payload, payload->len);
+    qry->handle->data = (void*)qry;
     ret = uv_udp_init(&_self->loop, qry->handle);
     if (ret < 0) {
         lwarning("failed to init uv_udp_t");
         goto failure;
     }
-    qry->handle->data = (void*)qry;
     _ll_append(req->qry, &qry->qry);
 
     ret = _bind_before_connect(self, (uv_handle_t*)qry->handle);
