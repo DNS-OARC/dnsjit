@@ -100,6 +100,32 @@ failure:
     return;
 }
 
+/* Bind before connect to be able to send from different source IPs. */
+static int _bind_before_connect(output_dnssim_t* self, uv_handle_t* handle)
+{
+    if (_self->source != NULL) {
+        struct sockaddr* addr = (struct sockaddr*)&_self->source->addr;
+        int ret;
+        switch(handle->type) {
+        case UV_UDP:
+            ret = uv_udp_bind((uv_udp_t*)handle, addr, 0);
+            break;
+        case UV_TCP:
+            ret = uv_tcp_bind((uv_tcp_t*)handle, addr, 0);
+            break;
+        default:
+            lfatal("bind before connect: unsupported handle type");
+            break;
+        }
+        if (ret < 0) {
+            lwarning("failed to bind to address: %s", uv_strerror(ret));
+            return ret;
+        }
+        _self->source = _self->source->next;
+    }
+    return 0;
+}
+
 static void _maybe_free_request(_output_dnssim_request_t* req)
 {
     if (req->qry == NULL && req->timeout == NULL) {

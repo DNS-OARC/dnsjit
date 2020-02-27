@@ -198,6 +198,7 @@ struct _output_dnssim {
  * Forward function declarations.
  */
 
+static int _bind_before_connect(output_dnssim_t* self, uv_handle_t* handle);
 static int _create_query_udp(output_dnssim_t* self, _output_dnssim_request_t* req);
 static int _create_query_tcp(output_dnssim_t* self, _output_dnssim_request_t* req);
 static void _close_query_udp(_output_dnssim_query_udp_t* qry);

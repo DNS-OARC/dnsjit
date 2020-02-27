@@ -319,27 +319,24 @@ static void _refresh_tcp_connection_timeout(_output_dnssim_connection_t* conn)
         mlfatal("failed uv_timer_start(): %s", uv_strerror(ret));
 }
 
-static void _create_tcp_connection(output_dnssim_t* self, _output_dnssim_connection_t* conn)
+static int _connect_tcp_handle(output_dnssim_t* self, _output_dnssim_connection_t* conn)
 {
     mlassert_self();
     lassert(conn, "connection can't be null");
     lassert(conn->state == _OUTPUT_DNSSIM_CONN_INITIALIZED, "connection state != INITIALIZED");
 
-    uv_tcp_init(&_self->loop, &conn->handle);
+    int ret = uv_tcp_init(&_self->loop, &conn->handle);
+    if (ret < 0) {
+        lwarning("failed to init uv_tcp_t");
+        return -1;
+    }
     conn->handle.data = (void*)conn;
 
-    /* Bind before connect to be able to send from different source IPs. */
-    if (_self->source != NULL) {
-        int ret = uv_tcp_bind(&conn->handle, (struct sockaddr*)&_self->source->addr, 0);
-        if (ret < 0) {
-            lwarning("failed to bind to address: %s", uv_strerror(ret));
-            return;
-        }
-        _self->source = _self->source->next;
-    }
+    ret = _bind_before_connect(self, (uv_handle_t*)&conn->handle);
+    if (ret < 0)
+        return ret;
 
     /* Set connection parameters. */
-    int ret;
     ret = uv_tcp_nodelay(&conn->handle, 1);
     if (ret < 0)
         lwarning("tcp: failed to set TCP_NODELAY: %s", uv_strerror(ret));
@@ -396,7 +393,7 @@ static int _create_query_tcp(output_dnssim_t* self, _output_dnssim_request_t* re
         lfatal_oom(conn = calloc(1, sizeof(_output_dnssim_connection_t)));  // TODO free
         conn->state = _OUTPUT_DNSSIM_CONN_INITIALIZED;
         conn->client = req->client;
-        _create_tcp_connection(self, conn);  // TODO add exit code, possible failure?
+        _connect_tcp_handle(self, conn);  // TODO add exit code, possible failure?
         _ll_append(req->client->conn, conn);
     } /* Otherwise, pending queries wil be sent after connected callback. */
 

@@ -111,15 +111,9 @@ static int _create_query_udp(output_dnssim_t* self, _output_dnssim_request_t* re
     qry->handle->data = (void*)qry;
     _ll_append(req->qry, &qry->qry);
 
-    // bind to IP address
-    if (_self->source != NULL) {
-        ret = uv_udp_bind(qry->handle, (struct sockaddr*)&_self->source->addr, 0);
-        if (ret < 0) {
-            lwarning("failed to bind to address: %s", uv_strerror(ret));
-            return ret;
-        }
-        _self->source = _self->source->next;
-    }
+    ret = _bind_before_connect(self, (uv_handle_t*)qry->handle);
+    if (ret < 0)
+        return ret;
 
     ret = uv_udp_try_send(qry->handle, &qry->buf, 1, (struct sockaddr*)&_self->target);
     if (ret < 0) {
