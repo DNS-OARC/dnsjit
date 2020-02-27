@@ -91,7 +91,8 @@ struct _output_dnssim_request {
     uv_timer_t* timeout;
     uint8_t timeout_closing;
 
-    uint8_t ongoing;  // TODO is this bool, or number of ongoing queries?
+    /* Flag whether the query is tracked as ongoing in dnssim stats. */
+    bool ongoing;
 
     /* The output component of this request. */
     output_dnssim_t* dnssim;

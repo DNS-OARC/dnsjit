@@ -102,7 +102,7 @@ void output_dnssim_free(output_dnssim_t* self)
     free(self);
 }
 
-uint32_t _extract_client(const core_object_t* obj) {
+static uint32_t _extract_client(const core_object_t* obj) {
     uint32_t client;
     uint8_t* ip;
 

@@ -161,7 +161,7 @@ static void _create_request_udp(output_dnssim_t* self, _output_dnssim_client_t* 
     req->payload = payload;
     req->dns_q = core_object_dns_new();
     req->dns_q->obj_prev = (core_object_t*)req->payload;
-    req->ongoing = 1;
+    req->ongoing = true;
     req->dnssim->ongoing++;
 
     ret = core_object_dns_parse_header(req->dns_q);

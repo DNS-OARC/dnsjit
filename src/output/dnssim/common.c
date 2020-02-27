@@ -66,7 +66,7 @@ static void _close_request(_output_dnssim_request_t* req)
         return;
     }
     if (req->ongoing) {
-        req->ongoing = 0;
+        req->ongoing = false;
         req->dnssim->ongoing--;
     }
     if (req->timeout != NULL) {

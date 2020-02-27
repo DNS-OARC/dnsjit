@@ -462,8 +462,10 @@ failure:
 static void _close_query_tcp(_output_dnssim_query_tcp_t* qry)
 {
     mlassert(qry, "qry can't be null");
-    qry->qry.state = _OUTPUT_DNSSIM_QUERY_CLOSED;
+    if (qry->qry.state == _OUTPUT_DNSSIM_QUERY_CLOSED)
+        return;
 
+    qry->qry.state = _OUTPUT_DNSSIM_QUERY_CLOSED;
     if (qry->conn) {
         _ll_try_remove(qry->conn->queued, &qry->qry);
         _ll_try_remove(qry->conn->sent, &qry->qry);
