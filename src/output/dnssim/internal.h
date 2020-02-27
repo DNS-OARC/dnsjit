@@ -191,9 +191,6 @@ struct _output_dnssim {
 
     /* Array of clients, mapped by client ID (ranges from 0 to max_clients). */
     _output_dnssim_client_t* client_arr;
-
-    void (*create_request)(output_dnssim_t*, _output_dnssim_client_t*,
-        core_object_payload_t*);
 };
 
 
@@ -201,12 +198,13 @@ struct _output_dnssim {
  * Forward function declarations.
  */
 
+static int _create_query_udp(output_dnssim_t* self, _output_dnssim_request_t* req);
+static int _create_query_tcp(output_dnssim_t* self, _output_dnssim_request_t* req);
 static void _close_query_udp(_output_dnssim_query_udp_t* qry);
 static void _close_query_tcp(_output_dnssim_query_tcp_t* qry);
 static void _close_request_timeout_cb(uv_handle_t* handle);
 static void _close_request_timeout(uv_timer_t* handle);
 static void _close_tcp_connection(_output_dnssim_connection_t* conn);
-static void _create_request_udp(output_dnssim_t* self, _output_dnssim_client_t* client, core_object_payload_t* payload);
 static void _request_answered(_output_dnssim_request_t* req, core_object_dns_t* msg);
 static void _close_request(_output_dnssim_request_t* req);
 static void _maybe_free_request(_output_dnssim_request_t* req);

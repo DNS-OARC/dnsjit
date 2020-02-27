@@ -403,62 +403,6 @@ static int _create_query_tcp(output_dnssim_t* self, _output_dnssim_request_t* re
     return 0;  // TODO: any error states to handle?
 }
 
-static void _create_request_tcp(output_dnssim_t* self, _output_dnssim_client_t* client,
-    core_object_payload_t* payload)
-{
-    mlassert_self();
-
-    int ret;
-    _output_dnssim_request_t* req;
-
-    lfatal_oom(req = malloc(sizeof(_output_dnssim_request_t)));
-    memset(req, 0, sizeof(_output_dnssim_request_t));
-    req->dnssim = self;
-    req->client = client;
-    req->payload = payload;
-    req->dns_q = core_object_dns_new();
-    req->dns_q->obj_prev = (core_object_t*)req->payload;
-    req->ongoing = 1;
-    req->dnssim->ongoing++;
-
-    ret = core_object_dns_parse_header(req->dns_q);
-    if (ret != 0) {
-        ldebug("discarded malformed dns query: couldn't parse header");
-        goto failure;
-    }
-
-    req->dnssim->stats_sum->requests++;
-    req->dnssim->stats_current->requests++;
-
-    ret = _create_query_tcp(self, req);
-    if (ret < 0) {
-        goto failure;
-    }
-
-    req->created_at = uv_now(&_self->loop);
-    req->ended_at = req->created_at + self->timeout_ms;
-    lfatal_oom(req->timeout = malloc(sizeof(uv_timer_t)));
-    ret = uv_timer_init(&_self->loop, req->timeout);
-    req->timeout->data = req;
-    if (ret < 0) {
-        ldebug("failed uv_timer_init(): %s", uv_strerror(ret));
-        free(req->timeout);
-        req->timeout = NULL;
-        goto failure;
-    }
-    ret = uv_timer_start(req->timeout, _close_request_timeout, self->timeout_ms, 0);
-    if (ret < 0) {
-        ldebug("failed uv_timer_start(): %s", uv_strerror(ret));
-        goto failure;
-    }
-
-    return;
-failure:
-    self->discarded++;
-    _close_request(req);
-    return;
-}
-
 static void _close_query_tcp(_output_dnssim_query_tcp_t* qry)
 {
     mlassert(qry, "qry can't be null");

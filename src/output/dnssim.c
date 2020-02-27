@@ -49,7 +49,6 @@ output_dnssim_t* output_dnssim_new(size_t max_clients)
 
     _self->source = NULL;
     _self->transport = OUTPUT_DNSSIM_TRANSPORT_UDP_ONLY;
-    _self->create_request = _create_request_udp;
 
     lfatal_oom(_self->client_arr = calloc(
         max_clients, sizeof(_output_dnssim_client_t)));
@@ -178,7 +177,7 @@ static void _receive(output_dnssim_t* self, const core_object_t* obj)
     }
 
     ldebug("client(c): %d", client);
-    _self->create_request(self, &_self->client_arr[client], payload);
+    _create_request(self, &_self->client_arr[client], payload);
 }
 
 core_receiver_t output_dnssim_receiver()
@@ -191,11 +190,9 @@ void output_dnssim_set_transport(output_dnssim_t* self, output_dnssim_transport_
 
     switch(tr) {
     case OUTPUT_DNSSIM_TRANSPORT_UDP_ONLY:
-        _self->create_request = _create_request_udp;
         lnotice("transport set to UDP (no TCP fallback)");
         break;
     case OUTPUT_DNSSIM_TRANSPORT_TCP:
-        _self->create_request = _create_request_tcp;
         lnotice("transport set to TCP");
         break;
     case OUTPUT_DNSSIM_TRANSPORT_UDP:
