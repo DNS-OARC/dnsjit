@@ -128,7 +128,6 @@ void _process_tcp_dnsmsg(_output_dnssim_connection_t* conn)
 
     core_object_payload_t payload = CORE_OBJECT_PAYLOAD_INIT(NULL);
     core_object_dns_t dns_a = CORE_OBJECT_DNS_INIT(&payload);
-    _output_dnssim_request_t* req;
 
     payload.payload = conn->recv_data;
     payload.len = conn->recv_len;
@@ -136,22 +135,20 @@ void _process_tcp_dnsmsg(_output_dnssim_connection_t* conn)
     dns_a.obj_prev = (core_object_t*)&payload;
     int ret = core_object_dns_parse_header(&dns_a);
     if (ret != 0) {
-        mlwarning("dnsmsg malformed");
+        mlwarning("tcp response malformed");
         return;
     }
     mldebug("tcp recv dnsmsg id: %04x", dns_a.id);
 
-    // TODO consider using _output_dnssim_query_t
-    _output_dnssim_query_tcp_t* qry = (_output_dnssim_query_tcp_t*)conn->sent;
+    _output_dnssim_query_t* qry = conn->sent;
     while (qry != NULL) {
-        req = qry->qry.req;
-        if (req->dns_q->id == dns_a.id) {
-            _request_answered(req, &dns_a);
-            _ll_remove(conn->sent, &qry->qry);
-            _close_request(req);  // TODO might need more polishing to ensure free works
+        if (qry->req->dns_q->id == dns_a.id) {
+            _request_answered(qry->req, &dns_a);
+            _ll_remove(conn->sent, qry);
+            _close_request(qry->req);  // TODO might need more polishing to ensure free works
             break;
         }
-        qry = (_output_dnssim_query_tcp_t*)qry->qry.next;
+        qry = qry->next;
     }
 }
 
