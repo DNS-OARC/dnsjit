@@ -37,6 +37,7 @@ static void _write_tcp_query_cb(uv_write_t* wr_req, int status)
     mlassert(qry->conn, "qry must be associated with connection");
 
     if (status < 0) {  // TODO: handle more gracefully?
+        // TODO how to ensure this query is re-tried if there's no conn?
         if (qry->qry.state == _OUTPUT_DNSSIM_QUERY_PENDING_WRITE_CB)
             qry->qry.state = _OUTPUT_DNSSIM_QUERY_PENDING_WRITE;
         mlinfo("tcp write failed: %s", uv_strerror(status));
@@ -240,6 +241,7 @@ static void _on_tcp_read(uv_stream_t* handle, ssize_t nread, const uv_buf_t* buf
 static void _on_tcp_handle_connected(uv_connect_t* conn_req, int status)
 {
     _output_dnssim_connection_t* conn = (_output_dnssim_connection_t*)conn_req->handle->data;
+    free(conn_req);
 
     if (status < 0) {
         mlwarning("tcp connect failed: %s", uv_strerror(status));
@@ -335,7 +337,9 @@ static int _connect_tcp_handle(output_dnssim_t* self, _output_dnssim_connection_
     conn->timeout.data = (void*)conn;
     _refresh_tcp_connection_timeout(conn);
 
-    ret = uv_tcp_connect(&conn->conn_req, &conn->handle, (struct sockaddr*)&_self->target, _on_tcp_handle_connected);
+    uv_connect_t* conn_req;
+    lfatal_oom(conn_req = malloc(sizeof(uv_connect_t)));
+    ret = uv_tcp_connect(conn_req, &conn->handle, (struct sockaddr*)&_self->target, _on_tcp_handle_connected);
     if (ret < 0)
         goto failure;
 

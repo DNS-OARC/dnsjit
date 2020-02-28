@@ -115,7 +115,6 @@ struct _output_dnssim_connection {
     _output_dnssim_connection_t* next;
 
     uv_tcp_t handle;
-    uv_connect_t conn_req;
 
     /* Inactivity timeout timer of the connection. */
     uv_timer_t timeout;
