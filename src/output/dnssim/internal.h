@@ -46,8 +46,8 @@ struct _output_dnssim_query {
     enum {
         _OUTPUT_DNSSIM_QUERY_PENDING_WRITE,
         _OUTPUT_DNSSIM_QUERY_PENDING_WRITE_CB,
+        _OUTPUT_DNSSIM_QUERY_PENDING_CLOSE,
         _OUTPUT_DNSSIM_QUERY_SENT,
-        _OUTPUT_DNSSIM_QUERY_CLOSED
     } state;
 };
 

@@ -31,9 +31,10 @@ static void _on_tcp_handle_closed(uv_handle_t* handle)
     // TODO before memory can be freed, the timeout callback has to have been called
 }
 
-static void _write_tcp_query_cb(uv_write_t* req, int status)
+static void _write_tcp_query_cb(uv_write_t* wr_req, int status)
 {
-    _output_dnssim_query_tcp_t* qry = (_output_dnssim_query_tcp_t*)req->data;
+    _output_dnssim_query_tcp_t* qry = (_output_dnssim_query_tcp_t*)wr_req->data;
+    mlassert(qry->conn, "qry must be associated with connection");
 
     if (status < 0) {  // TODO: handle more gracefully?
         if (qry->qry.state == _OUTPUT_DNSSIM_QUERY_PENDING_WRITE_CB)
@@ -42,7 +43,6 @@ static void _write_tcp_query_cb(uv_write_t* req, int status)
         // TODO: check if connection is writable, then check state.
         // if state == active, close the connection
         // this is called when conn is closed with uv_close() and there are peding write reqs
-        mlassert(qry->conn, "written query must have connection");
         switch(status) {
         case UV_ECANCELED:  // TODO: maybe the switch is useless and _close_connection() can always be called?
             break;
@@ -52,20 +52,21 @@ static void _write_tcp_query_cb(uv_write_t* req, int status)
             _close_connection(qry->conn);
             break;
         }
-        return;
-    }
-
-    /* Mark query as sent and assign it to connection. */
-    mlassert(qry->conn, "qry must be associated with connection");
-
-    if (qry->qry.state == _OUTPUT_DNSSIM_QUERY_PENDING_WRITE_CB) {
+    } else if (qry->qry.state == _OUTPUT_DNSSIM_QUERY_PENDING_WRITE_CB) {
+        /* Mark query as sent and assign it to connection. */
         qry->qry.state = _OUTPUT_DNSSIM_QUERY_SENT;
-
         if (qry->conn->state == _OUTPUT_DNSSIM_CONN_ACTIVE) {
             mlassert(qry->conn->queued, "conn has no queued queries");
             _ll_remove(qry->conn->queued, &qry->qry);
             _ll_append(qry->conn->sent, &qry->qry);
         }
+    }
+
+    if (qry->qry.state == _OUTPUT_DNSSIM_QUERY_PENDING_CLOSE) {
+        qry->qry.state = _OUTPUT_DNSSIM_QUERY_SENT;
+        _output_dnssim_request_t* req = qry->qry.req;
+        _close_query_tcp(qry);
+        _maybe_free_request(req);
     }
 
     free(((_output_dnssim_query_tcp_t*)qry)->bufs[0].base);
@@ -107,17 +108,9 @@ static void _send_pending_queries(_output_dnssim_connection_t* conn)
 
     while (qry != NULL) {
         _output_dnssim_query_tcp_t* next = (_output_dnssim_query_tcp_t*)qry->qry.next;
-        switch(qry->qry.state) {
-        case _OUTPUT_DNSSIM_QUERY_PENDING_WRITE:
-            _write_tcp_query(qry, conn);
-            break;
-        case _OUTPUT_DNSSIM_QUERY_CLOSED:
-            /* Query was closed (timeout) before any TCP connection was established. */
-            _ll_remove(conn->client->pending, &qry->qry);
-            break;
-        default:
-            mlfatal("pending query is in invalid state");
-        }
+        mlassert(qry->qry.state == _OUTPUT_DNSSIM_QUERY_PENDING_WRITE,
+            "pending query is in not in PENDING_WRITE state");
+        _write_tcp_query(qry, conn);
         qry = next;
     }
 }
@@ -145,7 +138,7 @@ void _process_tcp_dnsmsg(_output_dnssim_connection_t* conn)
         if (qry->req->dns_q->id == dns_a.id) {
             _request_answered(qry->req, &dns_a);
             _ll_remove(conn->sent, qry);
-            _close_request(qry->req);  // TODO might need more polishing to ensure free works
+            _close_request(qry->req);
             break;
         }
         qry = qry->next;
@@ -363,7 +356,7 @@ static int _create_query_tcp(output_dnssim_t* self, _output_dnssim_request_t* re
     _output_dnssim_connection_t* conn;
     core_object_payload_t* payload = (core_object_payload_t*)req->dns_q->obj_prev;
 
-    lfatal_oom(qry = calloc(1, sizeof(_output_dnssim_query_tcp_t)));  // TODO free
+    lfatal_oom(qry = calloc(1, sizeof(_output_dnssim_query_tcp_t)));
 
     qry->qry.transport = OUTPUT_DNSSIM_TRANSPORT_TCP;
     qry->qry.req = req;
@@ -400,12 +393,23 @@ static int _create_query_tcp(output_dnssim_t* self, _output_dnssim_request_t* re
 static void _close_query_tcp(_output_dnssim_query_tcp_t* qry)
 {
     mlassert(qry, "qry can't be null");
-    if (qry->qry.state == _OUTPUT_DNSSIM_QUERY_CLOSED)
-        return;
+    mlassert(qry->qry.req, "query must be part of a request");
+    _output_dnssim_request_t* req = qry->qry.req;
+    mlassert(req->client, "request must belong to a client");
 
-    qry->qry.state = _OUTPUT_DNSSIM_QUERY_CLOSED;
+    if ((qry->qry.state == _OUTPUT_DNSSIM_QUERY_PENDING_WRITE_CB ||
+         qry->qry.state == _OUTPUT_DNSSIM_QUERY_PENDING_CLOSE)) {
+        /* Query can't be freed until uv callback is called. */
+        qry->qry.state = _OUTPUT_DNSSIM_QUERY_PENDING_CLOSE;
+        return;
+    }
+
+    _ll_try_remove(req->client->pending, &qry->qry);
     if (qry->conn) {
         _ll_try_remove(qry->conn->queued, &qry->qry);
         _ll_try_remove(qry->conn->sent, &qry->qry);
     }
+
+    _ll_remove(req->qry, &qry->qry);
+    free(qry);
 }

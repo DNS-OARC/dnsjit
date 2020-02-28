@@ -166,9 +166,11 @@ static void _close_request(_output_dnssim_request_t* req)
     }
     // finish any queries in flight
     _output_dnssim_query_t* qry = req->qry;
+    _output_dnssim_query_t* qry_tmp;
     while (qry != NULL) {
+        qry_tmp = qry->next;
         _close_query(qry);
-        qry = qry->next;
+        qry = qry_tmp;
     }
     _maybe_free_request(req);
 }
