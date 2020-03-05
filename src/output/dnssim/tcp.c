@@ -37,7 +37,7 @@ static void _write_tcp_query_cb(uv_write_t* wr_req, int status)
 
     if (status < 0) {
         // TODO re-try query over a new connection
-        qry->qry.state == _OUTPUT_DNSSIM_QUERY_PENDING_CLOSE;
+        qry->qry.state = _OUTPUT_DNSSIM_QUERY_CANCELLED;
         if (status != UV_ECANCELED) {
             mlinfo("tcp write failed: %s", uv_strerror(status));
             mlassert(qry->conn, "qry must be associated with connection");
@@ -100,9 +100,8 @@ static void _send_pending_queries(_output_dnssim_connection_t* conn)
 
     while (qry != NULL) {
         _output_dnssim_query_tcp_t* next = (_output_dnssim_query_tcp_t*)qry->qry.next;
-        mlassert(qry->qry.state == _OUTPUT_DNSSIM_QUERY_PENDING_WRITE,
-            "pending query is in not in PENDING_WRITE state");
-        _write_tcp_query(qry, conn);
+        if (qry->qry.state == _OUTPUT_DNSSIM_QUERY_PENDING_WRITE)
+            _write_tcp_query(qry, conn);
         qry = next;
     }
 }
@@ -420,6 +419,7 @@ static void _close_query_tcp(_output_dnssim_query_tcp_t* qry)
 
     _ll_try_remove(req->client->pending, &qry->qry);
     if (qry->conn) {
+        _ll_try_remove(qry->conn->queued, &qry->qry);  /* edge-case of cancelled queries */
         _ll_try_remove(qry->conn->sent, &qry->qry);
         qry->conn = NULL;
     }
