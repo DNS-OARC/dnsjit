@@ -115,7 +115,7 @@ typedef enum _output_dnssim_read_state {
 struct _output_dnssim_connection {
     _output_dnssim_connection_t* next;
 
-    uv_tcp_t handle;
+    uv_tcp_t* handle;
 
     /* Inactivity timeout timer of the connection. */
     uv_timer_t timeout;

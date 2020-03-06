@@ -28,7 +28,10 @@ static void _on_tcp_handle_closed(uv_handle_t* handle)
     // TODO free unneeded, fail/reassign queries (+timers)
     _output_dnssim_connection_t* conn = (_output_dnssim_connection_t*)handle->data;
     conn->state = _OUTPUT_DNSSIM_CONN_CLOSED;
-    // TODO before memory can be freed, the timeout callback has to have been called
+    mlassert(conn->handle, "conn must have tcp handle when closing it");
+    free(conn->handle);
+    conn->handle = NULL;
+    // TODO maybe_free_conn
 }
 
 static void _write_tcp_query_cb(uv_write_t* wr_req, int status)
@@ -90,7 +93,7 @@ static void _write_tcp_query(_output_dnssim_query_tcp_t* qry, _output_dnssim_con
     _ll_append(conn->queued, &qry->qry);
 
     qry->write_req.data = (void*)qry;
-    uv_write(&qry->write_req, (uv_stream_t*)&conn->handle, qry->bufs, 2, _write_tcp_query_cb);
+    uv_write(&qry->write_req, (uv_stream_t*)conn->handle, qry->bufs, 2, _write_tcp_query_cb);
     qry->qry.state = _OUTPUT_DNSSIM_QUERY_PENDING_WRITE_CB;
 }
 
@@ -240,7 +243,7 @@ static void _on_tcp_handle_connected(uv_connect_t* conn_req, int status)
     }
 
     mlassert(conn->state == _OUTPUT_DNSSIM_CONN_CONNECTING, "connection state != CONNECTING");
-    int ret = uv_read_start((uv_stream_t*)&conn->handle, _uv_alloc_cb, _on_tcp_read);
+    int ret = uv_read_start((uv_stream_t*)conn->handle, _uv_alloc_cb, _on_tcp_read);
     if (ret < 0) {
         mlwarning("tcp uv_read_start() failed: %s", uv_strerror(ret));
         _close_connection(conn);
@@ -291,8 +294,8 @@ static void _close_connection(_output_dnssim_connection_t* conn)
     conn->state = _OUTPUT_DNSSIM_CONN_CLOSING;
     uv_timer_stop(&conn->timeout);
     uv_close((uv_handle_t*)&conn->timeout, NULL);
-    uv_read_stop((uv_stream_t*)&conn->handle);
-    uv_close((uv_handle_t*)&conn->handle, _on_tcp_handle_closed);
+    uv_read_stop((uv_stream_t*)conn->handle);
+    uv_close((uv_handle_t*)conn->handle, _on_tcp_handle_closed);
 }
 
 static void _on_connection_timeout(uv_timer_t* handle)
@@ -316,26 +319,28 @@ static int _connect_tcp_handle(output_dnssim_t* self, _output_dnssim_connection_
 {
     mlassert_self();
     lassert(conn, "connection can't be null");
+    lassert(conn->handle == NULL, "connection already has a handle");
     lassert(conn->state == _OUTPUT_DNSSIM_CONN_INITIALIZED, "connection state != INITIALIZED");
 
-    conn->handle.data = (void*)conn;
-    int ret = uv_tcp_init(&_self->loop, &conn->handle);
+    lfatal_oom(conn->handle = malloc(sizeof(uv_tcp_t)));
+    conn->handle->data = (void*)conn;
+    int ret = uv_tcp_init(&_self->loop, conn->handle);
     if (ret < 0) {
         lwarning("failed to init uv_tcp_t");
         goto failure;
     }
 
-    ret = _bind_before_connect(self, (uv_handle_t*)&conn->handle);
+    ret = _bind_before_connect(self, (uv_handle_t*)conn->handle);
     if (ret < 0)
         goto failure;
 
     /* Set connection parameters. */
-    ret = uv_tcp_nodelay(&conn->handle, 1);
+    ret = uv_tcp_nodelay(conn->handle, 1);
     if (ret < 0)
         lwarning("tcp: failed to set TCP_NODELAY: %s", uv_strerror(ret));
 
     // TODO: make this configurable
-    // ret = uv_tcp_keepalive(&conn->handle, 1, 5);
+    // ret = uv_tcp_keepalive(conn->handle, 1, 5);
     // if (ret < 0)
     //     mlwarning("tcp: failed to set TCP_KEEPALIVE: %s", uv_strerror(ret));
 
@@ -348,7 +353,7 @@ static int _connect_tcp_handle(output_dnssim_t* self, _output_dnssim_connection_
 
     uv_connect_t* conn_req;
     lfatal_oom(conn_req = malloc(sizeof(uv_connect_t)));
-    ret = uv_tcp_connect(conn_req, &conn->handle, (struct sockaddr*)&_self->target, _on_tcp_handle_connected);
+    ret = uv_tcp_connect(conn_req, conn->handle, (struct sockaddr*)&_self->target, _on_tcp_handle_connected);
     if (ret < 0)
         goto failure;
 
