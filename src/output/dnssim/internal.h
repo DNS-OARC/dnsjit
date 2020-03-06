@@ -118,7 +118,7 @@ struct _output_dnssim_connection {
     uv_tcp_t* handle;
 
     /* Inactivity timeout timer of the connection. */
-    uv_timer_t timeout;
+    uv_timer_t* timeout;
 
     /* List of queries that have been queued (pending write callback). */
     _output_dnssim_query_t* queued;

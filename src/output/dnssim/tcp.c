@@ -34,6 +34,15 @@ static void _on_tcp_handle_closed(uv_handle_t* handle)
     // TODO maybe_free_conn
 }
 
+static void _on_connection_timer_closed(uv_handle_t* handle)
+{
+    _output_dnssim_connection_t* conn = (_output_dnssim_connection_t*)handle->data;
+    mlassert(conn->timeout, "conn must have timeout timer when closing it");
+    free(conn->timeout);
+    conn->timeout = NULL;
+    // TODO maybe_free_fonn
+}
+
 static void _write_tcp_query_cb(uv_write_t* wr_req, int status)
 {
     _output_dnssim_query_tcp_t* qry = (_output_dnssim_query_tcp_t*)wr_req->data;
@@ -292,8 +301,8 @@ static void _close_connection(_output_dnssim_connection_t* conn)
     }
 
     conn->state = _OUTPUT_DNSSIM_CONN_CLOSING;
-    uv_timer_stop(&conn->timeout);
-    uv_close((uv_handle_t*)&conn->timeout, NULL);
+    uv_timer_stop(conn->timeout);
+    uv_close((uv_handle_t*)conn->timeout, _on_connection_timer_closed);
     uv_read_stop((uv_stream_t*)conn->handle);
     uv_close((uv_handle_t*)conn->handle, _on_tcp_handle_closed);
 }
@@ -310,7 +319,7 @@ static void _refresh_tcp_connection_timeout(_output_dnssim_connection_t* conn)
     if (conn->state == _OUTPUT_DNSSIM_CONN_CLOSING || conn->state == _OUTPUT_DNSSIM_CONN_CLOSED)
         return;
 
-    int ret = uv_timer_start(&conn->timeout, _on_connection_timeout, 15000, 0);  // TODO: un-hardcode
+    int ret = uv_timer_start(conn->timeout, _on_connection_timeout, 15000, 0);  // TODO: un-hardcode
     if (ret < 0)
         mlfatal("failed uv_timer_start(): %s", uv_strerror(ret));
 }
@@ -320,6 +329,7 @@ static int _connect_tcp_handle(output_dnssim_t* self, _output_dnssim_connection_
     mlassert_self();
     lassert(conn, "connection can't be null");
     lassert(conn->handle == NULL, "connection already has a handle");
+    lassert(conn->timeout == NULL, "connection already has a timeout timer");
     lassert(conn->state == _OUTPUT_DNSSIM_CONN_INITIALIZED, "connection state != INITIALIZED");
 
     lfatal_oom(conn->handle = malloc(sizeof(uv_tcp_t)));
@@ -345,10 +355,11 @@ static int _connect_tcp_handle(output_dnssim_t* self, _output_dnssim_connection_
     //     mlwarning("tcp: failed to set TCP_KEEPALIVE: %s", uv_strerror(ret));
 
     /* Set connection inactivity timeout. */
-    ret = uv_timer_init(&_self->loop, &conn->timeout);
+    lfatal_oom(conn->timeout = malloc(sizeof(uv_timer_t)));
+    ret = uv_timer_init(&_self->loop, conn->timeout);
     if (ret < 0)
         mlfatal("failed uv_timer_init(): %s", uv_strerror(ret));
-    conn->timeout.data = (void*)conn;
+    conn->timeout->data = (void*)conn;
     _refresh_tcp_connection_timeout(conn);
 
     uv_connect_t* conn_req;
