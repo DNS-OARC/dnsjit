@@ -23,15 +23,24 @@
  *
  * TODO: extract functions common to tcp/udp into separate functions
  */
+static void _maybe_free_connection(_output_dnssim_connection_t* conn)
+{
+    mlassert(conn, "conn can't be nil");
+    mlassert(conn->client, "conn must belong to a client");
+    if (conn->handle == NULL && conn->timeout == NULL) {
+        _ll_remove(conn->client->conn, conn);
+        free(conn);
+    }
+}
+
 static void _on_tcp_handle_closed(uv_handle_t* handle)
 {
-    // TODO free unneeded, fail/reassign queries (+timers)
     _output_dnssim_connection_t* conn = (_output_dnssim_connection_t*)handle->data;
     conn->state = _OUTPUT_DNSSIM_CONN_CLOSED;
     mlassert(conn->handle, "conn must have tcp handle when closing it");
     free(conn->handle);
     conn->handle = NULL;
-    // TODO maybe_free_conn
+    _maybe_free_connection(conn);
 }
 
 static void _on_connection_timer_closed(uv_handle_t* handle)
@@ -40,7 +49,7 @@ static void _on_connection_timer_closed(uv_handle_t* handle)
     mlassert(conn->timeout, "conn must have timeout timer when closing it");
     free(conn->timeout);
     conn->timeout = NULL;
-    // TODO maybe_free_fonn
+    _maybe_free_connection(conn);
 }
 
 static void _write_tcp_query_cb(uv_write_t* wr_req, int status)
@@ -52,8 +61,8 @@ static void _write_tcp_query_cb(uv_write_t* wr_req, int status)
         qry->qry.state = _OUTPUT_DNSSIM_QUERY_CANCELLED;
         if (status != UV_ECANCELED) {
             mlinfo("tcp write failed: %s", uv_strerror(status));
-            mlassert(qry->conn, "qry must be associated with connection");
-            _close_connection(qry->conn);
+            if (qry->conn)
+                _close_connection(qry->conn);
         }
     } else if (qry->qry.state == _OUTPUT_DNSSIM_QUERY_PENDING_WRITE_CB) {
         /* Mark query as sent and assign it to connection. */
@@ -277,6 +286,7 @@ static void _move_queries_to_pending(_output_dnssim_query_tcp_t* qry)
         qry_tmp = (_output_dnssim_query_tcp_t*)qry->qry.next;
         qry->qry.next = NULL;
         _ll_append(qry->conn->client->pending, &qry->qry);
+        qry->conn = NULL;
         qry = qry_tmp;
     }
 }
@@ -293,12 +303,6 @@ static void _close_connection(_output_dnssim_connection_t* conn)
     conn->sent = NULL;
 
     // TODO if client has pending queries and no active/connecting connections, establish new?
-
-    // TODO: is try_remove the best approach? when should this be called?
-    if (conn->client != NULL) {
-        _ll_try_remove(conn->client->conn, conn);
-        conn->client = NULL;
-    }
 
     conn->state = _OUTPUT_DNSSIM_CONN_CLOSING;
     uv_timer_stop(conn->timeout);
@@ -407,7 +411,7 @@ static int _create_query_tcp(output_dnssim_t* self, _output_dnssim_request_t* re
     if (conn != NULL) {  /* Send data right away over active connection. */
         _send_pending_queries(conn);
     } else if (!is_connecting) {  /* No active or connecting connection -> open a new one. */
-        lfatal_oom(conn = calloc(1, sizeof(_output_dnssim_connection_t)));  // TODO free
+        lfatal_oom(conn = calloc(1, sizeof(_output_dnssim_connection_t)));
         conn->state = _OUTPUT_DNSSIM_CONN_INITIALIZED;
         conn->client = req->client;
         ret = _connect_tcp_handle(self, conn);
