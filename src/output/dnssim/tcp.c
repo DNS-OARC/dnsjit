@@ -67,6 +67,7 @@ static void _write_tcp_query_cb(uv_write_t* wr_req, int status)
     } else if (qry->qry.state == _OUTPUT_DNSSIM_QUERY_PENDING_WRITE_CB) {
         /* Mark query as sent and assign it to connection. */
         qry->qry.state = _OUTPUT_DNSSIM_QUERY_SENT;
+        mlassert(qry->conn, "query must be associated with connection");
         if (qry->conn->state == _OUTPUT_DNSSIM_CONN_ACTIVE) {
             mlassert(qry->conn, "qry must be associated with connection");
             mlassert(qry->conn->queued, "conn has no queued queries");
@@ -127,7 +128,7 @@ static void _send_pending_queries(_output_dnssim_connection_t* conn)
     }
 }
 
-void _process_tcp_dnsmsg(_output_dnssim_connection_t* conn)
+int _process_tcp_dnsmsg(_output_dnssim_connection_t* conn)
 {
     mlassert(conn, "conn can't be nil");
 
@@ -141,7 +142,7 @@ void _process_tcp_dnsmsg(_output_dnssim_connection_t* conn)
     int ret = core_object_dns_parse_header(&dns_a);
     if (ret != 0) {
         mlwarning("tcp response malformed");
-        return;
+        return _ERR_MALFORMED;
     }
     mldebug("tcp recv dnsmsg id: %04x", dns_a.id);
 
@@ -155,12 +156,15 @@ void _process_tcp_dnsmsg(_output_dnssim_connection_t* conn)
         }
         qry = qry->next;
     }
+
+    return 0;
 }
 
-void _parse_recv_data(_output_dnssim_connection_t* conn)
+int _parse_recv_data(_output_dnssim_connection_t* conn)
 {
     mlassert(conn, "conn can't be nil");
     mlassert(conn->recv_pos == conn->recv_len, "attempt to parse incomplete recv_data");
+    int ret = 0;
 
     switch(conn->read_state) {
     case _OUTPUT_DNSSIM_READ_STATE_DNSLEN: {
@@ -171,9 +175,13 @@ void _parse_recv_data(_output_dnssim_connection_t* conn)
         break;
     }
     case _OUTPUT_DNSSIM_READ_STATE_DNSMSG:
-        _process_tcp_dnsmsg(conn);
-        conn->recv_len = 2;
-        conn->read_state = _OUTPUT_DNSSIM_READ_STATE_DNSLEN;
+        ret = _process_tcp_dnsmsg(conn);
+        if (ret) {
+            conn->read_state = _OUTPUT_DNSSIM_READ_STATE_INVALID;
+        } else {
+            conn->recv_len = 2;
+            conn->read_state = _OUTPUT_DNSSIM_READ_STATE_DNSLEN;
+        }
         break;
     default:
         mlfatal("tcp invalid connection read_state");
@@ -186,6 +194,8 @@ void _parse_recv_data(_output_dnssim_connection_t* conn)
         free(conn->recv_data);
     }
     conn->recv_data = NULL;
+
+    return ret;
 }
 
 unsigned int _read_tcp_stream(_output_dnssim_connection_t* conn, size_t len, const char* data)
@@ -197,6 +207,7 @@ unsigned int _read_tcp_stream(_output_dnssim_connection_t* conn, size_t len, con
               conn->read_state == _OUTPUT_DNSSIM_READ_STATE_DNSMSG),
              "connection has invalid read_state");
 
+    int ret = 0;
     unsigned int nread;
     size_t expected = conn->recv_len - conn->recv_pos;
     mlassert(expected > 0, "no data expected");
@@ -223,9 +234,12 @@ unsigned int _read_tcp_stream(_output_dnssim_connection_t* conn, size_t len, con
         nread = expected;
     }
 
-    /* If entire dnslen/dnsmsg was read, parse it. */
-    if (conn->recv_len == conn->recv_pos)
-        _parse_recv_data(conn);
+    /* If entire dnslen/dnsmsg was read, attempt to parse it. */
+    if (conn->recv_len == conn->recv_pos) {
+        ret = _parse_recv_data(conn);
+        if (ret < 0)
+            return ret;
+    }
 
     return nread;
 }
@@ -235,10 +249,19 @@ static void _on_tcp_read(uv_stream_t* handle, ssize_t nread, const uv_buf_t* buf
     _output_dnssim_connection_t* conn = (_output_dnssim_connection_t*)handle->data;
     if (nread > 0) {
         int pos = 0;
+        int chunk = 0;
         char* data = buf->base;
-        while (pos < nread)
-            pos += _read_tcp_stream(conn, nread - pos, data + pos);
-        mlassert(pos == nread, "tcp data read invalid, pos != nread");
+        while (pos < nread) {
+            chunk = _read_tcp_stream(conn, nread - pos, data + pos);
+            if (chunk < 0) {
+                mlwarning("lost orientation in TCP stream, closing");
+                _close_connection(conn);
+                break;
+            } else {
+                pos += chunk;
+            }
+        }
+        mlassert((pos == nread) || (chunk < 0), "tcp data read invalid, pos != nread");
     } else if (nread < 0) {
         if (nread != UV_EOF)
             mlinfo("tcp conn unexpected close: %s", uv_strerror(nread));
