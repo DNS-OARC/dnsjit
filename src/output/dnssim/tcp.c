@@ -57,19 +57,19 @@ static void _write_tcp_query_cb(uv_write_t* wr_req, int status)
     _output_dnssim_query_tcp_t* qry = (_output_dnssim_query_tcp_t*)wr_req->data;
 
     if (status < 0) {
-        // TODO re-try query over a new connection
-        qry->qry.state = _OUTPUT_DNSSIM_QUERY_CANCELLED;
-        if (status != UV_ECANCELED) {
+        // TODO handle orhaned and write_failed queries
+        if (status != UV_ECANCELED)
             mlinfo("tcp write failed: %s", uv_strerror(status));
-            if (qry->conn)
-                _close_connection(qry->conn);
+        if (qry->qry.state == _OUTPUT_DNSSIM_QUERY_PENDING_WRITE_CB) {
+            qry->qry.state = _OUTPUT_DNSSIM_QUERY_WRITE_FAILED;
+            mlassert(qry->conn, "query must be associated with connection");
+            _close_connection(qry->conn);
         }
     } else if (qry->qry.state == _OUTPUT_DNSSIM_QUERY_PENDING_WRITE_CB) {
         /* Mark query as sent and assign it to connection. */
         qry->qry.state = _OUTPUT_DNSSIM_QUERY_SENT;
         mlassert(qry->conn, "query must be associated with connection");
         if (qry->conn->state == _OUTPUT_DNSSIM_CONN_ACTIVE) {
-            mlassert(qry->conn, "qry must be associated with connection");
             mlassert(qry->conn->queued, "conn has no queued queries");
             _ll_remove(qry->conn->queued, &qry->qry);
             _ll_append(qry->conn->sent, &qry->qry);
@@ -310,6 +310,7 @@ static void _move_queries_to_pending(_output_dnssim_query_tcp_t* qry)
         qry->qry.next = NULL;
         _ll_append(qry->conn->client->pending, &qry->qry);
         qry->conn = NULL;
+        qry->qry.state = _OUTPUT_DNSSIM_QUERY_ORPHANED;
         qry = qry_tmp;
     }
 }
