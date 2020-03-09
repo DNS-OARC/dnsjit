@@ -54,6 +54,25 @@ function DnsSim:log()
     return self.obj._log
 end
 
+-- Set the target server where queries will be sent to. Returns 0 on success.
+function DnsSim:target(ip, port)
+    local nport = tonumber(port)
+    if nport == nil then
+        self.obj._log:critical("invalid port: "..port)
+        return -1
+    end
+    if nport <= 0 or nport > 65535 then
+        self.obj._log:critical("invalid port number: "..nport)
+        return -1
+    end
+    return C.output_dnssim_target(self.obj, ip, nport)
+end
+
+-- Specify source address for sending queries. Can be set multiple times. Adresses
+-- are selected round-robin when sending.
+function DnsSim:bind(ip)
+    return C.output_dnssim_bind(self.obj, ip)
+end
 -- Set the transport to UDP (without any TCP fallback).
 function DnsSim:udp_only()
     C.output_dnssim_set_transport(self.obj, C.OUTPUT_DNSSIM_TRANSPORT_UDP_ONLY)
@@ -84,57 +103,17 @@ function DnsSim:timeout(seconds)
     self.obj.timeout_ms = math.floor(seconds * 1000)
 end
 
--- Configure statistics to be collected every N seconds.
-function DnsSim:stats_collect(seconds)
-    if seconds == nil then
-        self.obj._log:critical("number of seconds must be set for stats_collect()")
-    end
-    interval_ms = math.floor(seconds * 1000)
-    C.output_dnssim_stats_collect(self.obj, interval_ms)
-end
-
--- Stop the collection of statistics.
-function DnsSim:stats_finish()
-    C.output_dnssim_stats_finish(self.obj)
+-- Run the libuv loop once without blocking when there is no I/O. This
+-- should be called repeatedly until 0 is returned and no more data
+-- is expected to be received by DnsSim.
+function DnsSim:run_nowait()
+    return C.output_dnssim_run_nowait(self.obj)
 end
 
 -- Set this to true if dnssim should free the memory of passed-in objects (useful
 -- when using copy() to pass objects from different thread).
 function DnsSim:free_after_use(free_after_use)
     self.obj.free_after_use = free_after_use
-end
-
--- Return the C function and context for receiving objects.
-function DnsSim:receive()
-    local receive = C.output_dnssim_receiver()
-    return receive, self.obj
-end
-
--- Set the target server where queries will be sent to. Returns 0 on success.
-function DnsSim:target(ip, port)
-    local nport = tonumber(port)
-    if nport == nil then
-        self.obj._log:critical("invalid port: "..port)
-        return -1
-    end
-    if nport <= 0 or nport > 65535 then
-        self.obj._log:critical("invalid port number: "..nport)
-        return -1
-    end
-    return C.output_dnssim_target(self.obj, ip, nport)
-end
-
--- Specify source address for sending queries. Can be set multiple times. Adresses
--- are selected round-robin when sending.
-function DnsSim:bind(ip)
-    return C.output_dnssim_bind(self.obj, ip)
-end
-
--- Run the libuv loop once without blocking when there is no I/O. This
--- should be called repeatedly until 0 is returned and no more data
--- is expected to be received by DnsSim.
-function DnsSim:run_nowait()
-    return C.output_dnssim_run_nowait(self.obj)
 end
 
 -- Number of input packets discarded due to various reasons.
@@ -156,6 +135,20 @@ end
 -- Number of requests that received a NOERROR response
 function DnsSim:noerror()
     return tonumber(self.obj.stats_sum.rcode_noerror)
+end
+
+-- Configure statistics to be collected every N seconds.
+function DnsSim:stats_collect(seconds)
+    if seconds == nil then
+        self.obj._log:critical("number of seconds must be set for stats_collect()")
+    end
+    interval_ms = math.floor(seconds * 1000)
+    C.output_dnssim_stats_collect(self.obj, interval_ms)
+end
+
+-- Stop the collection of statistics.
+function DnsSim:stats_finish()
+    C.output_dnssim_stats_finish(self.obj)
 end
 
 -- Export the results to a JSON file
@@ -227,6 +220,12 @@ function DnsSim:export(filename)
     file:write(']}')
     file:close()
     self.obj._log:notice("results exported to "..filename)
+end
+
+-- Return the C function and context for receiving objects.
+function DnsSim:receive()
+    local receive = C.output_dnssim_receiver()
+    return receive, self.obj
 end
 
 return DnsSim
