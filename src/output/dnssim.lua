@@ -18,12 +18,24 @@
 
 -- dnsjit.output.dnssim
 -- Simulate independent DNS clients over various transports
---   TODO
+--   output = require("dnsjit.output.dnssim").new()
+--   output:udp_only()
+--   output:target("::1", 53)
+--   recv, rctx = output:receive()
+--   -- pass in objects using recv(rctx, obj)
+--   -- repeatedly call output:run_nowait() until it returns 0
 --
 -- Output module for simulating traffic from huge number of independent,
 -- individual DNS clients. Uses libuv for asynchronous communication. There
 -- may only be a single dnssim in a thread. Use dnsjit.core.thread to have
 -- multiple dnssim instances.
+-- .P
+-- With proper use of this component, it is possible to simulate hundreds of
+-- thousands of clients when using a high-performance server. This also applies
+-- for stateful transports. The complete set-up is quite complex and requires
+-- other components. See DNS Shotgun for dnsjit scripts ready for use for
+-- high-performance benchmarking.
+-- .IR https://gitlab.labs.nic.cz/knot/shotgun
 module(...,package.seeall)
 
 require("dnsjit.output.dnssim_h")
@@ -55,6 +67,8 @@ function DnsSim:log()
 end
 
 -- Set the target server where queries will be sent to. Returns 0 on success.
+--
+-- Only IPv6 target are supported for now.
 function DnsSim:target(ip, port)
     local nport = tonumber(port)
     if nport == nil then
@@ -111,7 +125,7 @@ function DnsSim:run_nowait()
 end
 
 -- Set this to true if dnssim should free the memory of passed-in objects (useful
--- when using copy() to pass objects from different thread).
+-- when using dnsjit.filter.copy to pass objects from different thread).
 function DnsSim:free_after_use(free_after_use)
     self.obj.free_after_use = free_after_use
 end
@@ -222,10 +236,18 @@ function DnsSim:export(filename)
     self.obj._log:notice("results exported to "..filename)
 end
 
--- Return the C function and context for receiving objects.
+-- Return the C function and context for receiving objects. Only ip/ip6 objects
+-- are supported.  The component expects a 32bit integer (in host order)
+-- ranging from 0 to max_clients written to first 4 bytes of destination IP.
+-- See dnsjit.filter.ipsplit.
 function DnsSim:receive()
     local receive = C.output_dnssim_receiver()
     return receive, self.obj
 end
 
+-- dnsjit.filter.copy (3),
+-- dnsjit.filter.ipsplit (3),
+-- dnsjit.filter.core.object.ip (3),
+-- dnsjit.filter.core.object.ip6 (3),
+-- https://gitlab.labs.nic.cz/knot/shotgun
 return DnsSim
