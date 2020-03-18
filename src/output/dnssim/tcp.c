@@ -369,13 +369,9 @@ static int _connect_tcp_handle(output_dnssim_t* self, _output_dnssim_connection_
 
     /* Set connection handshake timeout. */
     lfatal_oom(conn->handshake_timer = malloc(sizeof(uv_timer_t)));
-    ret = uv_timer_init(&_self->loop, conn->handshake_timer);
-    if (ret < 0)
-        mlfatal("failed uv_timer_init(): %s", uv_strerror(ret));
+    uv_timer_init(&_self->loop, conn->handshake_timer);
     conn->handshake_timer->data = (void*)conn;
-    ret = uv_timer_start(conn->handshake_timer, _on_connection_timeout, 15000, 0;  // TODO unhardcode
-    if (ret < 0)
-        mlfatal("failed uv_timer_start(): %s", uv_strerror(ret));
+    uv_timer_start(conn->handshake_timer, _on_connection_timeout, 15000, 0);  // TODO unhardcode
 
     uv_connect_t* conn_req;
     lfatal_oom(conn_req = malloc(sizeof(uv_connect_t)));

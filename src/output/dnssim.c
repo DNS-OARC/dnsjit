@@ -285,7 +285,6 @@ static void _stats_timer_cb(uv_timer_t* handle)
 
 void output_dnssim_stats_collect(output_dnssim_t* self, uint64_t interval_ms)
 {
-    int ret;
     uint64_t now_ms = _now_ms();
     mlassert_self();
 
@@ -298,31 +297,18 @@ void output_dnssim_stats_collect(output_dnssim_t* self, uint64_t interval_ms)
     self->stats_current->since_ms = now_ms;
 
     _self->stats_timer.data = (void*)self;
-    ret = uv_timer_init(&_self->loop, &_self->stats_timer);
-    if (ret < 0) {
-        lcritical("failed to init stats_timer: %s", uv_strerror(ret));
-        return;
-    }
-    ret = uv_timer_start(&_self->stats_timer, _stats_timer_cb, interval_ms, interval_ms);
-    if (ret < 0) {
-        lcritical("failed to start stats_timer: %s", uv_strerror(ret));
-        return;
-    }
+    uv_timer_init(&_self->loop, &_self->stats_timer);
+    uv_timer_start(&_self->stats_timer, _stats_timer_cb, interval_ms, interval_ms);
 }
 
 void output_dnssim_stats_finish(output_dnssim_t* self)
 {
-    int ret;
     uint64_t now_ms = _now_ms();
     mlassert_self();
 
     self->stats_sum->until_ms = now_ms;
     self->stats_current->until_ms = now_ms;
 
-    ret = uv_timer_stop(&_self->stats_timer);
-    if (ret < 0) {
-        lcritical("failed to stop stats_timer: %s", uv_strerror(ret));
-        return;
-    }
+    uv_timer_stop(&_self->stats_timer);
     uv_close((uv_handle_t*)&_self->stats_timer, NULL);
 }

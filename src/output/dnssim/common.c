@@ -79,19 +79,9 @@ static void _create_request(output_dnssim_t* self, _output_dnssim_client_t* clie
     req->created_at = uv_now(&_self->loop);
     req->ended_at = req->created_at + self->timeout_ms;
     lfatal_oom(req->timeout = malloc(sizeof(uv_timer_t)));
-    ret = uv_timer_init(&_self->loop, req->timeout);
+    uv_timer_init(&_self->loop, req->timeout);
     req->timeout->data = req;
-    if (ret < 0) {
-        ldebug("failed uv_timer_init(): %s", uv_strerror(ret));
-        free(req->timeout);
-        req->timeout = NULL;
-        goto failure;
-    }
-    ret = uv_timer_start(req->timeout, _close_request_timeout, self->timeout_ms, 0);
-    if (ret < 0) {
-        ldebug("failed uv_timer_start(): %s", uv_strerror(ret));
-        goto failure;
-    }
+    uv_timer_start(req->timeout, _close_request_timeout, self->timeout_ms, 0);
 
     return;
 failure:
