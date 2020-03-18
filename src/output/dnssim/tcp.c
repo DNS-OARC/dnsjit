@@ -27,7 +27,7 @@ static void _maybe_free_connection(_output_dnssim_connection_t* conn)
 {
     mlassert(conn, "conn can't be nil");
     mlassert(conn->client, "conn must belong to a client");
-    if (conn->handle == NULL && conn->timeout == NULL) {
+    if (conn->handle == NULL && conn->handshake_timer == NULL) {
         _ll_remove(conn->client->conn, conn);
         free(conn);
     }
@@ -43,12 +43,12 @@ static void _on_tcp_handle_closed(uv_handle_t* handle)
     _maybe_free_connection(conn);
 }
 
-static void _on_connection_timer_closed(uv_handle_t* handle)
+static void _on_handshake_timer_closed(uv_handle_t* handle)
 {
     _output_dnssim_connection_t* conn = (_output_dnssim_connection_t*)handle->data;
-    mlassert(conn->timeout, "conn must have timeout timer when closing it");
-    free(conn->timeout);
-    conn->timeout = NULL;
+    mlassert(conn->handshake_timer, "conn must have handshake timer when closing it");
+    free(conn->handshake_timer);
+    conn->handshake_timer = NULL;
     _maybe_free_connection(conn);
 }
 
@@ -149,8 +149,9 @@ int _process_tcp_dnsmsg(_output_dnssim_connection_t* conn)
     _output_dnssim_query_t* qry = conn->sent;
     while (qry != NULL) {
         if (qry->req->dns_q->id == dns_a.id) {
+            /* NOTE: QNAME, QTYPE and QCLASS checking (RFC 7766, Section 7) is
+             * omitted, since the MSGID is unique per connection. */
             _request_answered(qry->req, &dns_a);
-            _ll_remove(conn->sent, qry);
             _close_request(qry->req);
             break;
         }
@@ -329,8 +330,8 @@ static void _close_connection(_output_dnssim_connection_t* conn)
     // TODO if client has pending queries and no active/connecting connections, establish new?
 
     conn->state = _OUTPUT_DNSSIM_CONN_CLOSING;
-    uv_timer_stop(conn->timeout);
-    uv_close((uv_handle_t*)conn->timeout, _on_connection_timer_closed);
+    uv_timer_stop(conn->handshake_timer);
+    uv_close((uv_handle_t*)conn->handshake_timer, _on_handshake_timer_closed);
     uv_read_stop((uv_stream_t*)conn->handle);
     uv_close((uv_handle_t*)conn->handle, _on_tcp_handle_closed);
 }
@@ -341,23 +342,12 @@ static void _on_connection_timeout(uv_timer_t* handle)
     _close_connection(conn);
 }
 
-static void _refresh_tcp_connection_timeout(_output_dnssim_connection_t* conn)
-{
-    mlassert(conn, "conn can't be nil");
-    if (conn->state == _OUTPUT_DNSSIM_CONN_CLOSING || conn->state == _OUTPUT_DNSSIM_CONN_CLOSED)
-        return;
-
-    int ret = uv_timer_start(conn->timeout, _on_connection_timeout, 15000, 0);  // TODO: un-hardcode
-    if (ret < 0)
-        mlfatal("failed uv_timer_start(): %s", uv_strerror(ret));
-}
-
 static int _connect_tcp_handle(output_dnssim_t* self, _output_dnssim_connection_t* conn)
 {
     mlassert_self();
     lassert(conn, "connection can't be null");
     lassert(conn->handle == NULL, "connection already has a handle");
-    lassert(conn->timeout == NULL, "connection already has a timeout timer");
+    lassert(conn->handshake_timer == NULL, "connection already has a handshake timer");
     lassert(conn->state == _OUTPUT_DNSSIM_CONN_INITIALIZED, "connection state != INITIALIZED");
 
     lfatal_oom(conn->handle = malloc(sizeof(uv_tcp_t)));
@@ -377,18 +367,15 @@ static int _connect_tcp_handle(output_dnssim_t* self, _output_dnssim_connection_
     if (ret < 0)
         lwarning("tcp: failed to set TCP_NODELAY: %s", uv_strerror(ret));
 
-    // TODO: make this configurable
-    // ret = uv_tcp_keepalive(conn->handle, 1, 5);
-    // if (ret < 0)
-    //     mlwarning("tcp: failed to set TCP_KEEPALIVE: %s", uv_strerror(ret));
-
-    /* Set connection inactivity timeout. */
-    lfatal_oom(conn->timeout = malloc(sizeof(uv_timer_t)));
-    ret = uv_timer_init(&_self->loop, conn->timeout);
+    /* Set connection handshake timeout. */
+    lfatal_oom(conn->handshake_timer = malloc(sizeof(uv_timer_t)));
+    ret = uv_timer_init(&_self->loop, conn->handshake_timer);
     if (ret < 0)
         mlfatal("failed uv_timer_init(): %s", uv_strerror(ret));
-    conn->timeout->data = (void*)conn;
-    _refresh_tcp_connection_timeout(conn);
+    conn->handshake_timer->data = (void*)conn;
+    ret = uv_timer_start(conn->handshake_timer, _on_connection_timeout, 15000, 0;  // TODO unhardcode
+    if (ret < 0)
+        mlfatal("failed uv_timer_start(): %s", uv_strerror(ret));
 
     uv_connect_t* conn_req;
     lfatal_oom(conn_req = malloc(sizeof(uv_connect_t)));

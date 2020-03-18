@@ -118,8 +118,11 @@ struct _output_dnssim_connection {
 
     uv_tcp_t* handle;
 
-    /* Inactivity timeout timer of the connection. */
-    uv_timer_t* timeout;
+    /* Timeout timer for establishing the connection. */
+    uv_timer_t* handshake_timer;
+
+    /* Idle timer for connection reuse. rfc7766#section-6.2.3 */
+    uv_timer_t* idle_timer;
 
     /* List of queries that have been queued (pending write callback). */
     _output_dnssim_query_t* queued;
