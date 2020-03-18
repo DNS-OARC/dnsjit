@@ -209,6 +209,7 @@ static void _close_query_udp(_output_dnssim_query_udp_t* qry);
 static void _close_query_tcp(_output_dnssim_query_tcp_t* qry);
 static void _close_request_timeout_cb(uv_handle_t* handle);
 static void _close_request_timeout(uv_timer_t* handle);
+static void _maybe_close_connection(_output_dnssim_connection_t* conn);
 static void _close_connection(_output_dnssim_connection_t* conn);
 static void _request_answered(_output_dnssim_request_t* req, core_object_dns_t* msg);
 static void _close_request(_output_dnssim_request_t* req);
@@ -229,7 +230,7 @@ static output_dnssim_t _defaults = {
     0, 0, 0,
     NULL, NULL, NULL,
     0, 0,
-    2000, 0
+    2000, 0, 0
 };
 
 static output_dnssim_stats_t _stats_defaults = {

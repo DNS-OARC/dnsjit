@@ -46,7 +46,7 @@ local C = ffi.C
 
 local DnsSim = {}
 
-local _DNSSIM_JSON_VERSION = 20191111
+local _DNSSIM_JSON_VERSION = 20191111  -- TODO: consider whether to bump version
 
 -- Create a new DnsSim output for up to max_clients.
 function DnsSim.new(max_clients)
@@ -113,8 +113,17 @@ function DnsSim:timeout(seconds)
     if seconds == nil then
         seconds = 2
     end
-    local timeout_ms = math.floor(seconds * 1000)
     self.obj.timeout_ms = math.floor(seconds * 1000)
+end
+
+-- Set TCP connection idle time for connection reuse according to RFC7766,
+-- Section 6.2.3. Defaults to 0s (closing connections immediately after there
+-- are no more pending queries).
+function DnsSim:idle(seconds)
+    if seconds == nil then
+        seconds = 0
+    end
+    self.obj.idle_ms = math.floor(seconds * 1000)
 end
 
 -- Run the libuv loop once without blocking when there is no I/O. This
@@ -215,6 +224,7 @@ function DnsSim:export(filename)
             '"merged":false,',
             '"stats_interval_ms":', tonumber(self.obj.stats_interval_ms), ',',
             '"timeout_ms":', tonumber(self.obj.timeout_ms), ',',
+            '"idle_ms":', tonumber(self.obj.idle_ms), ',',
             '"discarded":', self:discarded(), ',',
             '"stats_sum":')
     write_stats(file, self.obj.stats_sum)

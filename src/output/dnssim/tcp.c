@@ -27,7 +27,7 @@ static void _maybe_free_connection(_output_dnssim_connection_t* conn)
 {
     mlassert(conn, "conn can't be nil");
     mlassert(conn->client, "conn must belong to a client");
-    if (conn->handle == NULL && conn->handshake_timer == NULL) {
+    if (conn->handle == NULL && conn->handshake_timer == NULL && conn->idle_timer == NULL) {
         _ll_remove(conn->client->conn, conn);
         free(conn);
     }
@@ -49,6 +49,15 @@ static void _on_handshake_timer_closed(uv_handle_t* handle)
     mlassert(conn->handshake_timer, "conn must have handshake timer when closing it");
     free(conn->handshake_timer);
     conn->handshake_timer = NULL;
+    _maybe_free_connection(conn);
+}
+
+static void _on_idle_timer_closed(uv_handle_t* handle)
+{
+    _output_dnssim_connection_t* conn = (_output_dnssim_connection_t*)handle->data;
+    mlassert(conn->idle_timer, "conn must have idle timer when closing it");
+    free(conn->idle_timer);
+    conn->idle_timer = NULL;
     _maybe_free_connection(conn);
 }
 
@@ -110,6 +119,10 @@ static void _write_tcp_query(_output_dnssim_query_tcp_t* qry, _output_dnssim_con
     qry->conn = conn;
     _ll_remove(conn->client->pending, &qry->qry);
     _ll_append(conn->queued, &qry->qry);
+
+    /* Stop idle timer, since there are queries to answer now. */
+    if (conn->idle_timer != NULL)
+        uv_timer_stop(conn->idle_timer);
 
     qry->write_req.data = (void*)qry;
     uv_write(&qry->write_req, (uv_stream_t*)conn->handle, qry->bufs, 2, _write_tcp_query_cb);
@@ -277,6 +290,7 @@ static void _on_tcp_handle_connected(uv_connect_t* conn_req, int status)
 {
     _output_dnssim_connection_t* conn = (_output_dnssim_connection_t*)conn_req->handle->data;
     free(conn_req);
+    uv_timer_stop(conn->handshake_timer);
 
     if (status < 0) {
         mlwarning("tcp connect failed: %s", uv_strerror(status));
@@ -299,6 +313,7 @@ static void _on_tcp_handle_connected(uv_connect_t* conn_req, int status)
     conn->recv_free_after_use = false;
 
     _send_pending_queries(conn);
+    _maybe_close_connection(conn);
 }
 
 static void _move_queries_to_pending(_output_dnssim_query_tcp_t* qry)
@@ -313,6 +328,19 @@ static void _move_queries_to_pending(_output_dnssim_query_tcp_t* qry)
         qry->conn = NULL;
         qry->qry.state = _OUTPUT_DNSSIM_QUERY_ORPHANED;
         qry = qry_tmp;
+    }
+}
+
+/* Close connection or run idle timer when there are no more outstanding queries. */
+static void _maybe_close_connection(_output_dnssim_connection_t* conn)
+{
+    mlassert(conn, "conn can't be nil");
+
+    if (conn->queued == NULL && conn->sent == NULL) {
+        if (conn->idle_timer == NULL)
+            _close_connection(conn);
+        else
+            uv_timer_again(conn->idle_timer);
     }
 }
 
@@ -332,6 +360,10 @@ static void _close_connection(_output_dnssim_connection_t* conn)
     conn->state = _OUTPUT_DNSSIM_CONN_CLOSING;
     uv_timer_stop(conn->handshake_timer);
     uv_close((uv_handle_t*)conn->handshake_timer, _on_handshake_timer_closed);
+    if (conn->idle_timer != NULL) {
+        uv_timer_stop(conn->idle_timer);
+        uv_close((uv_handle_t*)conn->idle_timer, _on_idle_timer_closed);
+    }
     uv_read_stop((uv_stream_t*)conn->handle);
     uv_close((uv_handle_t*)conn->handle, _on_tcp_handle_closed);
 }
@@ -348,6 +380,7 @@ static int _connect_tcp_handle(output_dnssim_t* self, _output_dnssim_connection_
     lassert(conn, "connection can't be null");
     lassert(conn->handle == NULL, "connection already has a handle");
     lassert(conn->handshake_timer == NULL, "connection already has a handshake timer");
+    lassert(conn->idle_timer == NULL, "connection already has idle timer");
     lassert(conn->state == _OUTPUT_DNSSIM_CONN_INITIALIZED, "connection state != INITIALIZED");
 
     lfatal_oom(conn->handle = malloc(sizeof(uv_tcp_t)));
@@ -372,6 +405,17 @@ static int _connect_tcp_handle(output_dnssim_t* self, _output_dnssim_connection_
     uv_timer_init(&_self->loop, conn->handshake_timer);
     conn->handshake_timer->data = (void*)conn;
     uv_timer_start(conn->handshake_timer, _on_connection_timeout, 15000, 0);  // TODO unhardcode
+
+    /* Set idle connection timer. */
+    if (self->idle_ms > 0) {
+        lfatal_oom(conn->idle_timer = malloc(sizeof(uv_timer_t)));
+        uv_timer_init(&_self->loop, conn->idle_timer);
+        conn->idle_timer->data = (void*)conn;
+
+        /* Start and stop the timer to set the repeat value without running the timer. */
+        uv_timer_start(conn->idle_timer, _on_connection_timeout, self->idle_ms, self->idle_ms);
+        uv_timer_stop(conn->idle_timer);
+    }
 
     uv_connect_t* conn_req;
     lfatal_oom(conn_req = malloc(sizeof(uv_connect_t)));
@@ -446,9 +490,11 @@ static void _close_query_tcp(_output_dnssim_query_tcp_t* qry)
 
     _ll_try_remove(req->client->pending, &qry->qry);
     if (qry->conn) {
-        _ll_try_remove(qry->conn->queued, &qry->qry);  /* edge-case of cancelled queries */
-        _ll_try_remove(qry->conn->sent, &qry->qry);
+        _output_dnssim_connection_t* conn = qry->conn;
+        _ll_try_remove(conn->queued, &qry->qry);  /* edge-case of cancelled queries */
+        _ll_try_remove(conn->sent, &qry->qry);
         qry->conn = NULL;
+        _maybe_close_connection(conn);
     }
 
     _ll_remove(req->qry, &qry->qry);
