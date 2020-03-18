@@ -230,7 +230,7 @@ static output_dnssim_t _defaults = {
     0, 0, 0,
     NULL, NULL, NULL,
     0, 0,
-    2000, 0, 0
+    2000, 0, 5000, 0
 };
 
 static output_dnssim_stats_t _stats_defaults = {

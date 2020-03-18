@@ -293,6 +293,7 @@ static void _on_tcp_handle_connected(uv_connect_t* conn_req, int status)
     uv_timer_stop(conn->handshake_timer);
 
     if (status < 0) {
+        // TODO handle this better - add some counter?
         mlwarning("tcp connect failed: %s", uv_strerror(status));
         _close_connection(conn);
         return;
@@ -404,16 +405,16 @@ static int _connect_tcp_handle(output_dnssim_t* self, _output_dnssim_connection_
     lfatal_oom(conn->handshake_timer = malloc(sizeof(uv_timer_t)));
     uv_timer_init(&_self->loop, conn->handshake_timer);
     conn->handshake_timer->data = (void*)conn;
-    uv_timer_start(conn->handshake_timer, _on_connection_timeout, 15000, 0);  // TODO unhardcode
+    uv_timer_start(conn->handshake_timer, _on_connection_timeout, self->handshake_timeout_ms, 0);
 
     /* Set idle connection timer. */
-    if (self->idle_ms > 0) {
+    if (self->idle_timeout_ms > 0) {
         lfatal_oom(conn->idle_timer = malloc(sizeof(uv_timer_t)));
         uv_timer_init(&_self->loop, conn->idle_timer);
         conn->idle_timer->data = (void*)conn;
 
         /* Start and stop the timer to set the repeat value without running the timer. */
-        uv_timer_start(conn->idle_timer, _on_connection_timeout, self->idle_ms, self->idle_ms);
+        uv_timer_start(conn->idle_timer, _on_connection_timeout, self->idle_timeout_ms, self->idle_timeout_ms);
         uv_timer_stop(conn->idle_timer);
     }
 

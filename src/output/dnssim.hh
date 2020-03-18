@@ -79,7 +79,8 @@ typedef struct output_dnssim {
     bool free_after_use;
 
     uint64_t timeout_ms;
-    uint64_t idle_ms;
+    uint64_t idle_timeout_ms;
+    uint64_t handshake_timeout_ms;
     uint64_t stats_interval_ms;
 } output_dnssim_t;
 

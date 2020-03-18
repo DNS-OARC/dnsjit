@@ -116,16 +116,25 @@ function DnsSim:timeout(seconds)
     self.obj.timeout_ms = math.floor(seconds * 1000)
 end
 
--- Set TCP connection idle time for connection reuse according to RFC7766,
+-- Set TCP connection idle timeout for connection reuse according to RFC7766,
 -- Section 6.2.3. Defaults to 0s (closing connections immediately after there
 -- are no more pending queries).
-function DnsSim:idle(seconds)
+function DnsSim:idle_timeout(seconds)
     if seconds == nil then
         seconds = 0
     end
-    self.obj.idle_ms = math.floor(seconds * 1000)
+    self.obj.idle_timeout_ms = math.floor(seconds * 1000)
 end
 
+-- Set TCP connection handshake timeout. During heavy load, the server may no
+-- longer accept new connections. This parameter ensures such connection
+-- attempts are aborted after the timeout expires. Defaults to 5s.
+function DnsSim:handshake_timeout(seconds)
+    if seconds == nil then
+        seconds = 5
+    end
+    self.obj.handshake_timeout_ms = math.floor(seconds * 1000)
+end
 -- Run the libuv loop once without blocking when there is no I/O. This
 -- should be called repeatedly until 0 is returned and no more data
 -- is expected to be received by DnsSim.
@@ -224,7 +233,8 @@ function DnsSim:export(filename)
             '"merged":false,',
             '"stats_interval_ms":', tonumber(self.obj.stats_interval_ms), ',',
             '"timeout_ms":', tonumber(self.obj.timeout_ms), ',',
-            '"idle_ms":', tonumber(self.obj.idle_ms), ',',
+            '"idle_timeout_ms":', tonumber(self.obj.idle_timeout_ms), ',',
+            '"handshake_timeout_ms":', tonumber(self.obj.handshake_timeout_ms), ',',
             '"discarded":', self:discarded(), ',',
             '"stats_sum":')
     write_stats(file, self.obj.stats_sum)
