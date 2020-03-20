@@ -57,6 +57,7 @@ static void _on_idle_timer_closed(uv_handle_t* handle)
     _output_dnssim_connection_t* conn = (_output_dnssim_connection_t*)handle->data;
     mlassert(conn->idle_timer, "conn must have idle timer when closing it");
     free(conn->idle_timer);
+    conn->is_idle = false;
     conn->idle_timer = NULL;
     _maybe_free_connection(conn);
 }
@@ -121,8 +122,10 @@ static void _write_tcp_query(_output_dnssim_query_tcp_t* qry, _output_dnssim_con
     _ll_append(conn->queued, &qry->qry);
 
     /* Stop idle timer, since there are queries to answer now. */
-    if (conn->idle_timer != NULL)
+    if (conn->idle_timer != NULL) {
+        conn->is_idle = false;
         uv_timer_stop(conn->idle_timer);
+    }
 
     qry->write_req.data = (void*)qry;
     uv_write(&qry->write_req, (uv_stream_t*)conn->handle, qry->bufs, 2, _write_tcp_query_cb);
@@ -340,8 +343,10 @@ static void _maybe_close_connection(_output_dnssim_connection_t* conn)
     if (conn->queued == NULL && conn->sent == NULL) {
         if (conn->idle_timer == NULL)
             _close_connection(conn);
-        else
+        else if (!conn->is_idle) {
+            conn->is_idle = true;
             uv_timer_again(conn->idle_timer);
+        }
     }
 }
 
@@ -362,6 +367,7 @@ static void _close_connection(_output_dnssim_connection_t* conn)
     uv_timer_stop(conn->handshake_timer);
     uv_close((uv_handle_t*)conn->handshake_timer, _on_handshake_timer_closed);
     if (conn->idle_timer != NULL) {
+        conn->is_idle = false;
         uv_timer_stop(conn->idle_timer);
         uv_close((uv_handle_t*)conn->idle_timer, _on_idle_timer_closed);
     }
