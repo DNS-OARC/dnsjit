@@ -364,15 +364,19 @@ static void _close_connection(_output_dnssim_connection_t* conn)
     // TODO if client has pending queries and no active/connecting connections, establish new?
 
     conn->state = _OUTPUT_DNSSIM_CONN_CLOSING;
-    uv_timer_stop(conn->handshake_timer);
-    uv_close((uv_handle_t*)conn->handshake_timer, _on_handshake_timer_closed);
+    if (conn->handshake_timer != NULL) {
+        uv_timer_stop(conn->handshake_timer);
+        uv_close((uv_handle_t*)conn->handshake_timer, _on_handshake_timer_closed);
+    }
     if (conn->idle_timer != NULL) {
         conn->is_idle = false;
         uv_timer_stop(conn->idle_timer);
         uv_close((uv_handle_t*)conn->idle_timer, _on_idle_timer_closed);
     }
-    uv_read_stop((uv_stream_t*)conn->handle);
-    uv_close((uv_handle_t*)conn->handle, _on_tcp_handle_closed);
+    if (conn->handle != NULL) {
+        uv_read_stop((uv_stream_t*)conn->handle);
+        uv_close((uv_handle_t*)conn->handle, _on_tcp_handle_closed);
+    }
 }
 
 static void _on_connection_timeout(uv_timer_t* handle)
