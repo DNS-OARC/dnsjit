@@ -168,7 +168,6 @@ int _process_tcp_dnsmsg(_output_dnssim_connection_t* conn)
             /* NOTE: QNAME, QTYPE and QCLASS checking (RFC 7766, Section 7) is
              * omitted, since the MSGID is unique per connection. */
             _request_answered(qry->req, &dns_a);
-            _close_request(qry->req);
             break;
         }
         qry = qry->next;

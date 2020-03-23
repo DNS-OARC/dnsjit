@@ -44,7 +44,6 @@ static int _process_udp_response(uv_udp_t* handle, ssize_t nread, const uv_buf_t
     }
 
     _request_answered(req, &dns_a);
-    _close_request(req);
     return 0;
 }
 

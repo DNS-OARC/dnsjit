@@ -91,7 +91,6 @@ struct _output_dnssim_request {
 
     /* Timer for tracking timeout of the request. */
     uv_timer_t* timeout;
-    uint8_t timeout_closing;
 
     /* Flag whether the query is tracked as ongoing in dnssim stats. */
     bool ongoing;
@@ -209,7 +208,7 @@ static int _create_query_tcp(output_dnssim_t* self, _output_dnssim_request_t* re
 static void _close_query_udp(_output_dnssim_query_udp_t* qry);
 static void _close_query_tcp(_output_dnssim_query_tcp_t* qry);
 static void _close_request_timeout_cb(uv_handle_t* handle);
-static void _close_request_timeout(uv_timer_t* handle);
+static void _on_request_timeout(uv_timer_t* handle);
 static void _maybe_close_connection(_output_dnssim_connection_t* conn);
 static void _close_connection(_output_dnssim_connection_t* conn);
 static void _request_answered(_output_dnssim_request_t* req, core_object_dns_t* msg);

@@ -81,7 +81,7 @@ static void _create_request(output_dnssim_t* self, _output_dnssim_client_t* clie
     lfatal_oom(req->timeout = malloc(sizeof(uv_timer_t)));
     uv_timer_init(&_self->loop, req->timeout);
     req->timeout->data = req;
-    uv_timer_start(req->timeout, _close_request_timeout, self->timeout_ms, 0);
+    uv_timer_start(req->timeout, _on_request_timeout, self->timeout_ms, 0);
 
     return;
 failure:
@@ -144,17 +144,32 @@ static void _close_query(_output_dnssim_query_t* qry)
 
 static void _close_request(_output_dnssim_request_t* req)
 {
-    if (req == NULL) {
+    if (req == NULL)
         return;
+
+    /* Calculate latency. */
+    uint64_t latency;
+    req->ended_at = uv_now(&((_output_dnssim_t*)req->dnssim)->loop);
+    latency = req->ended_at - req->created_at;
+    if (latency > req->dnssim->timeout_ms) {
+        req->ended_at = req->created_at + req->dnssim->timeout_ms;
+        latency = req->dnssim->timeout_ms;
     }
+    req->dnssim->stats_current->latency[latency]++;
+    req->dnssim->stats_sum->latency[latency]++;
+
+    // TODO: is ongoing needed?
     if (req->ongoing) {
         req->ongoing = false;
         req->dnssim->ongoing--;
     }
+
     if (req->timeout != NULL) {
-        _close_request_timeout(req->timeout);
+        uv_timer_stop(req->timeout);
+        uv_close((uv_handle_t*)req->timeout, _close_request_timeout_cb);
     }
-    // finish any queries in flight
+
+    /* Finish any queries in flight. */
     _output_dnssim_query_t* qry = req->qry;
     _output_dnssim_query_t* qry_tmp;
     while (qry != NULL) {
@@ -162,6 +177,7 @@ static void _close_request(_output_dnssim_request_t* req)
         _close_query(qry);
         qry = qry_tmp;
     }
+
     _maybe_free_request(req);
 }
 
@@ -170,33 +186,17 @@ static void _close_request_timeout_cb(uv_handle_t* handle)
     _output_dnssim_request_t* req = (_output_dnssim_request_t*)handle->data;
     free(handle);
     req->timeout = NULL;
-    _close_request(req);
+    _maybe_free_request(req);
 }
 
-static void _close_request_timeout(uv_timer_t* handle)
+static void _on_request_timeout(uv_timer_t* handle)
 {
     _output_dnssim_request_t* req = (_output_dnssim_request_t*)handle->data;
-
-    if (!req->timeout_closing) {
-        req->timeout_closing = 1;
-
-        uint64_t latency = req->ended_at - req->created_at;
-        mlassert(latency <= req->dnssim->timeout_ms, "invalid latency value");
-        req->dnssim->stats_current->latency[latency]++;
-        req->dnssim->stats_sum->latency[latency]++;
-
-        uv_timer_stop(handle);
-        uv_close((uv_handle_t*)handle, _close_request_timeout_cb);
-    }
+    _close_request(req);
 }
 
 static void _request_answered(_output_dnssim_request_t* req, core_object_dns_t* msg)
 {
-    req->ended_at = uv_now(&((_output_dnssim_t*)req->dnssim)->loop);
-    if (req->ended_at > (req->created_at + req->dnssim->timeout_ms)) {
-        req->ended_at = req->created_at + req->dnssim->timeout_ms;
-    }
-
     req->dnssim->stats_sum->answers++;
     req->dnssim->stats_current->answers++;
 
@@ -281,6 +281,8 @@ static void _request_answered(_output_dnssim_request_t* req, core_object_dns_t* 
         req->dnssim->stats_sum->rcode_other++;
         req->dnssim->stats_current->rcode_other++;
     }
+
+    _close_request(req);
 }
 
 static void _uv_alloc_cb(uv_handle_t* handle, size_t suggested_size, uv_buf_t* buf)
