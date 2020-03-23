@@ -35,16 +35,8 @@ output_dnssim_t* output_dnssim_new(size_t max_clients)
     int ret;
 
     mlfatal_oom(self = calloc(1, sizeof(_output_dnssim_t)));
-    self->timeout_ms = 2000;
     self->handshake_timeout_ms = 5000;
-
-    lfatal_oom(self->stats_sum = calloc(1, sizeof(output_dnssim_stats_t)));
-    lfatal_oom(self->stats_sum->latency = calloc(self->timeout_ms + 1, sizeof(uint64_t)));
-
-    lfatal_oom(self->stats_current = calloc(1, sizeof(output_dnssim_stats_t)));
-    lfatal_oom(self->stats_current->latency = calloc(self->timeout_ms + 1, sizeof(uint64_t)));
-
-    self->stats_first = self->stats_current;
+    output_dnssim_timeout_ms(self, 2000);
 
     _self->source = NULL;
     _self->transport = OUTPUT_DNSSIM_TRANSPORT_UDP_ONLY;
@@ -258,6 +250,27 @@ int output_dnssim_run_nowait(output_dnssim_t* self)
     mlassert_self();
 
     return uv_run(&_self->loop, UV_RUN_NOWAIT);
+}
+
+void output_dnssim_timeout_ms(output_dnssim_t* self, uint64_t timeout_ms)
+{
+    mlassert_self();
+    lassert(timeout_ms > 0, "timeout must be greater than 0");
+
+    if (self->stats_sum != NULL)
+        free(self->stats_sum);
+    if (self->stats_current != NULL)
+        free(self->stats_current);
+
+    self->timeout_ms = timeout_ms;
+
+    lfatal_oom(self->stats_sum = calloc(1, sizeof(output_dnssim_stats_t)));
+    lfatal_oom(self->stats_sum->latency = calloc(self->timeout_ms + 1, sizeof(uint64_t)));
+
+    lfatal_oom(self->stats_current = calloc(1, sizeof(output_dnssim_stats_t)));
+    lfatal_oom(self->stats_current->latency = calloc(self->timeout_ms + 1, sizeof(uint64_t)));
+
+    self->stats_first = self->stats_current;
 }
 
 static void _stats_timer_cb(uv_timer_t* handle)

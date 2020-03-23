@@ -93,6 +93,7 @@ void output_dnssim_set_transport(output_dnssim_t* self, output_dnssim_transport_
 int output_dnssim_target(output_dnssim_t* self, const char* ip, uint16_t port);
 int output_dnssim_bind(output_dnssim_t* self, const char* ip);
 int output_dnssim_run_nowait(output_dnssim_t* self);
+void output_dnssim_timeout_ms(output_dnssim_t* self, uint64_t timeout_ms);
 void output_dnssim_stats_collect(output_dnssim_t* self, uint64_t interval_ms);
 void output_dnssim_stats_finish(output_dnssim_t* self);
 

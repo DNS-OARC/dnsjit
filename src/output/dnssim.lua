@@ -113,7 +113,8 @@ function DnsSim:timeout(seconds)
     if seconds == nil then
         seconds = 2
     end
-    self.obj.timeout_ms = math.floor(seconds * 1000)
+    timeout_ms = math.floor(seconds * 1000)
+    C.output_dnssim_timeout_ms(self.obj, timeout_ms)
 end
 
 -- Set TCP connection idle timeout for connection reuse according to RFC7766,
