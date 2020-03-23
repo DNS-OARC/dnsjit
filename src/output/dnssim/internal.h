@@ -97,6 +97,12 @@ struct _output_dnssim_request {
 
     /* The output component of this request. */
     output_dnssim_t* dnssim;
+
+    /* State of the request. */
+    enum {
+        _OUTPUT_DNSSIM_REQ_INITIALIZED,
+        _OUTPUT_DNSSIM_REQ_CLOSING
+    } state;
 };
 
 

@@ -50,6 +50,7 @@ static void _create_request(output_dnssim_t* self, _output_dnssim_client_t* clie
     req->dns_q->obj_prev = (core_object_t*)req->payload;
     req->ongoing = true;
     req->dnssim->ongoing++;
+    req->state = _OUTPUT_DNSSIM_CONN_INITIALIZED;
 
     ret = core_object_dns_parse_header(req->dns_q);
     if (ret != 0) {
@@ -144,7 +145,7 @@ static void _close_query(_output_dnssim_query_t* qry)
 
 static void _close_request(_output_dnssim_request_t* req)
 {
-    if (req == NULL)
+    if (req == NULL || req->state == _OUTPUT_DNSSIM_CONN_CLOSING)
         return;
 
     /* Calculate latency. */
