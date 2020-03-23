@@ -62,7 +62,7 @@ static void _query_udp_recv_cb(uv_udp_t* handle, ssize_t nread, const uv_buf_t* 
     }
 }
 
-static void _close_query_udp_cb(uv_handle_t* handle)
+static void _on_query_udp_closed(uv_handle_t* handle)
 {
     _output_dnssim_query_udp_t* qry = (_output_dnssim_query_udp_t*)handle->data;
     _output_dnssim_request_t* req = qry->qry.req;
@@ -85,7 +85,7 @@ static void _close_query_udp(_output_dnssim_query_udp_t* qry)
         mldebug("failed uv_udp_recv_stop(): %s", uv_strerror(ret));
     }
 
-    uv_close((uv_handle_t*)qry->handle, _close_query_udp_cb);
+    uv_close((uv_handle_t*)qry->handle, _on_query_udp_closed);
 }
 
 static int _create_query_udp(output_dnssim_t* self, _output_dnssim_request_t* req)
