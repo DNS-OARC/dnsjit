@@ -34,15 +34,14 @@ output_dnssim_t* output_dnssim_new(size_t max_clients)
     output_dnssim_t* self;
     int ret;
 
-    mlfatal_oom(self = malloc(sizeof(_output_dnssim_t)));
-    *self = _defaults;
+    mlfatal_oom(self = calloc(1, sizeof(_output_dnssim_t)));
+    self->timeout_ms = 2000;
+    self->handshake_timeout_ms = 5000;
 
-    lfatal_oom(self->stats_sum = malloc(sizeof(output_dnssim_stats_t)));
-    *self->stats_sum = _stats_defaults;
+    lfatal_oom(self->stats_sum = calloc(1, sizeof(output_dnssim_stats_t)));
     lfatal_oom(self->stats_sum->latency = calloc(self->timeout_ms + 1, sizeof(uint64_t)));
 
-    lfatal_oom(self->stats_current = malloc(sizeof(output_dnssim_stats_t)));
-    *self->stats_current = _stats_defaults;
+    lfatal_oom(self->stats_current = calloc(1, sizeof(output_dnssim_stats_t)));
     lfatal_oom(self->stats_current->latency = calloc(self->timeout_ms + 1, sizeof(uint64_t)));
 
     self->stats_first = self->stats_current;
@@ -270,8 +269,7 @@ static void _stats_timer_cb(uv_timer_t* handle)
         self->ongoing);
 
     output_dnssim_stats_t* stats_next;
-    lfatal_oom(stats_next = malloc(sizeof(output_dnssim_stats_t)));
-    *stats_next = _stats_defaults;
+    lfatal_oom(stats_next = calloc(1, sizeof(output_dnssim_stats_t)));
     lfatal_oom(stats_next->latency = calloc(self->timeout_ms + 1, sizeof(uint64_t)));
 
     self->stats_current->until_ms = now_ms;

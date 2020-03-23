@@ -228,20 +228,4 @@ static void _uv_alloc_cb(uv_handle_t* handle, size_t suggested_size, uv_buf_t* b
 
 static core_log_t _log = LOG_T_INIT("output.dnssim");
 
-static output_dnssim_t _defaults = {
-    LOG_T_INIT_OBJ("output.dnssim"),
-    0, 0, 0,
-    NULL, NULL, NULL,
-    0, 0,
-    2000, 0, 5000, 0
-};
-
-static output_dnssim_stats_t _stats_defaults = {
-    NULL, NULL,
-    NULL,
-    0, 0,
-    0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-};
-
 #endif
