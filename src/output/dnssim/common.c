@@ -48,9 +48,8 @@ static void _create_request(output_dnssim_t* self, _output_dnssim_client_t* clie
     req->payload = payload;
     req->dns_q = core_object_dns_new();
     req->dns_q->obj_prev = (core_object_t*)req->payload;
-    req->ongoing = true;
     req->dnssim->ongoing++;
-    req->state = _OUTPUT_DNSSIM_CONN_INITIALIZED;
+    req->state = _OUTPUT_DNSSIM_REQ_ONGOING;
 
     ret = core_object_dns_parse_header(req->dns_q);
     if (ret != 0) {
@@ -145,8 +144,11 @@ static void _close_query(_output_dnssim_query_t* qry)
 
 static void _close_request(_output_dnssim_request_t* req)
 {
-    if (req == NULL || req->state == _OUTPUT_DNSSIM_CONN_CLOSING)
+    if (req == NULL || req->state == _OUTPUT_DNSSIM_REQ_CLOSING)
         return;
+    mlassert(req->state == _OUTPUT_DNSSIM_REQ_ONGOING, "request to be closed must be ongoing");
+    req->state = _OUTPUT_DNSSIM_REQ_CLOSING;
+    req->dnssim->ongoing--;
 
     /* Calculate latency. */
     uint64_t latency;
@@ -158,12 +160,6 @@ static void _close_request(_output_dnssim_request_t* req)
     }
     req->dnssim->stats_current->latency[latency]++;
     req->dnssim->stats_sum->latency[latency]++;
-
-    // TODO: is ongoing needed?
-    if (req->ongoing) {
-        req->ongoing = false;
-        req->dnssim->ongoing--;
-    }
 
     if (req->timeout != NULL) {
         uv_timer_stop(req->timeout);

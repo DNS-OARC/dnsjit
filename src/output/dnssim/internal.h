@@ -92,15 +92,12 @@ struct _output_dnssim_request {
     /* Timer for tracking timeout of the request. */
     uv_timer_t* timeout;
 
-    /* Flag whether the query is tracked as ongoing in dnssim stats. */
-    bool ongoing;
-
     /* The output component of this request. */
     output_dnssim_t* dnssim;
 
     /* State of the request. */
     enum {
-        _OUTPUT_DNSSIM_REQ_INITIALIZED,
+        _OUTPUT_DNSSIM_REQ_ONGOING,
         _OUTPUT_DNSSIM_REQ_CLOSING
     } state;
 };
