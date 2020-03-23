@@ -25,7 +25,8 @@ AM_CFLAGS = -I$(srcdir) \
   -I$(top_srcdir) \
   $(SIMD_FLAGS) $(CPUEXT_FLAGS) \
   $(PTHREAD_CFLAGS) \
-  $(luajit_CFLAGS)
+  $(luajit_CFLAGS) \
+  -fno-strict-aliasing
 
 EXTRA_DIST = gen-manpage.lua gen-compat.lua gen-errno.sh dnsjit.1in
 
