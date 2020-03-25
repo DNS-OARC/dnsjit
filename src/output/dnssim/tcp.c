@@ -18,11 +18,6 @@
  * along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-/*
- * TCP dnssim
- *
- * TODO: extract functions common to tcp/udp into separate functions
- */
 static void _maybe_free_connection(_output_dnssim_connection_t* conn)
 {
     mlassert(conn, "conn can't be nil");
@@ -67,7 +62,6 @@ static void _write_tcp_query_cb(uv_write_t* wr_req, int status)
     _output_dnssim_query_tcp_t* qry = (_output_dnssim_query_tcp_t*)wr_req->data;
 
     if (status < 0) {
-        // TODO handle orhaned and write_failed queries
         if (status != UV_ECANCELED)
             mlinfo("tcp write failed: %s", uv_strerror(status));
         if (qry->qry.state == _OUTPUT_DNSSIM_QUERY_PENDING_WRITE_CB) {
@@ -354,15 +348,17 @@ static void _close_connection(_output_dnssim_connection_t* conn)
     mlassert(conn, "conn can't be nil");
     if (conn->state == _OUTPUT_DNSSIM_CONN_CLOSING || conn->state == _OUTPUT_DNSSIM_CONN_CLOSED)
         return;
+    conn->state = _OUTPUT_DNSSIM_CONN_CLOSING;
 
     _move_queries_to_pending((_output_dnssim_query_tcp_t*)conn->queued);
     conn->queued = NULL;
     _move_queries_to_pending((_output_dnssim_query_tcp_t*)conn->sent);
     conn->sent = NULL;
 
-    // TODO if client has pending queries and no active/connecting connections, establish new?
+    /* Ensure orhpaned queries are re-sent over a different connection. */
+    if (_handle_pending_queries(conn->client) != 0)
+        mlinfo("tcp: orphaned queries failed to be re-sent");
 
-    conn->state = _OUTPUT_DNSSIM_CONN_CLOSING;
     if (conn->handshake_timer != NULL) {
         uv_timer_stop(conn->handshake_timer);
         uv_close((uv_handle_t*)conn->handshake_timer, _on_handshake_timer_closed);
@@ -440,6 +436,43 @@ failure:
     return ret;
 }
 
+static int _handle_pending_queries(_output_dnssim_client_t* client)
+{
+    int ret = 0;
+
+    if (client->pending == NULL)
+        return ret;
+
+    mlassert(client->pending->req, "qry must have req");
+    output_dnssim_t* self = client->pending->req->dnssim;
+    mlassert_self();
+
+    /* Get active TCP connection or find out whether new connection has to be opened. */
+    bool is_connecting = false;
+    _output_dnssim_connection_t *conn = client->conn;
+    while (conn != NULL) {
+        if (conn->state == _OUTPUT_DNSSIM_CONN_ACTIVE)
+            break;
+        else if (conn->state == _OUTPUT_DNSSIM_CONN_CONNECTING)
+            is_connecting = true;
+        conn = conn->next;
+    }
+
+    if (conn != NULL) {  /* Send data right away over active connection. */
+        _send_pending_queries(conn);
+    } else if (!is_connecting) {  /* No active or connecting connection -> open a new one. */
+        lfatal_oom(conn = calloc(1, sizeof(_output_dnssim_connection_t)));
+        conn->state = _OUTPUT_DNSSIM_CONN_INITIALIZED;
+        conn->client = client;
+        ret = _connect_tcp_handle(self, conn);
+        if (ret < 0)
+            return ret;
+        _ll_append(client->conn, conn);
+    } /* Otherwise, pending queries wil be sent after connected callback. */
+
+    return ret;
+}
+
 static int _create_query_tcp(output_dnssim_t* self, _output_dnssim_request_t* req)
 {
     mlassert_self();
@@ -458,30 +491,7 @@ static int _create_query_tcp(output_dnssim_t* self, _output_dnssim_request_t* re
     _ll_append(req->qry, &qry->qry);
     _ll_append(req->client->pending, &qry->qry);
 
-    /* Get active TCP connection or find out whether new connection has to be opened. */
-    bool is_connecting = false;
-    conn = req->client->conn;
-    while (conn != NULL) {
-        if (conn->state == _OUTPUT_DNSSIM_CONN_ACTIVE)
-            break;
-        else if (conn->state == _OUTPUT_DNSSIM_CONN_CONNECTING)
-            is_connecting = true;
-        conn = conn->next;
-    }
-
-    if (conn != NULL) {  /* Send data right away over active connection. */
-        _send_pending_queries(conn);
-    } else if (!is_connecting) {  /* No active or connecting connection -> open a new one. */
-        lfatal_oom(conn = calloc(1, sizeof(_output_dnssim_connection_t)));
-        conn->state = _OUTPUT_DNSSIM_CONN_INITIALIZED;
-        conn->client = req->client;
-        ret = _connect_tcp_handle(self, conn);
-        if (ret < 0)
-            return ret;
-        _ll_append(req->client->conn, conn);
-    } /* Otherwise, pending queries wil be sent after connected callback. */
-
-    return 0;
+    return _handle_pending_queries(req->client);
 }
 
 static void _close_query_tcp(_output_dnssim_query_tcp_t* qry)

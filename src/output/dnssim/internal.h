@@ -228,6 +228,7 @@ static void _maybe_free_request(_output_dnssim_request_t* req);
 static void _close_query(_output_dnssim_query_t* qry);
 static void _close_request_timeout_cb(uv_handle_t* handle);  // TODO rename
 static void _uv_alloc_cb(uv_handle_t* handle, size_t suggested_size, uv_buf_t* buf);  // TODO rename
+static int _handle_pending_queries(_output_dnssim_client_t* client);
 
 
 /*
