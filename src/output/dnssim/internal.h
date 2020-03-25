@@ -37,6 +37,14 @@ typedef struct _output_dnssim_client _output_dnssim_client_t;
 
 typedef struct _output_dnssim_query _output_dnssim_query_t;
 struct _output_dnssim_query {
+    /*
+     * Next query in the list.
+     *
+     * Currently, next is used for TCP clients/connection, which makes it
+     * impossible to use for tracking multiple queries of a single request.
+     *
+     * TODO: refactor the linked lists to allow query to be part of multiple lists
+     */
     _output_dnssim_query_t* next;
 
     output_dnssim_transport_t transport;
