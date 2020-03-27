@@ -108,6 +108,9 @@ struct _output_dnssim_request {
         _OUTPUT_DNSSIM_REQ_ONGOING,
         _OUTPUT_DNSSIM_REQ_CLOSING
     } state;
+
+    /* Statistics interval in which this request is tracked. */
+    output_dnssim_stats_t* stats;
 };
 
 
