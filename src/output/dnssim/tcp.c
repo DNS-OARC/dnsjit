@@ -488,7 +488,7 @@ static int _create_query_tcp(output_dnssim_t* self, _output_dnssim_request_t* re
     qry->qry.transport = OUTPUT_DNSSIM_TRANSPORT_TCP;
     qry->qry.req = req;
     qry->qry.state = _OUTPUT_DNSSIM_QUERY_PENDING_WRITE;
-    _ll_append(req->qry, &qry->qry);
+    req->qry = &qry->qry;  // TODO change when adding support for multiple Qs for req
     _ll_append(req->client->pending, &qry->qry);
 
     return _handle_pending_queries(req->client);
