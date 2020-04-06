@@ -28,10 +28,37 @@ static void _maybe_free_connection(_output_dnssim_connection_t* conn)
     }
 }
 
+static void _move_queries_to_pending(_output_dnssim_query_tcp_t* qry)
+{
+    _output_dnssim_query_tcp_t* qry_tmp;
+    while (qry != NULL) {
+        mlassert(qry->conn, "query must be associated with conn");
+        mlassert(qry->conn->state == _OUTPUT_DNSSIM_CONN_CLOSED, "conn must be closed");
+        mlassert(qry->conn->client, "conn must be associated with client");
+        qry_tmp = (_output_dnssim_query_tcp_t*)qry->qry.next;
+        qry->qry.next = NULL;
+        _ll_append(qry->conn->client->pending, &qry->qry);
+        qry->conn = NULL;
+        qry->qry.state = _OUTPUT_DNSSIM_QUERY_ORPHANED;
+        qry = qry_tmp;
+    }
+}
+
 static void _on_tcp_handle_closed(uv_handle_t* handle)
 {
     _output_dnssim_connection_t* conn = (_output_dnssim_connection_t*)handle->data;
     conn->state = _OUTPUT_DNSSIM_CONN_CLOSED;
+
+    /* Orphan any queries that are still unresolved. */
+    _move_queries_to_pending((_output_dnssim_query_tcp_t*)conn->queued);
+    conn->queued = NULL;
+    _move_queries_to_pending((_output_dnssim_query_tcp_t*)conn->sent);
+    conn->sent = NULL;
+
+    /* Ensure orhpaned queries are re-sent over a different connection. */
+    if (_handle_pending_queries(conn->client) != 0)
+        mlinfo("tcp: orphaned queries failed to be re-sent");
+
     mlassert(conn->handle, "conn must have tcp handle when closing it");
     free(conn->handle);
     conn->handle = NULL;
@@ -60,34 +87,39 @@ static void _on_idle_timer_closed(uv_handle_t* handle)
 static void _write_tcp_query_cb(uv_write_t* wr_req, int status)
 {
     _output_dnssim_query_tcp_t* qry = (_output_dnssim_query_tcp_t*)wr_req->data;
+    mlassert(qry->conn, "query must be associated with connection");
+    _output_dnssim_connection_t* conn = qry->conn;
+
+    free(((_output_dnssim_query_tcp_t*)qry)->bufs[0].base);
+
+    if (qry->qry.state == _OUTPUT_DNSSIM_QUERY_PENDING_CLOSE) {
+        qry->qry.state = status < 0 ? _OUTPUT_DNSSIM_QUERY_WRITE_FAILED : _OUTPUT_DNSSIM_QUERY_SENT;
+        _output_dnssim_request_t* req = qry->qry.req;
+        _close_query_tcp(qry);
+        _maybe_free_request(req);
+        qry = NULL;
+    }
 
     if (status < 0) {
         if (status != UV_ECANCELED)
             mlinfo("tcp write failed: %s", uv_strerror(status));
-        if (qry->qry.state == _OUTPUT_DNSSIM_QUERY_PENDING_WRITE_CB) {
+        if (qry != NULL)
             qry->qry.state = _OUTPUT_DNSSIM_QUERY_WRITE_FAILED;
-            mlassert(qry->conn, "query must be associated with connection");
-            _close_connection(qry->conn);
-        }
-    } else if (qry->qry.state == _OUTPUT_DNSSIM_QUERY_PENDING_WRITE_CB) {
-        /* Mark query as sent and assign it to connection. */
-        qry->qry.state = _OUTPUT_DNSSIM_QUERY_SENT;
-        mlassert(qry->conn, "query must be associated with connection");
-        if (qry->conn->state == _OUTPUT_DNSSIM_CONN_ACTIVE) {
-            mlassert(qry->conn->queued, "conn has no queued queries");
-            _ll_remove(qry->conn->queued, &qry->qry);
-            _ll_append(qry->conn->sent, &qry->qry);
-        }
+        _close_connection(conn);
+        return;
     }
 
-    if (qry->qry.state == _OUTPUT_DNSSIM_QUERY_PENDING_CLOSE) {
-        qry->qry.state = _OUTPUT_DNSSIM_QUERY_SENT;
-        _output_dnssim_request_t* req = qry->qry.req;
-        _close_query_tcp(qry);
-        _maybe_free_request(req);
-    }
+    if (qry == NULL)
+        return;
 
-    free(((_output_dnssim_query_tcp_t*)qry)->bufs[0].base);
+    /* Mark query as sent and assign it to connection. */
+    mlassert(qry->qry.state == _OUTPUT_DNSSIM_QUERY_PENDING_WRITE_CB, "invalid query state");
+    qry->qry.state = _OUTPUT_DNSSIM_QUERY_SENT;
+    if (qry->conn->state == _OUTPUT_DNSSIM_CONN_ACTIVE) {
+        mlassert(qry->conn->queued, "conn has no queued queries");
+        _ll_remove(qry->conn->queued, &qry->qry);
+        _ll_append(qry->conn->sent, &qry->qry);
+    }
 }
 
 static void _write_tcp_query(_output_dnssim_query_tcp_t* qry, _output_dnssim_connection_t* conn)
@@ -315,21 +347,6 @@ static void _on_tcp_handle_connected(uv_connect_t* conn_req, int status)
     _maybe_close_connection(conn);
 }
 
-static void _move_queries_to_pending(_output_dnssim_query_tcp_t* qry)
-{
-    _output_dnssim_query_tcp_t* qry_tmp;
-    while (qry != NULL) {
-        mlassert(qry->conn, "query must be associated with conn");
-        mlassert(qry->conn->client, "conn must be associated with client");
-        qry_tmp = (_output_dnssim_query_tcp_t*)qry->qry.next;
-        qry->qry.next = NULL;
-        _ll_append(qry->conn->client->pending, &qry->qry);
-        qry->conn = NULL;
-        qry->qry.state = _OUTPUT_DNSSIM_QUERY_ORPHANED;
-        qry = qry_tmp;
-    }
-}
-
 /* Close connection or run idle timer when there are no more outstanding queries. */
 static void _maybe_close_connection(_output_dnssim_connection_t* conn)
 {
@@ -365,15 +382,6 @@ static void _close_connection(_output_dnssim_connection_t* conn)
         break;
     }
     conn->state = _OUTPUT_DNSSIM_CONN_CLOSING;
-
-    _move_queries_to_pending((_output_dnssim_query_tcp_t*)conn->queued);
-    conn->queued = NULL;
-    _move_queries_to_pending((_output_dnssim_query_tcp_t*)conn->sent);
-    conn->sent = NULL;
-
-    /* Ensure orhpaned queries are re-sent over a different connection. */
-    if (_handle_pending_queries(conn->client) != 0)
-        mlinfo("tcp: orphaned queries failed to be re-sent");
 
     if (conn->handshake_timer != NULL) {
         uv_timer_stop(conn->handshake_timer);
