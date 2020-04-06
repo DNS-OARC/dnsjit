@@ -42,6 +42,15 @@ struct output_dnssim_stats {
     uint64_t ongoing;
     uint64_t answers;
 
+    /* Number of connections that are open at the end of the stats interval. */
+    uint64_t conn_active;
+
+    /* Number of connection handshake attempts during the stats interval. */
+    uint64_t conn_handshakes;
+
+    /* Number of timed out connection handshakes during the stats interval. */
+    uint64_t conn_handshakes_failed;
+
     uint64_t rcode_noerror;
     uint64_t rcode_formerr;
     uint64_t rcode_servfail;

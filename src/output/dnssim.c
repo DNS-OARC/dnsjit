@@ -41,9 +41,11 @@ output_dnssim_t* output_dnssim_new(size_t max_clients)
     _self->source = NULL;
     _self->transport = OUTPUT_DNSSIM_TRANSPORT_UDP_ONLY;
 
+    self->max_clients = max_clients;
     lfatal_oom(_self->client_arr = calloc(
         max_clients, sizeof(_output_dnssim_client_t)));
-    self->max_clients = max_clients;
+    for (int i=0; i < max_clients; ++i)
+        _self->client_arr[i].dnssim = self;
 
     ret = uv_loop_init(&_self->loop);
     if (ret < 0) {
@@ -287,6 +289,7 @@ static void _stats_timer_cb(uv_timer_t* handle)
 
     self->stats_current->until_ms = now_ms;
     stats_next->since_ms = now_ms;
+    stats_next->conn_active = self->stats_current->conn_active;
 
     stats_next->ongoing = self->ongoing;
     stats_next->prev = self->stats_current;

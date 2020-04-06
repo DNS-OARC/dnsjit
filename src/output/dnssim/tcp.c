@@ -285,12 +285,13 @@ static void _on_tcp_read(uv_stream_t* handle, ssize_t nread, const uv_buf_t* buf
 static void _on_tcp_handle_connected(uv_connect_t* conn_req, int status)
 {
     _output_dnssim_connection_t* conn = (_output_dnssim_connection_t*)conn_req->handle->data;
+    mlassert(conn->stats, "conn must have stats");
+
     free(conn_req);
     uv_timer_stop(conn->handshake_timer);
 
     if (status < 0) {
-        // TODO handle this better - add some counter?
-        mlwarning("tcp connect failed: %s", uv_strerror(status));
+        mldebug("tcp connect failed: %s", uv_strerror(status));
         _close_connection(conn);
         return;
     }
@@ -304,6 +305,7 @@ static void _on_tcp_handle_connected(uv_connect_t* conn_req, int status)
     }
 
     conn->state = _OUTPUT_DNSSIM_CONN_ACTIVE;
+    conn->client->dnssim->stats_current->conn_active++;
     conn->read_state = _OUTPUT_DNSSIM_READ_STATE_DNSLEN;
     conn->recv_len = 2;
     conn->recv_pos = 0;
@@ -346,8 +348,22 @@ static void _maybe_close_connection(_output_dnssim_connection_t* conn)
 static void _close_connection(_output_dnssim_connection_t* conn)
 {
     mlassert(conn, "conn can't be nil");
-    if (conn->state == _OUTPUT_DNSSIM_CONN_CLOSING || conn->state == _OUTPUT_DNSSIM_CONN_CLOSED)
+    mlassert(conn->stats, "conn must have stats");
+
+    switch(conn->state) {
+    case _OUTPUT_DNSSIM_CONN_CLOSING:
+    case _OUTPUT_DNSSIM_CONN_CLOSED:
         return;
+    case _OUTPUT_DNSSIM_CONN_CONNECTING:
+        conn->stats->conn_handshakes_failed++;
+        conn->client->dnssim->stats_sum->conn_handshakes_failed++;
+        break;
+    case _OUTPUT_DNSSIM_CONN_ACTIVE:
+        conn->client->dnssim->stats_current->conn_active--;
+        break;
+    default:
+        break;
+    }
     conn->state = _OUTPUT_DNSSIM_CONN_CLOSING;
 
     _move_queries_to_pending((_output_dnssim_query_tcp_t*)conn->queued);
@@ -429,6 +445,8 @@ static int _connect_tcp_handle(output_dnssim_t* self, _output_dnssim_connection_
     if (ret < 0)
         goto failure;
 
+    conn->stats->conn_handshakes++;
+    conn->client->dnssim->stats_sum->conn_handshakes++;
     conn->state = _OUTPUT_DNSSIM_CONN_CONNECTING;
     return 0;
 failure:
@@ -443,8 +461,8 @@ static int _handle_pending_queries(_output_dnssim_client_t* client)
     if (client->pending == NULL)
         return ret;
 
-    mlassert(client->pending->req, "qry must have req");
-    output_dnssim_t* self = client->pending->req->dnssim;
+    mlassert(client->dnssim, "client must belong to dnssim");
+    output_dnssim_t* self = client->dnssim;
     mlassert_self();
 
     /* Get active TCP connection or find out whether new connection has to be opened. */
@@ -464,6 +482,7 @@ static int _handle_pending_queries(_output_dnssim_client_t* client)
         lfatal_oom(conn = calloc(1, sizeof(_output_dnssim_connection_t)));
         conn->state = _OUTPUT_DNSSIM_CONN_INITIALIZED;
         conn->client = client;
+        conn->stats = self->stats_current;
         ret = _connect_tcp_handle(self, conn);
         if (ret < 0)
             return ret;

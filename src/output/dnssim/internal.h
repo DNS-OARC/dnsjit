@@ -168,6 +168,9 @@ struct _output_dnssim_connection {
     /* Receive buffer used for incomplete messages or dnslen. */
     char* recv_data;
     bool recv_free_after_use;
+
+    /* Statistics interval in which the handshake is tracked. */
+    output_dnssim_stats_t* stats;
 };
 
 
@@ -176,6 +179,9 @@ struct _output_dnssim_connection {
  */
 
 struct _output_dnssim_client {
+    /* Dnssim component this client belongs to. */
+    output_dnssim_t* dnssim;
+
     /* List of connections.
      * Multiple connections may be used (e.g. some are already closed for writing).
      */
