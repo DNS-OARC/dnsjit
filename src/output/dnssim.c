@@ -85,7 +85,7 @@ void output_dnssim_free(output_dnssim_t* self)
     free(_self->client_arr);
 
     ret = uv_loop_close(&_self->loop);
-    if (ret < 0) {  // TODO wait for TCP connections to close
+    if (ret < 0) {
         lcritical("failed to close uv_loop (%s)", uv_strerror(ret));
     } else {
         ldebug("closed uv_loop");

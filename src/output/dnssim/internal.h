@@ -98,7 +98,7 @@ struct _output_dnssim_request {
     uint64_t ended_at;
 
     /* Timer for tracking timeout of the request. */
-    uv_timer_t* timeout;
+    uv_timer_t* timer;
 
     /* The output component of this request. */
     output_dnssim_t* dnssim;

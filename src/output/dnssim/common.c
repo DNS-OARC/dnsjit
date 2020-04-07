@@ -79,10 +79,10 @@ static void _create_request(output_dnssim_t* self, _output_dnssim_client_t* clie
 
     req->created_at = uv_now(&_self->loop);
     req->ended_at = req->created_at + self->timeout_ms;
-    lfatal_oom(req->timeout = malloc(sizeof(uv_timer_t)));
-    uv_timer_init(&_self->loop, req->timeout);
-    req->timeout->data = req;
-    uv_timer_start(req->timeout, _on_request_timeout, self->timeout_ms, 0);
+    lfatal_oom(req->timer = malloc(sizeof(uv_timer_t)));
+    uv_timer_init(&_self->loop, req->timer);
+    req->timer->data = req;
+    uv_timer_start(req->timer, _on_request_timeout, self->timeout_ms, 0);
 
     return;
 failure:
@@ -119,7 +119,7 @@ static int _bind_before_connect(output_dnssim_t* self, uv_handle_t* handle)
 
 static void _maybe_free_request(_output_dnssim_request_t* req)
 {
-    if (req->qry == NULL && req->timeout == NULL) {
+    if (req->qry == NULL && req->timer == NULL) {
         if (req->dnssim->free_after_use) {
             core_object_payload_free(req->payload);
         }
@@ -162,9 +162,9 @@ static void _close_request(_output_dnssim_request_t* req)
     req->stats->latency[latency]++;
     req->dnssim->stats_sum->latency[latency]++;
 
-    if (req->timeout != NULL) {
-        uv_timer_stop(req->timeout);
-        uv_close((uv_handle_t*)req->timeout, _close_request_timeout_cb);
+    if (req->timer != NULL) {
+        uv_timer_stop(req->timer);
+        uv_close((uv_handle_t*)req->timer, _close_request_timeout_cb);
     }
 
     /* Finish any queries in flight. */
@@ -179,7 +179,7 @@ static void _close_request_timeout_cb(uv_handle_t* handle)
 {
     _output_dnssim_request_t* req = (_output_dnssim_request_t*)handle->data;
     free(handle);
-    req->timeout = NULL;
+    req->timer = NULL;
     _maybe_free_request(req);
 }
 
