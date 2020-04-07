@@ -47,7 +47,7 @@ static int _process_udp_response(uv_udp_t* handle, ssize_t nread, const uv_buf_t
     return 0;
 }
 
-static void _query_udp_recv_cb(uv_udp_t* handle, ssize_t nread, const uv_buf_t* buf,
+static void _on_udp_query_recv(uv_udp_t* handle, ssize_t nread, const uv_buf_t* buf,
     const struct sockaddr* addr, unsigned flags)
 {
     if (nread > 0) {
@@ -127,7 +127,7 @@ static int _create_query_udp(output_dnssim_t* self, _output_dnssim_request_t* re
     ldebug("sent udp from port: %d", ntohs(src.sin6_port));
 
     // listen for reply
-    ret = uv_udp_recv_start(qry->handle, _uv_alloc_cb, _query_udp_recv_cb);
+    ret = uv_udp_recv_start(qry->handle, _on_uv_alloc, _on_udp_query_recv);
     if (ret < 0) {
         lwarning("failed uv_udp_recv_start(): %s", uv_strerror(ret));
         return ret;

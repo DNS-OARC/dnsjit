@@ -84,7 +84,7 @@ static void _on_idle_timer_closed(uv_handle_t* handle)
     _maybe_free_connection(conn);
 }
 
-static void _write_tcp_query_cb(uv_write_t* wr_req, int status)
+static void _on_tcp_query_written(uv_write_t* wr_req, int status)
 {
     _output_dnssim_query_tcp_t* qry = (_output_dnssim_query_tcp_t*)wr_req->data;
     mlassert(qry->conn, "query must be associated with connection");
@@ -154,7 +154,7 @@ static void _write_tcp_query(_output_dnssim_query_tcp_t* qry, _output_dnssim_con
     }
 
     qry->write_req.data = (void*)qry;
-    uv_write(&qry->write_req, (uv_stream_t*)conn->handle, qry->bufs, 2, _write_tcp_query_cb);
+    uv_write(&qry->write_req, (uv_stream_t*)conn->handle, qry->bufs, 2, _on_tcp_query_written);
     qry->qry.state = _OUTPUT_DNSSIM_QUERY_PENDING_WRITE_CB;
 }
 
@@ -329,7 +329,7 @@ static void _on_tcp_handle_connected(uv_connect_t* conn_req, int status)
     }
 
     mlassert(conn->state == _OUTPUT_DNSSIM_CONN_CONNECTING, "connection state != CONNECTING");
-    int ret = uv_read_start((uv_stream_t*)conn->handle, _uv_alloc_cb, _on_tcp_read);
+    int ret = uv_read_start((uv_stream_t*)conn->handle, _on_uv_alloc, _on_tcp_read);
     if (ret < 0) {
         mlwarning("tcp uv_read_start() failed: %s", uv_strerror(ret));
         _close_connection(conn);

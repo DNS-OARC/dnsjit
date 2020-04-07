@@ -164,7 +164,7 @@ static void _close_request(_output_dnssim_request_t* req)
 
     if (req->timer != NULL) {
         uv_timer_stop(req->timer);
-        uv_close((uv_handle_t*)req->timer, _close_request_timeout_cb);
+        uv_close((uv_handle_t*)req->timer, _on_request_timer_closed);
     }
 
     /* Finish any queries in flight. */
@@ -175,7 +175,7 @@ static void _close_request(_output_dnssim_request_t* req)
     _maybe_free_request(req);
 }
 
-static void _close_request_timeout_cb(uv_handle_t* handle)
+static void _on_request_timer_closed(uv_handle_t* handle)
 {
     _output_dnssim_request_t* req = (_output_dnssim_request_t*)handle->data;
     free(handle);
@@ -279,7 +279,7 @@ static void _request_answered(_output_dnssim_request_t* req, core_object_dns_t* 
     _close_request(req);
 }
 
-static void _uv_alloc_cb(uv_handle_t* handle, size_t suggested_size, uv_buf_t* buf)
+static void _on_uv_alloc(uv_handle_t* handle, size_t suggested_size, uv_buf_t* buf)
 {
     mlfatal_oom(buf->base = malloc(suggested_size));
     buf->len = suggested_size;

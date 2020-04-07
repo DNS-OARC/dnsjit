@@ -275,7 +275,7 @@ void output_dnssim_timeout_ms(output_dnssim_t* self, uint64_t timeout_ms)
     self->stats_first = self->stats_current;
 }
 
-static void _stats_timer_cb(uv_timer_t* handle)
+static void _on_stats_timer_tick(uv_timer_t* handle)
 {
     uint64_t now_ms = _now_ms();
     output_dnssim_t* self = (output_dnssim_t*)handle->data;
@@ -312,7 +312,7 @@ void output_dnssim_stats_collect(output_dnssim_t* self, uint64_t interval_ms)
 
     _self->stats_timer.data = (void*)self;
     uv_timer_init(&_self->loop, &_self->stats_timer);
-    uv_timer_start(&_self->stats_timer, _stats_timer_cb, interval_ms, interval_ms);
+    uv_timer_start(&_self->stats_timer, _on_stats_timer_tick, interval_ms, interval_ms);
 }
 
 void output_dnssim_stats_finish(output_dnssim_t* self)
