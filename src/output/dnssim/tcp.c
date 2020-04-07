@@ -55,9 +55,15 @@ static void _on_tcp_handle_closed(uv_handle_t* handle)
     _move_queries_to_pending((_output_dnssim_query_tcp_t*)conn->sent);
     conn->sent = NULL;
 
-    /* Ensure orhpaned queries are re-sent over a different connection. */
-    if (_handle_pending_queries(conn->client) != 0)
-        mlinfo("tcp: orphaned queries failed to be re-sent");
+    /* TODO Improve client re-connect behavior in case the connection fails to
+     * establish. Currently, queries are orphaned and attempted to be re-sent
+     * along with the next query that triggers a new connection.
+     *
+     * Attempting to establish new connection immediately leads to performance
+     * issues if the number of these attempts doesn't have upper limit. */
+    ///* Ensure orhpaned queries are re-sent over a different connection. */
+    //if (_handle_pending_queries(conn->client) != 0)
+    //    mlinfo("tcp: orphaned queries failed to be re-sent");
 
     mlassert(conn->handle, "conn must have tcp handle when closing it");
     free(conn->handle);
