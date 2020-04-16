@@ -108,7 +108,9 @@ function DnsSim:tls()
     C.output_dnssim_set_transport(self.obj, C.OUTPUT_DNSSIM_TRANSPORT_TLS)
 end
 
--- Set timeout for the individual requests in seconds (default 2s).
+-- Set timeout for the individual requests in seconds (default 2s). Beware:
+-- increasing this value while the target resolver isn't very responsive (cold
+-- cache, heavy load) may degrade shotgun's performance and skew the results.
 function DnsSim:timeout(seconds)
     if seconds == nil then
         seconds = 2
