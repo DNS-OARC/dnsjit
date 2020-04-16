@@ -36,6 +36,7 @@ output_dnssim_t* output_dnssim_new(size_t max_clients)
 
     mlfatal_oom(self = calloc(1, sizeof(_output_dnssim_t)));
     self->handshake_timeout_ms = 5000;
+    self->idle_timeout_ms = 10000;
     output_dnssim_timeout_ms(self, 2000);
 
     _self->source = NULL;

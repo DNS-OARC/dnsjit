@@ -118,11 +118,11 @@ function DnsSim:timeout(seconds)
 end
 
 -- Set TCP connection idle timeout for connection reuse according to RFC7766,
--- Section 6.2.3. Defaults to 0s (closing connections immediately after there
--- are no more pending queries).
+-- Section 6.2.3. When set to zero, connections are closed immediately after
+-- there are no more pending queries. Defaults to 10s.
 function DnsSim:idle_timeout(seconds)
     if seconds == nil then
-        seconds = 0
+        seconds = 10
     end
     self.obj.idle_timeout_ms = math.floor(seconds * 1000)
 end
