@@ -17,24 +17,17 @@
  * You should have received a copy of the GNU General Public License
  * along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
  */
+#include "output/dnssim.h"
 
-static uint64_t _now_ms()
+static void _close_request(_output_dnssim_request_t* req);
+
+static void _on_request_timeout(uv_timer_t* handle)
 {
-#if HAVE_CLOCK_NANOSLEEP
-    struct timespec ts;
-    uint64_t now_ms;
-    if (clock_gettime(CLOCK_REALTIME, &ts)) {
-        mlfatal("clock_gettime()");
-    }
-    now_ms = ts.tv_sec * 1000;
-    now_ms += ts.tv_nsec / 1000000;
-    return now_ms;
-#else
-    mlfatal("clock_gettime() not available");
-#endif
+    _output_dnssim_request_t* req = (_output_dnssim_request_t*)handle->data;
+    _close_request(req);
 }
 
-static void _create_request(output_dnssim_t* self, _output_dnssim_client_t* client, core_object_payload_t* payload)
+void _output_dnssim_create_request(output_dnssim_t* self, _output_dnssim_client_t* client, core_object_payload_t* payload)
 {
     mlassert_self();
 
@@ -64,10 +57,10 @@ static void _create_request(output_dnssim_t* self, _output_dnssim_client_t* clie
     switch(_self->transport) {
     case OUTPUT_DNSSIM_TRANSPORT_UDP_ONLY:
     case OUTPUT_DNSSIM_TRANSPORT_UDP:
-        ret = _create_query_udp(self, req);
+        ret = _output_dnssim_create_query_udp(self, req);
         break;
     case OUTPUT_DNSSIM_TRANSPORT_TCP:
-        ret = _create_query_tcp(self, req);
+        ret = _output_dnssim_create_query_tcp(self, req);
         break;
     default:
         lfatal("unsupported dnssim transport");
@@ -92,7 +85,7 @@ failure:
 }
 
 /* Bind before connect to be able to send from different source IPs. */
-static int _bind_before_connect(output_dnssim_t* self, uv_handle_t* handle)
+int _output_dnssim_bind_before_connect(output_dnssim_t* self, uv_handle_t* handle)
 {
     if (_self->source != NULL) {
         struct sockaddr* addr = (struct sockaddr*)&_self->source->addr;
@@ -117,7 +110,7 @@ static int _bind_before_connect(output_dnssim_t* self, uv_handle_t* handle)
     return 0;
 }
 
-static void _maybe_free_request(_output_dnssim_request_t* req)
+void _output_dnssim_maybe_free_request(_output_dnssim_request_t* req)
 {
     if (req->qry == NULL && req->timer == NULL) {
         if (req->dnssim->free_after_use) {
@@ -132,15 +125,23 @@ static void _close_query(_output_dnssim_query_t* qry)
 {
     switch(qry->transport) {
     case OUTPUT_DNSSIM_TRANSPORT_UDP:
-        _close_query_udp((_output_dnssim_query_udp_t*)qry);
+        _output_dnssim_close_query_udp((_output_dnssim_query_udp_t*)qry);
         break;
     case OUTPUT_DNSSIM_TRANSPORT_TCP:
-        _close_query_tcp((_output_dnssim_query_tcp_t*)qry);
+        _output_dnssim_close_query_tcp((_output_dnssim_query_tcp_t*)qry);
         break;
     default:
         mlfatal("invalid query transport");
         break;
     }
+}
+
+static void _on_request_timer_closed(uv_handle_t* handle)
+{
+    _output_dnssim_request_t* req = (_output_dnssim_request_t*)handle->data;
+    free(handle);
+    req->timer = NULL;
+    _output_dnssim_maybe_free_request(req);
 }
 
 static void _close_request(_output_dnssim_request_t* req)
@@ -172,24 +173,10 @@ static void _close_request(_output_dnssim_request_t* req)
     if (qry != NULL)
         _close_query(qry);
 
-    _maybe_free_request(req);
+    _output_dnssim_maybe_free_request(req);
 }
 
-static void _on_request_timer_closed(uv_handle_t* handle)
-{
-    _output_dnssim_request_t* req = (_output_dnssim_request_t*)handle->data;
-    free(handle);
-    req->timer = NULL;
-    _maybe_free_request(req);
-}
-
-static void _on_request_timeout(uv_timer_t* handle)
-{
-    _output_dnssim_request_t* req = (_output_dnssim_request_t*)handle->data;
-    _close_request(req);
-}
-
-static void _request_answered(_output_dnssim_request_t* req, core_object_dns_t* msg)
+void _output_dnssim_request_answered(_output_dnssim_request_t* req, core_object_dns_t* msg)
 {
     req->dnssim->stats_sum->answers++;
     req->stats->answers++;
@@ -279,7 +266,7 @@ static void _request_answered(_output_dnssim_request_t* req, core_object_dns_t* 
     _close_request(req);
 }
 
-static void _on_uv_alloc(uv_handle_t* handle, size_t suggested_size, uv_buf_t* buf)
+void _output_dnssim_on_uv_alloc(uv_handle_t* handle, size_t suggested_size, uv_buf_t* buf)
 {
     mlfatal_oom(buf->base = malloc(suggested_size));
     buf->len = suggested_size;

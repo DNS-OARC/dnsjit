@@ -17,6 +17,10 @@
  * You should have received a copy of the GNU General Public License
  * along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
  */
+#include "output/dnssim.h"
+
+static void _maybe_close_connection(_output_dnssim_connection_t* conn);
+static void _close_connection(_output_dnssim_connection_t* conn);
 
 static void _maybe_free_connection(_output_dnssim_connection_t* conn)
 {
@@ -101,8 +105,8 @@ static void _on_tcp_query_written(uv_write_t* wr_req, int status)
     if (qry->qry.state == _OUTPUT_DNSSIM_QUERY_PENDING_CLOSE) {
         qry->qry.state = status < 0 ? _OUTPUT_DNSSIM_QUERY_WRITE_FAILED : _OUTPUT_DNSSIM_QUERY_SENT;
         _output_dnssim_request_t* req = qry->qry.req;
-        _close_query_tcp(qry);
-        _maybe_free_request(req);
+        _output_dnssim_close_query_tcp(qry);
+        _output_dnssim_maybe_free_request(req);
         qry = NULL;
     }
 
@@ -199,7 +203,7 @@ int _process_tcp_dnsmsg(_output_dnssim_connection_t* conn)
         if (qry->req->dns_q->id == dns_a.id) {
             /* NOTE: QNAME, QTYPE and QCLASS checking (RFC 7766, Section 7) is
              * omitted, since the MSGID is unique per connection. */
-            _request_answered(qry->req, &dns_a);
+            _output_dnssim_request_answered(qry->req, &dns_a);
             break;
         }
         qry = qry->next;
@@ -335,7 +339,7 @@ static void _on_tcp_handle_connected(uv_connect_t* conn_req, int status)
     }
 
     mlassert(conn->state == _OUTPUT_DNSSIM_CONN_CONNECTING, "connection state != CONNECTING");
-    int ret = uv_read_start((uv_stream_t*)conn->handle, _on_uv_alloc, _on_tcp_read);
+    int ret = uv_read_start((uv_stream_t*)conn->handle, _output_dnssim_on_uv_alloc, _on_tcp_read);
     if (ret < 0) {
         mlwarning("tcp uv_read_start() failed: %s", uv_strerror(ret));
         _close_connection(conn);
@@ -427,7 +431,7 @@ static int _connect_tcp_handle(output_dnssim_t* self, _output_dnssim_connection_
         goto failure;
     }
 
-    ret = _bind_before_connect(self, (uv_handle_t*)conn->handle);
+    ret = _output_dnssim_bind_before_connect(self, (uv_handle_t*)conn->handle);
     if (ret < 0)
         goto failure;
 
@@ -506,7 +510,7 @@ static int _handle_pending_queries(_output_dnssim_client_t* client)
     return ret;
 }
 
-static int _create_query_tcp(output_dnssim_t* self, _output_dnssim_request_t* req)
+int _output_dnssim_create_query_tcp(output_dnssim_t* self, _output_dnssim_request_t* req)
 {
     mlassert_self();
     lassert(req->client, "request must have a client associated with it");
@@ -527,7 +531,7 @@ static int _create_query_tcp(output_dnssim_t* self, _output_dnssim_request_t* re
     return _handle_pending_queries(req->client);
 }
 
-static void _close_query_tcp(_output_dnssim_query_tcp_t* qry)
+void _output_dnssim_close_query_tcp(_output_dnssim_query_tcp_t* qry)
 {
     mlassert(qry, "qry can't be null");
     mlassert(qry->qry.req, "query must be part of a request");

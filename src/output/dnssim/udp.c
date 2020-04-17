@@ -17,6 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
  */
+#include "output/dnssim.h"
 
 static int _process_udp_response(uv_udp_t* handle, ssize_t nread, const uv_buf_t* buf)
 {
@@ -43,7 +44,7 @@ static int _process_udp_response(uv_udp_t* handle, ssize_t nread, const uv_buf_t
         return _ERR_TC;
     }
 
-    _request_answered(req, &dns_a);
+    _output_dnssim_request_answered(req, &dns_a);
     return 0;
 }
 
@@ -73,10 +74,10 @@ static void _on_query_udp_closed(uv_handle_t* handle)
     free(qry);
 
     if (req->qry == NULL)
-        _maybe_free_request(req);
+        _output_dnssim_maybe_free_request(req);
 }
 
-static void _close_query_udp(_output_dnssim_query_udp_t* qry)
+void _output_dnssim_close_query_udp(_output_dnssim_query_udp_t* qry)
 {
     int ret;
 
@@ -88,7 +89,7 @@ static void _close_query_udp(_output_dnssim_query_udp_t* qry)
     uv_close((uv_handle_t*)qry->handle, _on_query_udp_closed);
 }
 
-static int _create_query_udp(output_dnssim_t* self, _output_dnssim_request_t* req)
+int _output_dnssim_create_query_udp(output_dnssim_t* self, _output_dnssim_request_t* req)
 {
     mlassert_self();
 
@@ -110,7 +111,7 @@ static int _create_query_udp(output_dnssim_t* self, _output_dnssim_request_t* re
     }
     _ll_append(req->qry, &qry->qry);
 
-    ret = _bind_before_connect(self, (uv_handle_t*)qry->handle);
+    ret = _output_dnssim_bind_before_connect(self, (uv_handle_t*)qry->handle);
     if (ret < 0)
         return ret;
 
@@ -127,7 +128,7 @@ static int _create_query_udp(output_dnssim_t* self, _output_dnssim_request_t* re
     ldebug("sent udp from port: %d", ntohs(src.sin6_port));
 
     // listen for reply
-    ret = uv_udp_recv_start(qry->handle, _on_uv_alloc, _on_udp_query_recv);
+    ret = uv_udp_recv_start(qry->handle, _output_dnssim_on_uv_alloc, _on_udp_query_recv);
     if (ret < 0) {
         lwarning("failed uv_udp_recv_start(): %s", uv_strerror(ret));
         return ret;

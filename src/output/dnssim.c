@@ -19,10 +19,21 @@
  */
 #include "output/dnssim.h"
 
-#include "output/dnssim/common.c"
-#include "output/dnssim/udp.c"
-#include "output/dnssim/tcp.c"
-
+static uint64_t _now_ms()
+{
+#if HAVE_CLOCK_NANOSLEEP
+    struct timespec ts;
+    uint64_t now_ms;
+    if (clock_gettime(CLOCK_REALTIME, &ts)) {
+        mlfatal("clock_gettime()");
+    }
+    now_ms = ts.tv_sec * 1000;
+    now_ms += ts.tv_nsec / 1000000;
+    return now_ms;
+#else
+    mlfatal("clock_gettime() not available");
+#endif
+}
 
 core_log_t* output_dnssim_log()
 {
@@ -171,7 +182,7 @@ static void _receive(output_dnssim_t* self, const core_object_t* obj)
     }
 
     ldebug("client(c): %d", client);
-    _create_request(self, &_self->client_arr[client], payload);
+    _output_dnssim_create_request(self, &_self->client_arr[client], payload);
 }
 
 core_receiver_t output_dnssim_receiver()

@@ -222,21 +222,15 @@ struct _output_dnssim {
  * Forward function declarations.
  */
 
-static int _bind_before_connect(output_dnssim_t* self, uv_handle_t* handle);
-static int _create_query_udp(output_dnssim_t* self, _output_dnssim_request_t* req);
-static int _create_query_tcp(output_dnssim_t* self, _output_dnssim_request_t* req);
-static void _close_query_udp(_output_dnssim_query_udp_t* qry);
-static void _close_query_tcp(_output_dnssim_query_tcp_t* qry);
-static void _on_request_timer_closed(uv_handle_t* handle);
-static void _on_request_timeout(uv_timer_t* handle);
-static void _maybe_close_connection(_output_dnssim_connection_t* conn);
-static void _close_connection(_output_dnssim_connection_t* conn);
-static void _request_answered(_output_dnssim_request_t* req, core_object_dns_t* msg);
-static void _close_request(_output_dnssim_request_t* req);
-static void _maybe_free_request(_output_dnssim_request_t* req);
-static void _close_query(_output_dnssim_query_t* qry);
-static void _on_uv_alloc(uv_handle_t* handle, size_t suggested_size, uv_buf_t* buf);
-static int _handle_pending_queries(_output_dnssim_client_t* client);
+int _output_dnssim_bind_before_connect(output_dnssim_t* self, uv_handle_t* handle);
+int _output_dnssim_create_query_udp(output_dnssim_t* self, _output_dnssim_request_t* req);
+int _output_dnssim_create_query_tcp(output_dnssim_t* self, _output_dnssim_request_t* req);
+void _output_dnssim_close_query_udp(_output_dnssim_query_udp_t* qry);
+void _output_dnssim_close_query_tcp(_output_dnssim_query_tcp_t* qry);
+void _output_dnssim_request_answered(_output_dnssim_request_t* req, core_object_dns_t* msg);
+void _output_dnssim_maybe_free_request(_output_dnssim_request_t* req);
+void _output_dnssim_on_uv_alloc(uv_handle_t* handle, size_t suggested_size, uv_buf_t* buf);
+void _output_dnssim_create_request(output_dnssim_t* self, _output_dnssim_client_t* client, core_object_payload_t* payload);
 
 
 /*
