@@ -26,16 +26,21 @@
 --   -- repeatedly call output:run_nowait() until it returns 0
 --
 -- Output module for simulating traffic from huge number of independent,
--- individual DNS clients. Uses libuv for asynchronous communication. There
--- may only be a single dnssim in a thread. Use dnsjit.core.thread to have
--- multiple dnssim instances.
+-- individual DNS clients.
+-- Uses libuv for asynchronous communication.
+-- There may only be a single dnssim in a thread.
+-- Use
+-- .I dnsjit.core.thread
+-- to have multiple dnssim instances.
 -- .P
 -- With proper use of this component, it is possible to simulate hundreds of
--- thousands of clients when using a high-performance server. This also applies
--- for stateful transports. The complete set-up is quite complex and requires
--- other components. See DNS Shotgun for dnsjit scripts ready for use for
--- high-performance benchmarking.
--- .IR https://gitlab.labs.nic.cz/knot/shotgun
+-- thousands of clients when using a high-performance server.
+-- This also applies for state-full transports.
+-- The complete set-up is quite complex and requires other components.
+-- See DNS Shotgun
+-- .RI ( https://gitlab.labs.nic.cz/knot/shotgun )
+-- for dnsjit scripts ready for use for high-performance
+-- benchmarking.
 module(...,package.seeall)
 
 require("dnsjit.output.dnssim_h")
@@ -66,7 +71,7 @@ function DnsSim:log()
     return self.obj._log
 end
 
--- Set the target server where queries will be sent to. Returns 0 on success.
+-- Set the target server where queries will be sent to, returns 0 on success.
 --
 -- Only IPv6 target are supported for now.
 function DnsSim:target(ip, port)
@@ -82,18 +87,21 @@ function DnsSim:target(ip, port)
     return C.output_dnssim_target(self.obj, ip, nport)
 end
 
--- Specify source address for sending queries. Can be set multiple times. Adresses
--- are selected round-robin when sending.
+-- Specify source address for sending queries.
+-- Can be set multiple times.
+-- Adresses are selected round-robin when sending.
 function DnsSim:bind(ip)
     return C.output_dnssim_bind(self.obj, ip)
 end
+
 -- Set the transport to UDP (without any TCP fallback).
 function DnsSim:udp_only()
     C.output_dnssim_set_transport(self.obj, C.OUTPUT_DNSSIM_TRANSPORT_UDP_ONLY)
 end
 
--- Set the preferred transport to UDP. This transport falls back to TCP
--- for individual queries if TC bit is set in received answer.
+-- Set the preferred transport to UDP.
+-- This transport falls back to TCP for individual queries if TC bit is set
+-- in received answer.
 function DnsSim:udp()
     C.output_dnssim_set_transport(self.obj, C.OUTPUT_DNSSIM_TRANSPORT_UDP)
 end
@@ -108,9 +116,12 @@ function DnsSim:tls()
     C.output_dnssim_set_transport(self.obj, C.OUTPUT_DNSSIM_TRANSPORT_TLS)
 end
 
--- Set timeout for the individual requests in seconds (default 2s). Beware:
--- increasing this value while the target resolver isn't very responsive (cold
--- cache, heavy load) may degrade shotgun's performance and skew the results.
+-- Set timeout for the individual requests in seconds (default 2s).
+--
+-- .BR Beware :
+-- increasing this value while the target resolver isn't very responsive
+-- (cold cache, heavy load) may degrade shotgun's performance and skew
+-- the results.
 function DnsSim:timeout(seconds)
     if seconds == nil then
         seconds = 2
@@ -120,8 +131,9 @@ function DnsSim:timeout(seconds)
 end
 
 -- Set TCP connection idle timeout for connection reuse according to RFC7766,
--- Section 6.2.3. When set to zero, connections are closed immediately after
--- there are no more pending queries. Defaults to 10s.
+-- Section 6.2.3 (defaults to 10s).
+-- When set to zero, connections are closed immediately after there are no
+-- more pending queries.
 function DnsSim:idle_timeout(seconds)
     if seconds == nil then
         seconds = 10
@@ -129,24 +141,28 @@ function DnsSim:idle_timeout(seconds)
     self.obj.idle_timeout_ms = math.floor(seconds * 1000)
 end
 
--- Set TCP connection handshake timeout. During heavy load, the server may no
--- longer accept new connections. This parameter ensures such connection
--- attempts are aborted after the timeout expires. Defaults to 5s.
+-- Set TCP connection handshake timeout (defaults to 5s).
+-- During heavy load, the server may no longer accept new connections.
+-- This parameter ensures such connection attempts are aborted after the
+-- timeout expires.
 function DnsSim:handshake_timeout(seconds)
     if seconds == nil then
         seconds = 5
     end
     self.obj.handshake_timeout_ms = math.floor(seconds * 1000)
 end
--- Run the libuv loop once without blocking when there is no I/O. This
--- should be called repeatedly until 0 is returned and no more data
+
+-- Run the libuv loop once without blocking when there is no I/O.
+-- This should be called repeatedly until 0 is returned and no more data
 -- is expected to be received by DnsSim.
 function DnsSim:run_nowait()
     return C.output_dnssim_run_nowait(self.obj)
 end
 
--- Set this to true if dnssim should free the memory of passed-in objects (useful
--- when using dnsjit.filter.copy to pass objects from different thread).
+-- Set this to true if dnssim should free the memory of passed-in objects
+-- (useful when using
+-- .I dnsjit.filter.copy
+-- to pass objects from different thread).
 function DnsSim:free_after_use(free_after_use)
     self.obj.free_after_use = free_after_use
 end
@@ -262,10 +278,15 @@ function DnsSim:export(filename)
     self.obj._log:notice("results exported to "..filename)
 end
 
--- Return the C function and context for receiving objects. Only ip/ip6 objects
--- are supported.  The component expects a 32bit integer (in host order)
--- ranging from 0 to max_clients written to first 4 bytes of destination IP.
--- See dnsjit.filter.ipsplit.
+-- Return the C function and context for receiving objects.
+-- Only
+-- .IR dnsjit.filter.core.object.ip or
+-- .I dnsjit.filter.core.object.ip6
+-- objects are supported.
+-- The component expects a 32bit integer (in host order) ranging from 0
+-- to max_clients written to first 4 bytes of destination IP.
+-- See
+-- .IR dnsjit.filter.ipsplit .
 function DnsSim:receive()
     local receive = C.output_dnssim_receiver()
     return receive, self.obj

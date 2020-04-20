@@ -19,15 +19,11 @@
  */
 
 #include "core/log.h"
-#include "core/object/ip.h"
-#include "core/object/ip6.h"
 #include "core/receiver.h"
 
 #ifndef __dnsjit_filter_ipsplit_h
 #define __dnsjit_filter_ipsplit_h
 
-#include <string.h>
-#include "contrib/trie.h"
 #include "filter/ipsplit.hh"
 
 #endif

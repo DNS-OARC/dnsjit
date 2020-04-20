@@ -17,19 +17,22 @@
  * You should have received a copy of the GNU General Public License
  * along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
  */
+
 #ifndef __dnsjit_output_dnssim_internal_h
 #define __dnsjit_output_dnssim_internal_h
+
+#include <uv.h>
+#include "core/object/dns.h"
+#include "core/object/payload.h"
 
 #define _self ((_output_dnssim_t*)self)
 #define _ERR_MALFORMED -2
 #define _ERR_MSGID -3
 #define _ERR_TC -4
 
-
-typedef struct _output_dnssim_request _output_dnssim_request_t;
+typedef struct _output_dnssim_request    _output_dnssim_request_t;
 typedef struct _output_dnssim_connection _output_dnssim_connection_t;
-typedef struct _output_dnssim_client _output_dnssim_client_t;
-
+typedef struct _output_dnssim_client     _output_dnssim_client_t;
 
 /*
  * Query-related structures.
@@ -66,7 +69,7 @@ struct _output_dnssim_query_udp {
     _output_dnssim_query_t qry;
 
     uv_udp_t* handle;
-    uv_buf_t buf;
+    uv_buf_t  buf;
 };
 
 typedef struct _output_dnssim_query_tcp _output_dnssim_query_tcp_t;
@@ -91,7 +94,7 @@ struct _output_dnssim_request {
 
     /* The DNS question to be resolved. */
     core_object_payload_t* payload;
-    core_object_dns_t* dns_q;
+    core_object_dns_t*     dns_q;
 
     /* Timestamps for latency calculation. */
     uint64_t created_at;
@@ -113,7 +116,6 @@ struct _output_dnssim_request {
     output_dnssim_stats_t* stats;
 };
 
-
 /*
  * Connection-related structures.
  */
@@ -121,8 +123,8 @@ struct _output_dnssim_request {
 /* Read-state of connection's data stream. */
 typedef enum _output_dnssim_read_state {
     _OUTPUT_DNSSIM_READ_STATE_CLEAN,
-    _OUTPUT_DNSSIM_READ_STATE_DNSLEN,   /* Expecting bytes of dnslen. */
-    _OUTPUT_DNSSIM_READ_STATE_DNSMSG,   /* Expecting bytes of dnsmsg. */
+    _OUTPUT_DNSSIM_READ_STATE_DNSLEN, /* Expecting bytes of dnslen. */
+    _OUTPUT_DNSSIM_READ_STATE_DNSMSG, /* Expecting bytes of dnsmsg. */
     _OUTPUT_DNSSIM_READ_STATE_INVALID
 } _output_dnssim_read_state_t;
 
@@ -136,7 +138,7 @@ struct _output_dnssim_connection {
 
     /* Idle timer for connection reuse. rfc7766#section-6.2.3 */
     uv_timer_t* idle_timer;
-    bool is_idle;
+    bool        is_idle;
 
     /* List of queries that have been queued (pending write callback). */
     _output_dnssim_query_t* queued;
@@ -167,12 +169,11 @@ struct _output_dnssim_connection {
 
     /* Receive buffer used for incomplete messages or dnslen. */
     char* recv_data;
-    bool recv_free_after_use;
+    bool  recv_free_after_use;
 
     /* Statistics interval in which the handshake is tracked. */
     output_dnssim_stats_t* stats;
 };
-
 
 /*
  * Client structure.
@@ -191,7 +192,6 @@ struct _output_dnssim_client {
     _output_dnssim_query_t* pending;
 };
 
-
 /*
  * DnsSim-related structures.
  */
@@ -199,24 +199,23 @@ struct _output_dnssim_client {
 typedef struct _output_dnssim_source _output_dnssim_source_t;
 struct _output_dnssim_source {
     _output_dnssim_source_t* next;
-    struct sockaddr_storage addr;
+    struct sockaddr_storage  addr;
 };
 
 typedef struct _output_dnssim _output_dnssim_t;
 struct _output_dnssim {
     output_dnssim_t pub;
 
-    uv_loop_t loop;
+    uv_loop_t  loop;
     uv_timer_t stats_timer;
 
-    struct sockaddr_storage target;
-    _output_dnssim_source_t* source;
+    struct sockaddr_storage   target;
+    _output_dnssim_source_t*  source;
     output_dnssim_transport_t transport;
 
     /* Array of clients, mapped by client ID (ranges from 0 to max_clients). */
     _output_dnssim_client_t* client_arr;
 };
-
 
 /*
  * Forward function declarations.
@@ -231,12 +230,5 @@ void _output_dnssim_request_answered(_output_dnssim_request_t* req, core_object_
 void _output_dnssim_maybe_free_request(_output_dnssim_request_t* req);
 void _output_dnssim_on_uv_alloc(uv_handle_t* handle, size_t suggested_size, uv_buf_t* buf);
 void _output_dnssim_create_request(output_dnssim_t* self, _output_dnssim_client_t* client, core_object_payload_t* payload);
-
-
-/*
- * Defaults.
- */
-
-static core_log_t _log = LOG_T_INIT("output.dnssim");
 
 #endif

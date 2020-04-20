@@ -18,27 +18,14 @@
  * along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "config.h"
-#include "core/assert.h"
 #include "core/log.h"
-#include "core/object/dns.h"
-#include "core/object/ip.h"
-#include "core/object/ip6.h"
-#include "core/object/payload.h"
-#include "core/producer.h"
 #include "core/receiver.h"
 
 #ifndef __dnsjit_output_dnssim_h
 #define __dnsjit_output_dnssim_h
 
 #include <stdbool.h>
-#include <stddef.h>
-#include <stdint.h>
-#include <uv.h>
-#include <ck_ring.h>
 
 #include "output/dnssim.hh"
-#include "output/dnssim/internal.h"
-#include "output/dnssim/ll.h"
 
 #endif

@@ -28,7 +28,7 @@ AM_CFLAGS = -I$(srcdir) \
   $(SIMD_FLAGS) $(CPUEXT_FLAGS) \
   $(PTHREAD_CFLAGS) \
   $(luajit_CFLAGS) \
-  -fno-strict-aliasing
+  $(libuv_CFLAGS)
 
 EXTRA_DIST = gen-manpage.lua gen-compat.lua gen-errno.sh dnsjit.1in
 
@@ -41,7 +41,7 @@ dist_dnsjit_SOURCES = core.lua lib.lua input.lua filter.lua globals.h \
   output.lua contrib/trie.h
 lua_hobjects = core/compat.luaho
 lua_objects = core.luao lib.luao input.luao filter.luao output.luao
-dnsjit_LDADD = $(PTHREAD_LIBS) $(luajit_LIBS)
+dnsjit_LDADD = $(PTHREAD_LIBS) $(luajit_LIBS) $(libuv_LIBS)
 
 # C source and headers';
 

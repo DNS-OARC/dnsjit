@@ -17,29 +17,38 @@
  * You should have received a copy of the GNU General Public License
  * along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
  */
+
+#include "config.h"
+
 #include "output/dnssim.h"
+#include "output/dnssim/internal.h"
+#include "output/dnssim/ll.h"
+#include "core/assert.h"
+
+#include <string.h>
+
+static core_log_t _log = LOG_T_INIT("output.dnssim");
 
 static void _close_request(_output_dnssim_request_t* req);
 
 static void _on_request_timeout(uv_timer_t* handle)
 {
-    _output_dnssim_request_t* req = (_output_dnssim_request_t*)handle->data;
-    _close_request(req);
+    _close_request((_output_dnssim_request_t*)handle->data);
 }
 
 void _output_dnssim_create_request(output_dnssim_t* self, _output_dnssim_client_t* client, core_object_payload_t* payload)
 {
-    mlassert_self();
-
-    int ret;
+    int                       ret;
     _output_dnssim_request_t* req;
+    mlassert_self();
+    lassert(client, "client is nil");
+    lassert(payload, "payload is nil");
 
-    lfatal_oom(req = malloc(sizeof(_output_dnssim_request_t)));
-    memset(req, 0, sizeof(_output_dnssim_request_t));
-    req->dnssim = self;
-    req->client = client;
-    req->payload = payload;
-    req->dns_q = core_object_dns_new();
+    lfatal_oom(req = calloc(1, sizeof(_output_dnssim_request_t)));
+    req->dnssim          = self;
+    req->client          = client;
+    req->payload         = payload;
+    req->dns_q           = core_object_dns_new();
     req->dns_q->obj_prev = (core_object_t*)req->payload;
     req->dnssim->ongoing++;
     req->state = _OUTPUT_DNSSIM_REQ_ONGOING;
@@ -54,7 +63,7 @@ void _output_dnssim_create_request(output_dnssim_t* self, _output_dnssim_client_
     req->dnssim->stats_sum->requests++;
     req->stats->requests++;
 
-    switch(_self->transport) {
+    switch (_self->transport) {
     case OUTPUT_DNSSIM_TRANSPORT_UDP_ONLY:
     case OUTPUT_DNSSIM_TRANSPORT_UDP:
         ret = _output_dnssim_create_query_udp(self, req);
@@ -71,7 +80,7 @@ void _output_dnssim_create_request(output_dnssim_t* self, _output_dnssim_client_
     }
 
     req->created_at = uv_now(&_self->loop);
-    req->ended_at = req->created_at + self->timeout_ms;
+    req->ended_at   = req->created_at + self->timeout_ms;
     lfatal_oom(req->timer = malloc(sizeof(uv_timer_t)));
     uv_timer_init(&_self->loop, req->timer);
     req->timer->data = req;
@@ -87,10 +96,13 @@ failure:
 /* Bind before connect to be able to send from different source IPs. */
 int _output_dnssim_bind_before_connect(output_dnssim_t* self, uv_handle_t* handle)
 {
+    mlassert_self();
+    lassert(handle, "handle is nil");
+
     if (_self->source != NULL) {
         struct sockaddr* addr = (struct sockaddr*)&_self->source->addr;
-        int ret;
-        switch(handle->type) {
+        int              ret  = -1;
+        switch (handle->type) {
         case UV_UDP:
             ret = uv_udp_bind((uv_udp_t*)handle, addr, 0);
             break;
@@ -112,6 +124,8 @@ int _output_dnssim_bind_before_connect(output_dnssim_t* self, uv_handle_t* handl
 
 void _output_dnssim_maybe_free_request(_output_dnssim_request_t* req)
 {
+    mlassert(req, "req is nil");
+
     if (req->qry == NULL && req->timer == NULL) {
         if (req->dnssim->free_after_use) {
             core_object_payload_free(req->payload);
@@ -123,7 +137,9 @@ void _output_dnssim_maybe_free_request(_output_dnssim_request_t* req)
 
 static void _close_query(_output_dnssim_query_t* qry)
 {
-    switch(qry->transport) {
+    mlassert(qry, "qry is nil");
+
+    switch (qry->transport) {
     case OUTPUT_DNSSIM_TRANSPORT_UDP:
         _output_dnssim_close_query_udp((_output_dnssim_query_udp_t*)qry);
         break;
@@ -139,6 +155,7 @@ static void _close_query(_output_dnssim_query_t* qry)
 static void _on_request_timer_closed(uv_handle_t* handle)
 {
     _output_dnssim_request_t* req = (_output_dnssim_request_t*)handle->data;
+    mlassert(req, "req is nil");
     free(handle);
     req->timer = NULL;
     _output_dnssim_maybe_free_request(req);
@@ -155,10 +172,10 @@ static void _close_request(_output_dnssim_request_t* req)
     /* Calculate latency. */
     uint64_t latency;
     req->ended_at = uv_now(&((_output_dnssim_t*)req->dnssim)->loop);
-    latency = req->ended_at - req->created_at;
+    latency       = req->ended_at - req->created_at;
     if (latency > req->dnssim->timeout_ms) {
         req->ended_at = req->created_at + req->dnssim->timeout_ms;
-        latency = req->dnssim->timeout_ms;
+        latency       = req->dnssim->timeout_ms;
     }
     req->stats->latency[latency]++;
     req->dnssim->stats_sum->latency[latency]++;
@@ -178,10 +195,13 @@ static void _close_request(_output_dnssim_request_t* req)
 
 void _output_dnssim_request_answered(_output_dnssim_request_t* req, core_object_dns_t* msg)
 {
+    mlassert(req, "req is nil");
+    mlassert(msg, "msg is nil");
+
     req->dnssim->stats_sum->answers++;
     req->stats->answers++;
 
-    switch(msg->rcode) {
+    switch (msg->rcode) {
     case CORE_OBJECT_DNS_RCODE_NOERROR:
         req->dnssim->stats_sum->rcode_noerror++;
         req->stats->rcode_noerror++;

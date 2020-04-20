@@ -85,7 +85,7 @@ typedef struct output_dnssim {
     output_dnssim_stats_t* stats_first;
 
     size_t max_clients;
-    bool free_after_use;
+    bool   free_after_use;
 
     uint64_t timeout_ms;
     uint64_t idle_timeout_ms;
