@@ -20,6 +20,7 @@ BuildRequires:  luajit-devel >= 2.0.0
 BuildRequires:  lmdb-devel
 BuildRequires:  ck-devel
 BuildRequires:  gnutls-devel
+BuildRequires:  libuv-devel
 BuildRequires:  autoconf >= 2.64
 BuildRequires:  automake
 BuildRequires:  libtool
