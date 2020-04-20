@@ -34,7 +34,7 @@ test5.sh: dns.pcap-dist
 
 test6.sh: dns.pcap-dist
 
-test-ipsplit.sh: pellets.pcap-dist
+test-ipsplit.sh: pellets.pcap-dist dns.pcap-dist
 
 .pcap.pcap-dist:
 	cp "$<" "$@"

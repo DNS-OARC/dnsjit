@@ -22,6 +22,11 @@
 
 #include "filter/ipsplit.h"
 #include "core/assert.h"
+#include "core/object/ip.h"
+#include "core/object/ip6.h"
+#include "contrib/trie.h"
+
+#include <string.h>
 
 typedef struct _filter_ipsplit {
     filter_ipsplit_t pub;
@@ -58,8 +63,8 @@ filter_ipsplit_t* filter_ipsplit_new()
     filter_ipsplit_t* self;
 
     mlfatal_oom(self = malloc(sizeof(_filter_ipsplit_t)));
-    *self               = _defaults;
-    _self->trie         = trie_create(NULL);
+    *self = _defaults;
+    lfatal_oom(_self->trie = trie_create(NULL));
     _self->weight_total = 0;
 
     return self;
@@ -138,7 +143,7 @@ void filter_ipsplit_srand(uint32_t seed)
 
 static void _assign_client_to_receiver(filter_ipsplit_t* self, _client_t* client)
 {
-    uint32_t               id = 0;
+    uint32_t               id   = 0;
     filter_ipsplit_recv_t* recv = 0;
 
     switch (self->mode) {
@@ -178,8 +183,8 @@ static void _assign_client_to_receiver(filter_ipsplit_t* self, _client_t* client
 static void _overwrite(filter_ipsplit_t* self, core_object_t* obj, _client_t* client)
 {
     mlassert_self();
-    mlassert(obj, "invalid object");
-    mlassert(client, "invalid client");
+    lassert(obj, "invalid object");
+    lassert(client, "invalid client");
 
     core_object_ip_t*  ip;
     core_object_ip6_t* ip6;
@@ -259,6 +264,8 @@ static void _receive(filter_ipsplit_t* self, const core_object_t* obj)
 
 core_receiver_t filter_ipsplit_receiver(filter_ipsplit_t* self)
 {
+    mlassert_self();
+
     if (!self->recv) {
         lfatal("no receiver(s) set");
     }

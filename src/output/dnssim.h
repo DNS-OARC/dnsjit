@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019-2020 CZ.NIC, z.s.p.o.
+ * Copyright (c) 2019, CZ.NIC, z.s.p.o.
  * All rights reserved.
  *
  * This file is part of dnsjit.
@@ -21,9 +21,11 @@
 #include "core/log.h"
 #include "core/receiver.h"
 
-#ifndef __dnsjit_filter_ipsplit_h
-#define __dnsjit_filter_ipsplit_h
+#ifndef __dnsjit_output_dnssim_h
+#define __dnsjit_output_dnssim_h
 
-#include "filter/ipsplit.hh"
+#include <stdbool.h>
+
+#include "output/dnssim.hh"
 
 #endif

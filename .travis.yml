@@ -9,6 +9,7 @@ addons:
     - liblmdb-dev
     - libck-dev
     - libgnutls28-dev
+    - libuv1-dev
 language: c
 compiler:
   - clang

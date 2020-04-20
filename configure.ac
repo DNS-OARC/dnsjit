@@ -74,6 +74,7 @@ if test "x$ac_cv_path_LUAJIT" = "x"; then
 fi
 AC_CHECK_HEADERS([lmdb.h])
 AC_CHECK_LIB([lmdb], [mdb_env_create])
+PKG_CHECK_MODULES([libuv], [libuv])
 PKG_CHECK_MODULES([ck], [ck >= 0], [
   AS_VAR_APPEND([CFLAGS], [" $ck_CFLAGS"])
   AS_VAR_APPEND([LIBS], [" $ck_LIBS"])
