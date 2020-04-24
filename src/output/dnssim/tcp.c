@@ -204,8 +204,8 @@ int _process_tcp_dnsmsg(_output_dnssim_connection_t* conn)
     core_object_payload_t payload = CORE_OBJECT_PAYLOAD_INIT(NULL);
     core_object_dns_t     dns_a   = CORE_OBJECT_DNS_INIT(&payload);
 
-    payload.payload = (uint8_t*)conn->recv_data;
-    payload.len     = conn->recv_len;
+    payload.payload = (uint8_t*)conn->dnsbuf_data;
+    payload.len     = conn->dnsbuf_len;
 
     dns_a.obj_prev = (core_object_t*)&payload;
     int ret        = core_object_dns_parse_header(&dns_a);
@@ -229,17 +229,17 @@ int _process_tcp_dnsmsg(_output_dnssim_connection_t* conn)
     return 0;
 }
 
-int _parse_recv_data(_output_dnssim_connection_t* conn)
+int _parse_dnsbuf_data(_output_dnssim_connection_t* conn)
 {
     mlassert(conn, "conn can't be nil");
-    mlassert(conn->recv_pos == conn->recv_len, "attempt to parse incomplete recv_data");
+    mlassert(conn->dnsbuf_pos == conn->dnsbuf_len, "attempt to parse incomplete dnsbuf_data");
     int ret = 0;
 
     switch (conn->read_state) {
     case _OUTPUT_DNSSIM_READ_STATE_DNSLEN: {
-        uint16_t* p_dnslen = (uint16_t*)conn->recv_data;
-        conn->recv_len     = ntohs(*p_dnslen);
-        mldebug("tcp dnslen: %d", conn->recv_len);
+        uint16_t* p_dnslen = (uint16_t*)conn->dnsbuf_data;
+        conn->dnsbuf_len     = ntohs(*p_dnslen);
+        mldebug("tcp dnslen: %d", conn->dnsbuf_len);
         conn->read_state = _OUTPUT_DNSSIM_READ_STATE_DNSMSG;
         break;
     }
@@ -248,7 +248,7 @@ int _parse_recv_data(_output_dnssim_connection_t* conn)
         if (ret) {
             conn->read_state = _OUTPUT_DNSSIM_READ_STATE_INVALID;
         } else {
-            conn->recv_len   = 2;
+            conn->dnsbuf_len   = 2;
             conn->read_state = _OUTPUT_DNSSIM_READ_STATE_DNSLEN;
         }
         break;
@@ -257,12 +257,12 @@ int _parse_recv_data(_output_dnssim_connection_t* conn)
         break;
     }
 
-    conn->recv_pos = 0;
-    if (conn->recv_free_after_use) {
-        conn->recv_free_after_use = false;
-        free(conn->recv_data);
+    conn->dnsbuf_pos = 0;
+    if (conn->dnsbuf_free_after_use) {
+        conn->dnsbuf_free_after_use = false;
+        free(conn->dnsbuf_data);
     }
-    conn->recv_data = NULL;
+    conn->dnsbuf_data = NULL;
 
     return ret;
 }
@@ -277,34 +277,34 @@ unsigned int _read_tcp_stream(_output_dnssim_connection_t* conn, size_t len, con
 
     int          ret = 0;
     unsigned int nread;
-    size_t       expected = conn->recv_len - conn->recv_pos;
+    size_t       expected = conn->dnsbuf_len - conn->dnsbuf_pos;
     mlassert(expected > 0, "no data expected");
 
-    if (conn->recv_free_after_use == false && expected > len) {
+    if (conn->dnsbuf_free_after_use == false && expected > len) {
         /* Start of partial read. */
-        mlassert(conn->recv_pos == 0, "conn->recv_pos must be 0 at start of partial read");
-        mlassert(conn->recv_len > 0, "conn->recv_len must be set at start of partial read");
-        mlfatal_oom(conn->recv_data = malloc(conn->recv_len * sizeof(char)));
-        conn->recv_free_after_use = true;
+        mlassert(conn->dnsbuf_pos == 0, "conn->dnsbuf_pos must be 0 at start of partial read");
+        mlassert(conn->dnsbuf_len > 0, "conn->dnsbuf_len must be set at start of partial read");
+        mlfatal_oom(conn->dnsbuf_data = malloc(conn->dnsbuf_len * sizeof(char)));
+        conn->dnsbuf_free_after_use = true;
     }
 
-    if (conn->recv_free_after_use) { /* Partial read is in progress. */
-        char* dest = conn->recv_data + conn->recv_pos;
+    if (conn->dnsbuf_free_after_use) { /* Partial read is in progress. */
+        char* dest = conn->dnsbuf_data + conn->dnsbuf_pos;
         if (expected < len)
             len = expected;
         memcpy(dest, data, len);
-        conn->recv_pos += len;
+        conn->dnsbuf_pos += len;
         nread = len;
     } else { /* Complete and clean read. */
         mlassert(expected <= len, "not enough data to perform complete read");
-        conn->recv_data = (char*)data;
-        conn->recv_pos  = conn->recv_len;
+        conn->dnsbuf_data = (char*)data;
+        conn->dnsbuf_pos  = conn->dnsbuf_len;
         nread           = expected;
     }
 
     /* If entire dnslen/dnsmsg was read, attempt to parse it. */
-    if (conn->recv_len == conn->recv_pos) {
-        ret = _parse_recv_data(conn);
+    if (conn->dnsbuf_len == conn->dnsbuf_pos) {
+        ret = _parse_dnsbuf_data(conn);
         if (ret < 0)
             return ret;
     }
@@ -366,9 +366,9 @@ static void _on_tcp_handle_connected(uv_connect_t* conn_req, int status)
     conn->state = _OUTPUT_DNSSIM_CONN_ACTIVE;
     conn->client->dnssim->stats_current->conn_active++;
     conn->read_state          = _OUTPUT_DNSSIM_READ_STATE_DNSLEN;
-    conn->recv_len            = 2;
-    conn->recv_pos            = 0;
-    conn->recv_free_after_use = false;
+    conn->dnsbuf_len            = 2;
+    conn->dnsbuf_pos            = 0;
+    conn->dnsbuf_free_after_use = false;
 
     _send_pending_queries(conn);
     _maybe_close_connection(conn);

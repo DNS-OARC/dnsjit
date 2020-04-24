@@ -161,15 +161,15 @@ struct _output_dnssim_connection {
     /* State of the data stream read. */
     _output_dnssim_read_state_t read_state;
 
-    /* Total length of the expected stream data (either 2 for dnslen, or dnslen itself). */
-    size_t recv_len;
+    /* Total length of the expected dns data (either 2 for dnslen, or dnslen itself). */
+    size_t dnsbuf_len;
 
-    /* Current position in the receive buffer. */
-    size_t recv_pos;
+    /* Current position in the receive dns buffer. */
+    size_t dnsbuf_pos;
 
     /* Receive buffer used for incomplete messages or dnslen. */
-    char* recv_data;
-    bool  recv_free_after_use;
+    char* dnsbuf_data;
+    bool  dnsbuf_free_after_use;
 
     /* Statistics interval in which the handshake is tracked. */
     output_dnssim_stats_t* stats;
