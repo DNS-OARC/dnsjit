@@ -152,7 +152,7 @@ struct _output_dnssim_connection {
     /* State of the connection. */
     enum {
         _OUTPUT_DNSSIM_CONN_INITIALIZED,
-        _OUTPUT_DNSSIM_CONN_CONNECTING,
+        _OUTPUT_DNSSIM_CONN_TCP_HANDSHAKE,
         _OUTPUT_DNSSIM_CONN_ACTIVE,
         _OUTPUT_DNSSIM_CONN_CLOSING,
         _OUTPUT_DNSSIM_CONN_CLOSED
@@ -230,5 +230,6 @@ void _output_dnssim_request_answered(_output_dnssim_request_t* req, core_object_
 void _output_dnssim_maybe_free_request(_output_dnssim_request_t* req);
 void _output_dnssim_on_uv_alloc(uv_handle_t* handle, size_t suggested_size, uv_buf_t* buf);
 void _output_dnssim_create_request(output_dnssim_t* self, _output_dnssim_client_t* client, core_object_payload_t* payload);
+bool _output_dnssim_connection_is_connecting(_output_dnssim_connection_t* conn);
 
 #endif

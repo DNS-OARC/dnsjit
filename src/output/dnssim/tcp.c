@@ -355,7 +355,7 @@ static void _on_tcp_handle_connected(uv_connect_t* conn_req, int status)
         return;
     }
 
-    mlassert(conn->state == _OUTPUT_DNSSIM_CONN_CONNECTING, "connection state != CONNECTING");
+    mlassert(conn->state == _OUTPUT_DNSSIM_CONN_TCP_HANDSHAKE, "connection state != TCP_HANDSHAKE");
     int ret = uv_read_start((uv_stream_t*)conn->handle, _output_dnssim_on_uv_alloc, _on_tcp_read);
     if (ret < 0) {
         mlwarning("tcp uv_read_start() failed: %s", uv_strerror(ret));
@@ -398,7 +398,7 @@ static void _close_connection(_output_dnssim_connection_t* conn)
     case _OUTPUT_DNSSIM_CONN_CLOSING:
     case _OUTPUT_DNSSIM_CONN_CLOSED:
         return;
-    case _OUTPUT_DNSSIM_CONN_CONNECTING:
+    case _OUTPUT_DNSSIM_CONN_TCP_HANDSHAKE:
         conn->stats->conn_handshakes_failed++;
         conn->client->dnssim->stats_sum->conn_handshakes_failed++;
         break;
@@ -482,7 +482,7 @@ static int _connect_tcp_handle(output_dnssim_t* self, _output_dnssim_connection_
 
     conn->stats->conn_handshakes++;
     conn->client->dnssim->stats_sum->conn_handshakes++;
-    conn->state = _OUTPUT_DNSSIM_CONN_CONNECTING;
+    conn->state = _OUTPUT_DNSSIM_CONN_TCP_HANDSHAKE;
     return 0;
 failure:
     _close_connection(conn);
@@ -506,7 +506,7 @@ static int _handle_pending_queries(_output_dnssim_client_t* client)
     while (conn != NULL) {
         if (conn->state == _OUTPUT_DNSSIM_CONN_ACTIVE)
             break;
-        else if (conn->state == _OUTPUT_DNSSIM_CONN_CONNECTING)
+        else if (_output_dnssim_connection_is_connecting(conn))
             is_connecting = true;
         conn              = conn->next;
     }
@@ -533,10 +533,7 @@ int _output_dnssim_create_query_tcp(output_dnssim_t* self, _output_dnssim_reques
     lassert(req, "req is nil");
     lassert(req->client, "request must have a client associated with it");
 
-    // int ret;
     _output_dnssim_query_tcp_t* qry;
-    // _output_dnssim_connection_t* conn;
-    // core_object_payload_t* payload = (core_object_payload_t*)req->dns_q->obj_prev;
 
     lfatal_oom(qry = calloc(1, sizeof(_output_dnssim_query_tcp_t)));
 
