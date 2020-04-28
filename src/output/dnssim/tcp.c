@@ -267,7 +267,7 @@ int _parse_dnsbuf_data(_output_dnssim_connection_t* conn)
     return ret;
 }
 
-unsigned int _read_tcp_stream(_output_dnssim_connection_t* conn, size_t len, const char* data)
+unsigned int _read_dns_stream(_output_dnssim_connection_t* conn, size_t len, const char* data)
 {
     mlassert(conn, "conn can't be nil");
     mlassert(data, "data can't be nil");
@@ -320,7 +320,7 @@ static void _on_tcp_read(uv_stream_t* handle, ssize_t nread, const uv_buf_t* buf
         int   chunk = 0;
         char* data  = buf->base;
         while (pos < nread) {
-            chunk = _read_tcp_stream(conn, nread - pos, data + pos);
+            chunk = _read_dns_stream(conn, nread - pos, data + pos);
             if (chunk < 0) {
                 mlwarning("lost orientation in TCP stream, closing");
                 _close_connection(conn);
