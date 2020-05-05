@@ -31,7 +31,7 @@
 #define _ERR_MSGID -3
 #define _ERR_TC -4
 
-#define WIRE_BUF_SIZE 2048
+#define TLS_BUF_SIZE 2048
 
 typedef struct _output_dnssim_request    _output_dnssim_request_t;
 typedef struct _output_dnssim_connection _output_dnssim_connection_t;
@@ -134,7 +134,11 @@ typedef enum _output_dnssim_read_state {
 /* TLS-related data for a single connection. */
 typedef struct _output_dnssim_tls_ctx {
     gnutls_session_t session;
-    uint8_t wire_buf[WIRE_BUF_SIZE];
+    uint8_t* buf;
+    //uint8_t recv_buf[TLS_BUF_SIZE];
+    ssize_t buf_len;
+    ssize_t buf_pos;
+    size_t write_queue_size;
 } _output_dnssim_tls_ctx_t;
 
 struct _output_dnssim_connection {
@@ -160,11 +164,12 @@ struct _output_dnssim_connection {
 
     /* State of the connection. */
     enum {
-        _OUTPUT_DNSSIM_CONN_INITIALIZED,
-        _OUTPUT_DNSSIM_CONN_TCP_HANDSHAKE,
-        _OUTPUT_DNSSIM_CONN_ACTIVE,
-        _OUTPUT_DNSSIM_CONN_CLOSING,
-        _OUTPUT_DNSSIM_CONN_CLOSED
+        _OUTPUT_DNSSIM_CONN_INITIALIZED = 0,
+        _OUTPUT_DNSSIM_CONN_TCP_HANDSHAKE = 10,
+        _OUTPUT_DNSSIM_CONN_TLS_HANDSHAKE = 20,
+        _OUTPUT_DNSSIM_CONN_ACTIVE = 30,
+        _OUTPUT_DNSSIM_CONN_CLOSING = 40,
+        _OUTPUT_DNSSIM_CONN_CLOSED = 50
     } state;
 
     /* State of the data stream read. */
@@ -257,5 +262,9 @@ void _output_dnssim_conn_idle(_output_dnssim_connection_t* conn);
 int _output_dnssim_handle_pending_queries(_output_dnssim_client_t* client);
 void _output_dnssim_conn_activate(_output_dnssim_connection_t* conn);
 void _output_dnssim_conn_maybe_free(_output_dnssim_connection_t* conn);
+void _output_dnssim_read_dns_stream(_output_dnssim_connection_t* conn, size_t len, const char* data);
+void _output_dnssim_tls_process_input_data(_output_dnssim_connection_t* conn);
+void _output_dnssim_tls_close(_output_dnssim_connection_t* conn);
+void _output_dnssim_tls_write_query(_output_dnssim_connection_t* conn, _output_dnssim_query_tcp_t* qry);
 
 #endif

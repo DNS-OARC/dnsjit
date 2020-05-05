@@ -83,6 +83,7 @@ void _output_dnssim_conn_close(_output_dnssim_connection_t* conn)
     case _OUTPUT_DNSSIM_CONN_CLOSED:
         return;
     case _OUTPUT_DNSSIM_CONN_TCP_HANDSHAKE:
+    case _OUTPUT_DNSSIM_CONN_TLS_HANDSHAKE:
         conn->stats->conn_handshakes_failed++;
         self->stats_sum->conn_handshakes_failed++;
         break;
@@ -109,7 +110,7 @@ void _output_dnssim_conn_close(_output_dnssim_connection_t* conn)
         _output_dnssim_tcp_close(conn);
         break;
     case OUTPUT_DNSSIM_TRANSPORT_TLS:
-        lfatal("TODO: implement tls conn close");
+        _output_dnssim_tls_close(conn);
         break;
     default:
         lfatal("unsupported transport");
@@ -140,11 +141,21 @@ static void _send_pending_queries(_output_dnssim_connection_t* conn)
     mlassert(conn->client, "conn->client is nil");
     qry = (_output_dnssim_query_tcp_t*)conn->client->pending;
 
-    // TODO support TLS
     while (qry != NULL) {
         _output_dnssim_query_tcp_t* next = (_output_dnssim_query_tcp_t*)qry->qry.next;
-        if (qry->qry.state == _OUTPUT_DNSSIM_QUERY_PENDING_WRITE)
-            _output_dnssim_tcp_write_query(conn, qry);
+        if (qry->qry.state == _OUTPUT_DNSSIM_QUERY_PENDING_WRITE) {
+            switch(qry->qry.transport) {
+            case OUTPUT_DNSSIM_TRANSPORT_TCP:
+                _output_dnssim_tcp_write_query(conn, qry);
+                break;
+            case OUTPUT_DNSSIM_TRANSPORT_TLS:
+                _output_dnssim_tls_write_query(conn, qry);
+                break;
+            default:
+                mlfatal("unsupported protocol");
+                break;
+            }
+        }
         qry = next;
     }
 }
@@ -160,7 +171,7 @@ int _output_dnssim_handle_pending_queries(_output_dnssim_client_t* client)
     output_dnssim_t* self = client->dnssim;
     mlassert(self, "client must belong to dnssim");
 
-    /* Get active TCP connection or find out whether new connection has to be opened. */
+    /* Get active connection or find out whether new connection has to be opened. */
     bool                         is_connecting = false;
     _output_dnssim_connection_t* conn          = client->conn;
     while (conn != NULL) {
@@ -178,7 +189,9 @@ int _output_dnssim_handle_pending_queries(_output_dnssim_client_t* client)
         conn->state  = _OUTPUT_DNSSIM_CONN_INITIALIZED;
         conn->client = client;
         conn->stats  = self->stats_current;
-        ret          = _output_dnssim_tcp_connect(self, conn);  // TODO tls
+        if (_self->transport == OUTPUT_DNSSIM_TRANSPORT_TLS)
+            _output_dnssim_tls_init(conn);
+        ret = _output_dnssim_tcp_connect(self, conn);
         if (ret < 0)
             return ret;
         _ll_append(client->conn, conn);
@@ -204,4 +217,136 @@ void _output_dnssim_conn_activate(_output_dnssim_connection_t* conn)
 
     _send_pending_queries(conn);
     _output_dnssim_conn_idle(conn);
+}
+
+int _process_dnsmsg(_output_dnssim_connection_t* conn)
+{
+    mlassert(conn, "conn can't be nil");
+
+    core_object_payload_t payload = CORE_OBJECT_PAYLOAD_INIT(NULL);
+    core_object_dns_t     dns_a   = CORE_OBJECT_DNS_INIT(&payload);
+
+    payload.payload = (uint8_t*)conn->dnsbuf_data;
+    payload.len     = conn->dnsbuf_len;
+
+    dns_a.obj_prev = (core_object_t*)&payload;
+    int ret        = core_object_dns_parse_header(&dns_a);
+    if (ret != 0) {
+        mlwarning("tcp response malformed");
+        return _ERR_MALFORMED;
+    }
+    mldebug("tcp recv dnsmsg id: %04x", dns_a.id);
+
+    _output_dnssim_query_t* qry = conn->sent;
+    while (qry != NULL) {
+        if (qry->req->dns_q->id == dns_a.id) {
+            /* NOTE: QNAME, QTYPE and QCLASS checking (RFC 7766, Section 7) is
+             * omitted, since the MSGID is unique per connection. */
+            _output_dnssim_request_answered(qry->req, &dns_a);
+            break;
+        }
+        qry = qry->next;
+    }
+
+    return 0;
+}
+
+int _parse_dnsbuf_data(_output_dnssim_connection_t* conn)
+{
+    mlassert(conn, "conn can't be nil");
+    mlassert(conn->dnsbuf_pos == conn->dnsbuf_len, "attempt to parse incomplete dnsbuf_data");
+    int ret = 0;
+
+    switch (conn->read_state) {
+    case _OUTPUT_DNSSIM_READ_STATE_DNSLEN: {
+        uint16_t* p_dnslen = (uint16_t*)conn->dnsbuf_data;
+        conn->dnsbuf_len     = ntohs(*p_dnslen);
+        mldebug("tcp dnslen: %d", conn->dnsbuf_len);
+        conn->read_state = _OUTPUT_DNSSIM_READ_STATE_DNSMSG;
+        break;
+    }
+    case _OUTPUT_DNSSIM_READ_STATE_DNSMSG:
+        ret = _process_dnsmsg(conn);
+        if (ret) {
+            conn->read_state = _OUTPUT_DNSSIM_READ_STATE_INVALID;
+        } else {
+            conn->dnsbuf_len   = 2;
+            conn->read_state = _OUTPUT_DNSSIM_READ_STATE_DNSLEN;
+        }
+        break;
+    default:
+        mlfatal("tcp invalid connection read_state");
+        break;
+    }
+
+    conn->dnsbuf_pos = 0;
+    if (conn->dnsbuf_free_after_use) {
+        conn->dnsbuf_free_after_use = false;
+        free(conn->dnsbuf_data);
+    }
+    conn->dnsbuf_data = NULL;
+
+    return ret;
+}
+
+unsigned int _read_dns_stream_chunk(_output_dnssim_connection_t* conn, size_t len, const char* data)
+{
+    mlassert(conn, "conn can't be nil");
+    mlassert(data, "data can't be nil");
+    mlassert(len > 0, "no data to read");
+    mlassert((conn->read_state == _OUTPUT_DNSSIM_READ_STATE_DNSLEN || conn->read_state == _OUTPUT_DNSSIM_READ_STATE_DNSMSG),
+        "connection has invalid read_state");
+
+    int          ret = 0;
+    unsigned int nread;
+    size_t       expected = conn->dnsbuf_len - conn->dnsbuf_pos;
+    mlassert(expected > 0, "no data expected");
+
+    if (conn->dnsbuf_free_after_use == false && expected > len) {
+        /* Start of partial read. */
+        mlassert(conn->dnsbuf_pos == 0, "conn->dnsbuf_pos must be 0 at start of partial read");
+        mlassert(conn->dnsbuf_len > 0, "conn->dnsbuf_len must be set at start of partial read");
+        mlfatal_oom(conn->dnsbuf_data = malloc(conn->dnsbuf_len * sizeof(char)));
+        conn->dnsbuf_free_after_use = true;
+    }
+
+    if (conn->dnsbuf_free_after_use) { /* Partial read is in progress. */
+        char* dest = conn->dnsbuf_data + conn->dnsbuf_pos;
+        if (expected < len)
+            len = expected;
+        memcpy(dest, data, len);
+        conn->dnsbuf_pos += len;
+        nread = len;
+    } else { /* Complete and clean read. */
+        mlassert(expected <= len, "not enough data to perform complete read");
+        conn->dnsbuf_data = (char*)data;
+        conn->dnsbuf_pos  = conn->dnsbuf_len;
+        nread           = expected;
+    }
+
+    /* If entire dnslen/dnsmsg was read, attempt to parse it. */
+    if (conn->dnsbuf_len == conn->dnsbuf_pos) {
+        ret = _parse_dnsbuf_data(conn);
+        if (ret < 0)
+            return ret;
+    }
+
+    return nread;
+}
+
+void _output_dnssim_read_dns_stream(_output_dnssim_connection_t* conn, size_t len, const char* data)
+{
+    int   pos   = 0;
+    int   chunk = 0;
+    while (pos < len) {
+        chunk = _read_dns_stream_chunk(conn, len - pos, data + pos);
+        if (chunk < 0) {
+            mlwarning("lost orientation in DNS stream, closing");
+            _output_dnssim_conn_close(conn);
+            break;
+        } else {
+            pos += chunk;
+        }
+    }
+    mlassert((pos == len) || (chunk < 0), "dns stream read invalid, pos != len");
 }
