@@ -74,7 +74,6 @@ output_dnssim_t* output_dnssim_new(size_t max_clients)
         _self->client_arr[i].dnssim = self;
     }
 
-    gnutls_global_init();
     ret = gnutls_priority_init(&_self->tls_priority, "PERFORMANCE", NULL);
     if (ret < 0)
         lfatal("failed to initialize TLS priority cache (%s)", gnutls_strerror(ret));
@@ -127,7 +126,6 @@ void output_dnssim_free(output_dnssim_t* self)
 
     gnutls_certificate_free_credentials(_self->tls_cred);
     gnutls_priority_deinit(_self->tls_priority);
-    gnutls_global_deinit();
 
     free(self);
 }
