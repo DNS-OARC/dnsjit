@@ -251,7 +251,7 @@ int _process_dnsmsg(_output_dnssim_connection_t* conn)
     return 0;
 }
 
-int _parse_dnsbuf_data(_output_dnssim_connection_t* conn)
+static int _parse_dnsbuf_data(_output_dnssim_connection_t* conn)
 {
     mlassert(conn, "conn can't be nil");
     mlassert(conn->dnsbuf_pos == conn->dnsbuf_len, "attempt to parse incomplete dnsbuf_data");
@@ -261,6 +261,10 @@ int _parse_dnsbuf_data(_output_dnssim_connection_t* conn)
     case _OUTPUT_DNSSIM_READ_STATE_DNSLEN: {
         uint16_t* p_dnslen = (uint16_t*)conn->dnsbuf_data;
         conn->dnsbuf_len     = ntohs(*p_dnslen);
+        if (conn->dnsbuf_len == 0) {
+            mlwarning("invalid dnslen received: 0");
+            return -1;
+        }
         mldebug("tcp dnslen: %d", conn->dnsbuf_len);
         conn->read_state = _OUTPUT_DNSSIM_READ_STATE_DNSMSG;
         break;
@@ -289,7 +293,7 @@ int _parse_dnsbuf_data(_output_dnssim_connection_t* conn)
     return ret;
 }
 
-unsigned int _read_dns_stream_chunk(_output_dnssim_connection_t* conn, size_t len, const char* data)
+static unsigned int _read_dns_stream_chunk(_output_dnssim_connection_t* conn, size_t len, const char* data)
 {
     mlassert(conn, "conn can't be nil");
     mlassert(data, "data can't be nil");
