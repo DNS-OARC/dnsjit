@@ -263,7 +263,11 @@ static int _parse_dnsbuf_data(_output_dnssim_connection_t* conn)
         conn->dnsbuf_len     = ntohs(*p_dnslen);
         if (conn->dnsbuf_len == 0) {
             mlwarning("invalid dnslen received: 0");
-            conn->read_state = _OUTPUT_DNSSIM_READ_STATE_DNSMSG;
+            conn->dnsbuf_len = 2;
+            conn->read_state = _OUTPUT_DNSSIM_READ_STATE_DNSLEN;
+        } else if (conn->dnsbuf_len < 12) {
+            mldebug("invalid dnslen received: %d", conn->dnsbuf_len);
+            ret = -1;
         }
         else {
             mldebug("dnslen: %d", conn->dnsbuf_len);
