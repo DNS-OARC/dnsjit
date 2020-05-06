@@ -315,6 +315,7 @@ void _output_dnssim_close_query_tls(_output_dnssim_query_tcp_t* qry)
     _output_dnssim_request_t* req = qry->qry.req;
     mlassert(req->client, "request must belong to a client");
 
+    _ll_try_remove(req->client->pending, &qry->qry);
     if (qry->conn) {
         _output_dnssim_connection_t* conn = qry->conn;
         _ll_try_remove(conn->sent, &qry->qry);
