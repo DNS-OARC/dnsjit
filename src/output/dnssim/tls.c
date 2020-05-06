@@ -132,7 +132,7 @@ static void _tls_on_write_complete(uv_write_t *req, int status)
 	_output_dnssim_connection_t* conn = async_ctx->conn;
     mlassert(conn, "conn is nil");
     mlassert(conn->tls, "conn must have tls ctx");
-    mlassert(conn->tls->write_queue_size > 0, "invalid write_queue_size");
+    mlassert(conn->tls->write_queue_size > 0, "invalid write_queue_size: %d", conn->tls->write_queue_size);
 	conn->tls->write_queue_size -= 1;
 	free(req->data);
 
