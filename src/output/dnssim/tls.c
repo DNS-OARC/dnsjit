@@ -261,6 +261,7 @@ int _output_dnssim_tls_init(_output_dnssim_connection_t* conn)
     conn->tls->buf = NULL;
     conn->tls->buf_len = 0;
     conn->tls->buf_pos = 0;
+    conn->tls->write_queue_size = 0;
 
 	ret = gnutls_init(&conn->tls->session, GNUTLS_CLIENT | GNUTLS_NONBLOCK);
     if (ret < 0) {
