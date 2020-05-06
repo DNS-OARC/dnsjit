@@ -370,7 +370,7 @@ void _output_dnssim_tls_write_query(_output_dnssim_connection_t* conn, _output_d
 
 	int ret = gnutls_record_uncork(conn->tls->session, GNUTLS_RECORD_WAIT);
 	if (gnutls_error_is_fatal(ret)) {
-        mlwarning("gnutls_record_uncorck failed: %s", gnutls_strerror_name(ret));
+        mlinfo("gnutls_record_uncorck failed: %s", gnutls_strerror_name(ret));
         _output_dnssim_conn_close(conn);
         return;
 	}
