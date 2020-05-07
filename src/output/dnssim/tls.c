@@ -30,8 +30,6 @@
 
 #define MIN(a,b) (((a)<(b))?(a):(b))			/** Minimum of two numbers **/
 
-#define WIRE_BUF_SIZE 65535 + 2 + 16384  /** max tcplen + 2b tcplen + 16kb tls record */
-
 static core_log_t _log = LOG_T_INIT("output.dnssim");
 
 struct async_write_ctx {
@@ -62,9 +60,12 @@ static int _tls_handshake(_output_dnssim_connection_t* conn)
 
 void _output_dnssim_tls_process_input_data(_output_dnssim_connection_t* conn)
 {
-    static char wire_buf[WIRE_BUF_SIZE];
     mlassert(conn, "conn is nil");
+    mlassert(conn->client, "conn must have client");
+    mlassert(conn->client->dnssim, "client must have dnssim");
     mlassert(conn->tls, "conn must have tls ctx");
+
+    output_dnssim_t* self = conn->client->dnssim;
 
 	/* Ensure TLS handshake is performed before receiving data.
 	 * See https://www.gnutls.org/manual/html_node/TLS-handshake.html */
@@ -81,9 +82,9 @@ void _output_dnssim_tls_process_input_data(_output_dnssim_connection_t* conn)
 
 	/* See https://gnutls.org/manual/html_node/Data-transfer-and-termination.html#Data-transfer-and-termination */
 	while (true) {
-		ssize_t count = gnutls_record_recv(conn->tls->session, wire_buf, WIRE_BUF_SIZE);
+		ssize_t count = gnutls_record_recv(conn->tls->session, _self->wire_buf, WIRE_BUF_SIZE);
         if (count > 0) {
-            _output_dnssim_read_dns_stream(conn, count, wire_buf);
+            _output_dnssim_read_dns_stream(conn, count, _self->wire_buf);
         } else if (count == GNUTLS_E_AGAIN) {
 			if (conn->tls->buf_pos == conn->tls->buf_len) {
 				/* See https://www.gnutls.org/manual/html_node/Asynchronous-operation.html */

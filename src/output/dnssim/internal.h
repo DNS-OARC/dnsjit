@@ -31,7 +31,7 @@
 #define _ERR_MSGID -3
 #define _ERR_TC -4
 
-#define TLS_BUF_SIZE 2048
+#define WIRE_BUF_SIZE 65535 + 2 + 16384  /** max tcplen + 2b tcplen + 16kb tls record */
 
 typedef struct _output_dnssim_request    _output_dnssim_request_t;
 typedef struct _output_dnssim_connection _output_dnssim_connection_t;
@@ -135,7 +135,6 @@ typedef enum _output_dnssim_read_state {
 typedef struct _output_dnssim_tls_ctx {
     gnutls_session_t session;
     uint8_t* buf;
-    //uint8_t recv_buf[TLS_BUF_SIZE];
     ssize_t buf_len;
     ssize_t buf_pos;
     size_t write_queue_size;
@@ -235,6 +234,7 @@ struct _output_dnssim {
 
     gnutls_priority_t tls_priority;
     gnutls_certificate_credentials_t tls_cred;
+    char wire_buf[WIRE_BUF_SIZE];  /* thread-local buffer for processing tls input */
 };
 
 /*
