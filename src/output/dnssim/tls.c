@@ -73,6 +73,11 @@ void _output_dnssim_tls_process_input_data(_output_dnssim_connection_t* conn)
 		int err = _tls_handshake(conn);
 		if (err == GNUTLS_E_AGAIN) {
 			return; /* Wait for more data */
+        } else if (err == GNUTLS_E_FATAL_ALERT_RECEIVED) {
+            gnutls_alert_description_t alert = gnutls_alert_get(conn->tls->session);
+            mlwarning("gnutls_handshake failed: %s", gnutls_alert_get_name(alert));
+            _output_dnssim_conn_close(conn);
+            return;
 		} else if (err < 0) {
             mlwarning("gnutls_handshake failed: %s", gnutls_strerror_name(err));
             _output_dnssim_conn_close(conn);
