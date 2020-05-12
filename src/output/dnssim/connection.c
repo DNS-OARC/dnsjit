@@ -141,7 +141,7 @@ static void _send_pending_queries(_output_dnssim_connection_t* conn)
     mlassert(conn->client, "conn->client is nil");
     qry = (_output_dnssim_query_tcp_t*)conn->client->pending;
 
-    while (qry != NULL) {
+    while (qry != NULL && conn->state == _OUTPUT_DNSSIM_CONN_ACTIVE) {
         _output_dnssim_query_tcp_t* next = (_output_dnssim_query_tcp_t*)qry->qry.next;
         if (qry->qry.state == _OUTPUT_DNSSIM_QUERY_PENDING_WRITE) {
             switch(qry->qry.transport) {
