@@ -73,13 +73,13 @@ void core_log_debug(const core_log_t* l, const char* file, size_t line, const ch
         }
         if (l) {
             if (l->is_obj) {
-                printf("%s[%lu] %s[%p] debug: %s\n", file, line, l->name, l, buf);
+                printf("%s[%zu] %s[%p] debug: %s\n", file, line, l->name, l, buf);
                 return;
             }
-            printf("%s[%lu] %s debug: %s\n", file, line, l->name, buf);
+            printf("%s[%zu] %s debug: %s\n", file, line, l->name, buf);
             return;
         }
-        printf("%s[%lu] %s debug: %s\n", file, line, _log.name, buf);
+        printf("%s[%zu] %s debug: %s\n", file, line, _log.name, buf);
         return;
     }
 
@@ -139,13 +139,13 @@ void core_log_info(const core_log_t* l, const char* file, size_t line, const cha
         }
         if (l) {
             if (l->is_obj) {
-                printf("%s[%lu] %s[%p] info: %s\n", file, line, l->name, l, buf);
+                printf("%s[%zu] %s[%p] info: %s\n", file, line, l->name, l, buf);
                 return;
             }
-            printf("%s[%lu] %s info: %s\n", file, line, l->name, buf);
+            printf("%s[%zu] %s info: %s\n", file, line, l->name, buf);
             return;
         }
-        printf("%s[%lu] %s info: %s\n", file, line, _log.name, buf);
+        printf("%s[%zu] %s info: %s\n", file, line, _log.name, buf);
         return;
     }
 
@@ -205,13 +205,13 @@ void core_log_notice(const core_log_t* l, const char* file, size_t line, const c
         }
         if (l) {
             if (l->is_obj) {
-                printf("%s[%lu] %s[%p] notice: %s\n", file, line, l->name, l, buf);
+                printf("%s[%zu] %s[%p] notice: %s\n", file, line, l->name, l, buf);
                 return;
             }
-            printf("%s[%lu] %s notice: %s\n", file, line, l->name, buf);
+            printf("%s[%zu] %s notice: %s\n", file, line, l->name, buf);
             return;
         }
-        printf("%s[%lu] %s notice: %s\n", file, line, _log.name, buf);
+        printf("%s[%zu] %s notice: %s\n", file, line, _log.name, buf);
         return;
     }
 
@@ -271,13 +271,13 @@ void core_log_warning(const core_log_t* l, const char* file, size_t line, const 
         }
         if (l) {
             if (l->is_obj) {
-                printf("%s[%lu] %s[%p] warning: %s\n", file, line, l->name, l, buf);
+                printf("%s[%zu] %s[%p] warning: %s\n", file, line, l->name, l, buf);
                 return;
             }
-            printf("%s[%lu] %s warning: %s\n", file, line, l->name, buf);
+            printf("%s[%zu] %s warning: %s\n", file, line, l->name, buf);
             return;
         }
-        printf("%s[%lu] %s warning: %s\n", file, line, _log.name, buf);
+        printf("%s[%zu] %s warning: %s\n", file, line, _log.name, buf);
         return;
     }
 
@@ -320,13 +320,13 @@ void core_log_critical(const core_log_t* l, const char* file, size_t line, const
         }
         if (l) {
             if (l->is_obj) {
-                printf("%s[%lu] %s[%p] critical: %s\n", file, line, l->name, l, buf);
+                printf("%s[%zu] %s[%p] critical: %s\n", file, line, l->name, l, buf);
                 return;
             }
-            printf("%s[%lu] %s critical: %s\n", file, line, l->name, buf);
+            printf("%s[%zu] %s critical: %s\n", file, line, l->name, buf);
             return;
         }
-        printf("%s[%lu] %s critical: %s\n", file, line, _log.name, buf);
+        printf("%s[%zu] %s critical: %s\n", file, line, _log.name, buf);
         return;
     }
 
@@ -369,13 +369,13 @@ void core_log_fatal(const core_log_t* l, const char* file, size_t line, const ch
         }
         if (l) {
             if (l->is_obj) {
-                printf("%s[%lu] %s[%p] fatal: %s\n", file, line, l->name, l, buf);
+                printf("%s[%zu] %s[%p] fatal: %s\n", file, line, l->name, l, buf);
                 exit(1);
             }
-            printf("%s[%lu] %s fatal: %s\n", file, line, l->name, buf);
+            printf("%s[%zu] %s fatal: %s\n", file, line, l->name, buf);
             exit(1);
         }
-        printf("%s[%lu] %s fatal: %s\n", file, line, _log.name, buf);
+        printf("%s[%zu] %s fatal: %s\n", file, line, _log.name, buf);
         exit(1);
     }
 
