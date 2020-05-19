@@ -206,6 +206,9 @@ struct _output_dnssim_client {
 
     /* List of queries that are pending to be sent over any available connection. */
     _output_dnssim_query_t* pending;
+
+    /* TLS-ticket for session resumption. */
+    gnutls_datum_t tls_ticket;
 };
 
 /*

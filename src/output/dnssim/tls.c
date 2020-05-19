@@ -42,10 +42,15 @@ static int _tls_handshake(_output_dnssim_connection_t* conn)
 {
     mlassert(conn, "conn is nil");
     mlassert(conn->tls, "conn must have tls context");
+    mlassert(conn->client, "conn must belong to a client");
     mlassert(conn->state <= _OUTPUT_DNSSIM_CONN_TLS_HANDSHAKE, "conn in invalid state");
 
     conn->state = _OUTPUT_DNSSIM_CONN_TLS_HANDSHAKE;
 
+    if (conn->client->tls_ticket.size != 0) {
+        gnutls_datum_t* ticket = &conn->client->tls_ticket;
+        gnutls_session_set_data(conn->tls->session, ticket->data, ticket->size);
+    }
 	int err = gnutls_handshake(conn->tls->session);
 	if (err == GNUTLS_E_SUCCESS) {
         _output_dnssim_conn_activate(conn);
@@ -83,6 +88,9 @@ void _output_dnssim_tls_process_input_data(_output_dnssim_connection_t* conn)
             _output_dnssim_conn_close(conn);
             return;
 		}
+        /* Successful TLS handshake. */
+        if (gnutls_session_is_resumed(conn->tls->session))
+            conn->stats->conn_resumed++;
 	}
 
 	/* See https://gnutls.org/manual/html_node/Data-transfer-and-termination.html#Data-transfer-and-termination */
@@ -256,6 +264,20 @@ static ssize_t _tls_vec_push(gnutls_transport_ptr_t ptr, const giovec_t * iov, i
 	return ret;
 }
 
+// TODO reident everything
+int _tls_pull_timeout(gnutls_transport_ptr_t ptr, unsigned int ms)
+{
+    _output_dnssim_connection_t* conn = (_output_dnssim_connection_t*)ptr;
+    mlassert(conn != NULL, "conn is null");
+    mlassert(conn->tls != NULL, "conn must have tls ctx");
+
+	ssize_t	avail = conn->tls->buf_len - conn->tls->buf_pos;
+	if (avail <= 0) {
+		errno = EAGAIN;
+		return -1;
+	}
+	return avail;
+}
 
 int _output_dnssim_tls_init(_output_dnssim_connection_t* conn)
 {
@@ -289,6 +311,7 @@ int _output_dnssim_tls_init(_output_dnssim_connection_t* conn)
     }
 
 	gnutls_transport_set_pull_function(conn->tls->session, _tls_pull);
+	gnutls_transport_set_pull_timeout_function(conn->tls->session, _tls_pull_timeout);
 	gnutls_transport_set_vec_push_function(conn->tls->session, _tls_vec_push);
 	gnutls_transport_set_ptr(conn->tls->session, conn);
 
@@ -338,11 +361,22 @@ void _output_dnssim_tls_close(_output_dnssim_connection_t* conn)
 {
     mlassert(conn, "conn can't be nil");
     mlassert(conn->tls, "conn must have tls ctx");
+    mlassert(conn->client, "conn must belong to a client");
 
-    /*
-     * TODO: proper gnutls_bye() might be needed to allow session resumption
-     * https://gnutls.org/manual/html_node/Data-transfer-and-termination.html#Data-transfer-and-termination
-     */
+    // TODO make optional
+    /* Try and get a TLS session ticket for potential resumption. */
+    int ret;
+    if (gnutls_session_get_flags(conn->tls->session) & GNUTLS_SFLAGS_SESSION_TICKET) {
+        if (conn->client->tls_ticket.size != 0) {
+            gnutls_free(conn->client->tls_ticket.data);
+        }
+        ret = gnutls_session_get_data2(conn->tls->session, &conn->client->tls_ticket);
+        if (ret < 0) {
+            mldebug("gnutls_session_get_data2 failed: %s", gnutls_strerror(ret));
+            conn->client->tls_ticket.size = 0;
+        }
+    }
+
     gnutls_deinit(conn->tls->session);
     _output_dnssim_tcp_close(conn);
 }

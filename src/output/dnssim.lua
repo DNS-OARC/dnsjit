@@ -51,7 +51,7 @@ local C = ffi.C
 
 local DnsSim = {}
 
-local _DNSSIM_JSON_VERSION = 20200406
+local _DNSSIM_JSON_VERSION = 20200527
 
 -- Create a new DnsSim output for up to max_clients.
 function DnsSim.new(max_clients)
@@ -220,6 +220,7 @@ function DnsSim:export(filename)
                 '"answers":', tonumber(stats.answers), ',',
                 '"conn_active":', tonumber(stats.conn_active), ',',
                 '"conn_handshakes":', tonumber(stats.conn_handshakes), ',',
+                '"conn_resumed":', tonumber(stats.conn_resumed), ',',
                 '"conn_handshakes_failed":', tonumber(stats.conn_handshakes_failed), ',',
                 '"rcode_noerror":', tonumber(stats.rcode_noerror), ',',
                 '"rcode_formerr":', tonumber(stats.rcode_formerr), ',',

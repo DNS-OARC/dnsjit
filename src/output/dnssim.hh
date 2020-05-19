@@ -48,6 +48,9 @@ struct output_dnssim_stats {
     /* Number of connection handshake attempts during the stats interval. */
     uint64_t conn_handshakes;
 
+    /* Number of connection that have been resumed with TLS session resumption. */
+    uint64_t conn_resumed;
+
     /* Number of timed out connection handshakes during the stats interval. */
     uint64_t conn_handshakes_failed;
 
