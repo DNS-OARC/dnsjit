@@ -112,7 +112,14 @@ function DnsSim:tcp()
 end
 
 -- Set the transport to TLS.
-function DnsSim:tls()
+--
+-- Optional argument priority is a GnuTLS priority string. It can be used to
+-- select TLS versions, cipher suites etc. Refer to
+-- https://gnutls.org/manual/html_node/Priority-Strings.html
+function DnsSim:tls(priority)
+    if priority ~= nil then
+        C.output_dnssim_tls_priority(self.obj, priority)
+    end
     C.output_dnssim_set_transport(self.obj, C.OUTPUT_DNSSIM_TRANSPORT_TLS)
 end
 

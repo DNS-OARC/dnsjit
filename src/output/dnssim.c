@@ -74,9 +74,6 @@ output_dnssim_t* output_dnssim_new(size_t max_clients)
         _self->client_arr[i].dnssim = self;
     }
 
-    ret = gnutls_priority_init(&_self->tls_priority, "PERFORMANCE", NULL);
-    if (ret < 0)
-        lfatal("failed to initialize TLS priority cache (%s)", gnutls_strerror(ret));
     ret = gnutls_certificate_allocate_credentials(&_self->tls_cred);
     if (ret < 0)
         lfatal("failed to allocated TLS credentials (%s)", gnutls_strerror(ret));
@@ -130,7 +127,10 @@ void output_dnssim_free(output_dnssim_t* self)
     }
 
     gnutls_certificate_free_credentials(_self->tls_cred);
-    gnutls_priority_deinit(_self->tls_priority);
+    if (_self->tls_priority != NULL) {
+        gnutls_priority_deinit(*_self->tls_priority);
+        free(_self->tls_priority);
+    }
 
     free(self);
 }
@@ -291,6 +291,27 @@ int output_dnssim_bind(output_dnssim_t* self, const char* ip)
     }
 
     lnotice("bind to source address %s", ip);
+    return 0;
+}
+
+int output_dnssim_tls_priority(output_dnssim_t* self, const char* priority)
+{
+    mlassert_self();
+    lassert(priority, "priority is nil");
+
+    if (_self->tls_priority != NULL) {
+        gnutls_priority_deinit(*_self->tls_priority);
+        free(_self->tls_priority);
+    }
+    lfatal_oom(_self->tls_priority = malloc(sizeof(gnutls_priority_t)));
+
+    int ret = gnutls_priority_init(_self->tls_priority, priority, NULL);
+    if (ret < 0) {
+        lfatal("failed to initialize TLS priority cache: %s", gnutls_strerror(ret));
+    } else {
+        lnotice("GnuTLS priority set: %s", priority);
+    }
+
     return 0;
 }
 

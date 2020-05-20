@@ -298,10 +298,18 @@ int _output_dnssim_tls_init(_output_dnssim_connection_t* conn)
     }
 
     output_dnssim_t* self = conn->client->dnssim;
-    ret = gnutls_priority_set(conn->tls->session, _self->tls_priority);
-    if (ret < 0) {
-        mldebug("failed gnutls_priority_set() (%s)", gnutls_strerror(ret));
-        return ret;
+    if (_self->tls_priority == NULL) {
+        ret = gnutls_set_default_priority(conn->tls->session);
+        if (ret < 0) {
+            mldebug("failed gnutls_set_default_priority() (%s)", gnutls_strerror(ret));
+            return ret;
+        }
+    } else {
+        ret = gnutls_priority_set(conn->tls->session, *_self->tls_priority);
+        if (ret < 0) {
+            mldebug("failed gnutls_priority_set() (%s)", gnutls_strerror(ret));
+            return ret;
+        }
     }
 
     ret = gnutls_credentials_set(conn->tls->session, GNUTLS_CRD_CERTIFICATE, _self->tls_cred);
@@ -363,6 +371,7 @@ void _output_dnssim_tls_close(_output_dnssim_connection_t* conn)
     mlassert(conn->tls, "conn must have tls ctx");
     mlassert(conn->client, "conn must belong to a client");
 
+    // TODO gnutls detect support
     // TODO make optional
     /* Try and get a TLS session ticket for potential resumption. */
     int ret;

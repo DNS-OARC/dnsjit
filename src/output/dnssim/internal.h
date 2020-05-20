@@ -235,7 +235,7 @@ struct _output_dnssim {
     /* Array of clients, mapped by client ID (ranges from 0 to max_clients). */
     _output_dnssim_client_t* client_arr;
 
-    gnutls_priority_t tls_priority;
+    gnutls_priority_t* tls_priority;
     gnutls_certificate_credentials_t tls_cred;
     char wire_buf[WIRE_BUF_SIZE];  /* thread-local buffer for processing tls input */
 };
