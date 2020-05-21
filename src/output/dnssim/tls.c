@@ -45,22 +45,14 @@ static int _tls_handshake(_output_dnssim_connection_t* conn)
     mlassert(conn->client, "conn must belong to a client");
     mlassert(conn->state <= _OUTPUT_DNSSIM_CONN_TLS_HANDSHAKE, "conn in invalid state");
 
-    conn->state = _OUTPUT_DNSSIM_CONN_TLS_HANDSHAKE;
-
-    if (conn->client->tls_ticket.size != 0) {
+    /* Set TLS session resumption ticket if available. */
+    if (conn->state < _OUTPUT_DNSSIM_CONN_TLS_HANDSHAKE && conn->client->tls_ticket.size != 0) {
         gnutls_datum_t* ticket = &conn->client->tls_ticket;
         gnutls_session_set_data(conn->tls->session, ticket->data, ticket->size);
     }
-	int err = gnutls_handshake(conn->tls->session);
-	if (err == GNUTLS_E_SUCCESS) {
-        _output_dnssim_conn_activate(conn);
-        return 0;
-	} else if (err == GNUTLS_E_AGAIN) {
-		return GNUTLS_E_AGAIN;
-	} else if (gnutls_error_is_fatal(err)) {
-        return err;
-	}
-	return 0;
+    conn->state = _OUTPUT_DNSSIM_CONN_TLS_HANDSHAKE;
+
+	return gnutls_handshake(conn->tls->session);
 }
 
 void _output_dnssim_tls_process_input_data(_output_dnssim_connection_t* conn)
@@ -70,27 +62,32 @@ void _output_dnssim_tls_process_input_data(_output_dnssim_connection_t* conn)
     mlassert(conn->client->dnssim, "client must have dnssim");
     mlassert(conn->tls, "conn must have tls ctx");
 
+    if (conn->state >= _OUTPUT_DNSSIM_CONN_CLOSING)
+        return;
+
     output_dnssim_t* self = conn->client->dnssim;
 
 	/* Ensure TLS handshake is performed before receiving data.
 	 * See https://www.gnutls.org/manual/html_node/TLS-handshake.html */
 	while (conn->state <= _OUTPUT_DNSSIM_CONN_TLS_HANDSHAKE) {
 		int err = _tls_handshake(conn);
-		if (err == GNUTLS_E_AGAIN) {
+        if (err == GNUTLS_E_SUCCESS) {
+            _output_dnssim_conn_activate(conn);
+            if (gnutls_session_is_resumed(conn->tls->session))
+                conn->stats->conn_resumed++;
+            break;
+        } else if (err == GNUTLS_E_AGAIN) {
 			return; /* Wait for more data */
         } else if (err == GNUTLS_E_FATAL_ALERT_RECEIVED) {
             gnutls_alert_description_t alert = gnutls_alert_get(conn->tls->session);
             mlwarning("gnutls_handshake failed: %s", gnutls_alert_get_name(alert));
             _output_dnssim_conn_close(conn);
             return;
-		} else if (err < 0) {
+		} else if (gnutls_error_is_fatal(err)) {
             mlwarning("gnutls_handshake failed: %s", gnutls_strerror_name(err));
             _output_dnssim_conn_close(conn);
             return;
 		}
-        /* Successful TLS handshake. */
-        if (gnutls_session_is_resumed(conn->tls->session))
-            conn->stats->conn_resumed++;
 	}
 
 	/* See https://gnutls.org/manual/html_node/Data-transfer-and-termination.html#Data-transfer-and-termination */
