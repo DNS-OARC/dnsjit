@@ -92,6 +92,9 @@ void _output_dnssim_tls_process_input_data(_output_dnssim_connection_t* conn)
 
 	/* See https://gnutls.org/manual/html_node/Data-transfer-and-termination.html#Data-transfer-and-termination */
 	while (true) {
+        if (conn->state != _OUTPUT_DNSSIM_CONN_ACTIVE)
+            return;
+
 		ssize_t count = gnutls_record_recv(conn->tls->session, _self->wire_buf, WIRE_BUF_SIZE);
         if (count > 0) {
             _output_dnssim_read_dns_stream(conn, count, _self->wire_buf);
