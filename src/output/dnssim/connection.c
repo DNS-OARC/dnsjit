@@ -305,7 +305,7 @@ static unsigned int _read_dns_stream_chunk(_output_dnssim_connection_t* conn, si
     mlassert(data, "data can't be nil");
     mlassert(len > 0, "no data to read");
     mlassert((conn->read_state == _OUTPUT_DNSSIM_READ_STATE_DNSLEN || conn->read_state == _OUTPUT_DNSSIM_READ_STATE_DNSMSG),
-        "connection has invalid read_state");
+            "connection has invalid read_state");
 
     int          ret = 0;
     unsigned int nread;
