@@ -107,8 +107,7 @@ void _output_dnssim_tls_process_input_data(_output_dnssim_connection_t* conn)
         } else if (count == GNUTLS_E_INTERRUPTED) {
             continue;
         } else if (count == GNUTLS_E_REHANDSHAKE) {
-            // TODO implement rehandshake?
-            continue;
+            continue;  /* Ignore rehandshake request. */
         } else if (count < 0) {
             mlwarning("gnutls_record_recv failed: %s", gnutls_strerror_name(count));
             _output_dnssim_conn_close(conn);
@@ -325,14 +324,13 @@ int _output_dnssim_tls_init(_output_dnssim_connection_t* conn)
     return 0;
 }
 
-// TODO so far this is the same as the tcp function (except qry.transport)
 int _output_dnssim_create_query_tls(output_dnssim_t* self, _output_dnssim_request_t* req)
 {
     mlassert_self();
     lassert(req, "req is nil");
     lassert(req->client, "request must have a client associated with it");
 
-    _output_dnssim_query_tcp_t* qry;  // TODO do tls queries need other struct than tcp?
+    _output_dnssim_query_tcp_t* qry;
 
     lfatal_oom(qry = calloc(1, sizeof(_output_dnssim_query_tcp_t)));
 
