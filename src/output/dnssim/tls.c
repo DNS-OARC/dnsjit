@@ -368,8 +368,7 @@ void _output_dnssim_tls_close(_output_dnssim_connection_t* conn)
     mlassert(conn->tls, "conn must have tls ctx");
     mlassert(conn->client, "conn must belong to a client");
 
-    // TODO gnutls detect support
-    // TODO make optional
+#if GNUTLS_VERSION_NUMBER >= 0x030603
     /* Try and get a TLS session ticket for potential resumption. */
     int ret;
     if (gnutls_session_get_flags(conn->tls->session) & GNUTLS_SFLAGS_SESSION_TICKET) {
@@ -382,6 +381,7 @@ void _output_dnssim_tls_close(_output_dnssim_connection_t* conn)
             conn->client->tls_ticket.size = 0;
         }
     }
+#endif
 
     gnutls_deinit(conn->tls->session);
     _output_dnssim_tcp_close(conn);

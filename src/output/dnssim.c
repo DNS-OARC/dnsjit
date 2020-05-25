@@ -233,6 +233,9 @@ void output_dnssim_set_transport(output_dnssim_t* self, output_dnssim_transport_
         break;
     case OUTPUT_DNSSIM_TRANSPORT_TLS:
         lnotice("transport set to TLS");
+#if GNUTLS_VERSION_NUMBER < 0x030603
+        lwarning("TLS session resumption requires GnuTLS 3.6.3+");
+#endif
         break;
     case OUTPUT_DNSSIM_TRANSPORT_UDP:
     default:
