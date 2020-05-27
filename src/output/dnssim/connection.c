@@ -189,8 +189,11 @@ int _output_dnssim_handle_pending_queries(_output_dnssim_client_t* client)
         conn->state  = _OUTPUT_DNSSIM_CONN_INITIALIZED;
         conn->client = client;
         conn->stats  = self->stats_current;
-        if (_self->transport == OUTPUT_DNSSIM_TRANSPORT_TLS)
-            _output_dnssim_tls_init(conn);
+        if (_self->transport == OUTPUT_DNSSIM_TRANSPORT_TLS) {
+            ret = _output_dnssim_tls_init(conn);
+            if (ret < 0)
+                return ret;
+        }
         ret = _output_dnssim_tcp_connect(self, conn);
         if (ret < 0)
             return ret;
