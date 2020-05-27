@@ -71,6 +71,7 @@ void _output_dnssim_tls_process_input_data(_output_dnssim_connection_t* conn)
      * See https://www.gnutls.org/manual/html_node/TLS-handshake.html */
     while (conn->state <= _OUTPUT_DNSSIM_CONN_TLS_HANDSHAKE) {
         int err = _tls_handshake(conn);
+        mldebug("tls handshake returned: %s", gnutls_strerror(err));
         if (err == GNUTLS_E_SUCCESS) {
             _output_dnssim_conn_activate(conn);
             if (gnutls_session_is_resumed(conn->tls->session))
@@ -128,6 +129,7 @@ static ssize_t _tls_pull(gnutls_transport_ptr_t ptr, void *buf, size_t len)
 
     ssize_t	avail = conn->tls->buf_len - conn->tls->buf_pos;
     if (conn->tls->buf_pos >= conn->tls->buf_len) {
+        mldebug("tls pull: no more data");
         errno = EAGAIN;
         return -1;
     }

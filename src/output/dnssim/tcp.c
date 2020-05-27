@@ -154,6 +154,7 @@ static void _on_tcp_read(uv_stream_t* handle, ssize_t nread, const uv_buf_t* buf
     output_dnssim_t* self = conn->client->dnssim;
 
     if (nread > 0) {
+        mldebug("tcp nread: %d", nread);
         switch(_self->transport) {
         case OUTPUT_DNSSIM_TRANSPORT_TCP:
             _output_dnssim_read_dns_stream(conn, nread, buf->base);
@@ -200,6 +201,7 @@ static void _on_tcp_connected(uv_connect_t* conn_req, int status)
         return;
     }
 
+    mldebug("tcp connected");
     mlassert(conn->client, "conn must be associated with a client");
     mlassert(conn->client->dnssim, "client must be associated with dnssim");
     output_dnssim_t* self = conn->client->dnssim;
@@ -208,6 +210,7 @@ static void _on_tcp_connected(uv_connect_t* conn_req, int status)
         _output_dnssim_conn_activate(conn);
         break;
     case OUTPUT_DNSSIM_TRANSPORT_TLS:
+        mldebug("init tls handshake");
         _output_dnssim_tls_process_input_data(conn);  /* Initiate TLS handshake. */
         break;
     default:
@@ -265,6 +268,7 @@ int _output_dnssim_tcp_connect(output_dnssim_t* self, _output_dnssim_connection_
         uv_timer_stop(conn->idle_timer);
     }
 
+    mldebug("tcp connecting");
     uv_connect_t* conn_req;
     lfatal_oom(conn_req = malloc(sizeof(uv_connect_t)));
     ret = uv_tcp_connect(conn_req, conn->handle, (struct sockaddr*)&_self->target, _on_tcp_connected);
