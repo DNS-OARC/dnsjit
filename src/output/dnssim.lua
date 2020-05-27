@@ -113,9 +113,17 @@ end
 
 -- Set the transport to TLS.
 --
--- Optional argument priority is a GnuTLS priority string. It can be used to
--- select TLS versions, cipher suites etc. Refer to
--- https://gnutls.org/manual/html_node/Priority-Strings.html
+-- The optional arguments is a GnuTLS priority string, whih can be used to
+-- select TLS versions, cipher suites etc. For example:
+--
+-- .BR NORMAL:%NO_TICKETS
+-- Use defaults without TLS session resumption.
+--
+-- .BR SECURE128:-VERS-ALL:+VERS-TLS1.3
+-- Use only TLS 1.3 with 128-bit secure ciphers.
+--
+-- Refer to:
+-- .I https://gnutls.org/manual/html_node/Priority-Strings.html
 function DnsSim:tls(priority)
     if priority ~= nil then
         C.output_dnssim_tls_priority(self.obj, priority)
