@@ -31,7 +31,7 @@ static core_log_t _log = LOG_T_INIT("output.dnssim");
 
 static bool _conn_is_connecting(_output_dnssim_connection_t* conn)
 {
-    return (conn->state == _OUTPUT_DNSSIM_CONN_TCP_HANDSHAKE);
+    return (conn->state >= _OUTPUT_DNSSIM_CONN_TCP_HANDSHAKE && conn->state <= _OUTPUT_DNSSIM_CONN_ACTIVE);
 }
 
 void _output_dnssim_conn_maybe_free(_output_dnssim_connection_t* conn)
