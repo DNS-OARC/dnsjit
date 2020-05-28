@@ -271,8 +271,7 @@ static int _parse_dnsbuf_data(_output_dnssim_connection_t* conn)
         } else if (conn->dnsbuf_len < 12) {
             mldebug("invalid dnslen received: %d", conn->dnsbuf_len);
             ret = -1;
-        }
-        else {
+        } else {
             mldebug("dnslen: %d", conn->dnsbuf_len);
             conn->read_state = _OUTPUT_DNSSIM_READ_STATE_DNSMSG;
         }

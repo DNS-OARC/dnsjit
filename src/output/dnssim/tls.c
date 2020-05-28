@@ -93,6 +93,7 @@ void _output_dnssim_tls_process_input_data(_output_dnssim_connection_t* conn)
 
     /* See https://gnutls.org/manual/html_node/Data-transfer-and-termination.html#Data-transfer-and-termination */
     while (true) {
+        /* Connection might have been closed due to an error, don't try to use it. */
         if (conn->state != _OUTPUT_DNSSIM_CONN_ACTIVE)
             return;
 
@@ -118,7 +119,6 @@ void _output_dnssim_tls_process_input_data(_output_dnssim_connection_t* conn)
         }
     }
     mlassert(conn->tls->buf_len == conn->tls->buf_pos, "tls didn't read the entire buffer");
-
 }
 
 static ssize_t _tls_pull(gnutls_transport_ptr_t ptr, void *buf, size_t len)
@@ -127,14 +127,14 @@ static ssize_t _tls_pull(gnutls_transport_ptr_t ptr, void *buf, size_t len)
     mlassert(conn != NULL, "conn is null");
     mlassert(conn->tls != NULL, "conn must have tls ctx");
 
-    ssize_t	avail = conn->tls->buf_len - conn->tls->buf_pos;
-    if (conn->tls->buf_pos >= conn->tls->buf_len) {
+    ssize_t avail = conn->tls->buf_len - conn->tls->buf_pos;
+    if (avail <= 0) {
         mldebug("tls pull: no more data");
         errno = EAGAIN;
         return -1;
     }
 
-    ssize_t	transfer = MIN(avail, len);
+    ssize_t transfer = MIN(avail, len);
     memcpy(buf, conn->tls->buf + conn->tls->buf_pos, transfer);
     conn->tls->buf_pos += transfer;
     return transfer;
