@@ -238,7 +238,16 @@ void output_dnssim_set_transport(output_dnssim_t* self, output_dnssim_transport_
         lfatal(DNSSIM_MIN_GNUTLS_ERRORMSG);
 #endif
         break;
+    case OUTPUT_DNSSIM_TRANSPORT_HTTPS2:
+#if GNUTLS_VERSION_NUMBER >= DNSSIM_MIN_GNUTLS_VERSION
+        lnotice("transport set to HTTP/2 over TLS");
+#else
+        lfatal(DNSSIM_MIN_GNUTLS_ERRORMSG);
+#endif
+        break;
     case OUTPUT_DNSSIM_TRANSPORT_UDP:
+        lfatal("UDP tranport with TCP fallback not supported yet. Please use udp_only() instead.");
+        break;
     default:
         lfatal("unknown or unsupported transport");
         break;

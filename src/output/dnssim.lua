@@ -125,11 +125,19 @@ end
 --
 -- Refer to:
 -- .I https://gnutls.org/manual/html_node/Priority-Strings.html
-function DnsSim:tls(priority)
-    if priority ~= nil then
-        C.output_dnssim_tls_priority(self.obj, priority)
+function DnsSim:tls(tls_priority)
+    if tls_priority ~= nil then
+        C.output_dnssim_tls_priority(self.obj, tls_priority)
     end
     C.output_dnssim_set_transport(self.obj, C.OUTPUT_DNSSIM_TRANSPORT_TLS)
+end
+
+-- Set the transport to HTTP/2 over TLS.
+function DnsSim:https2(tls_priority)
+    if tls_priority ~= nil then
+        C.output_dnssim_tls_priority(self.obj, tls_priority)
+    end
+    C.output_dnssim_set_transport(self.obj, C.OUTPUT_DNSSIM_TRANSPORT_HTTPS2)
 end
 
 -- Set timeout for the individual requests in seconds (default 2s).

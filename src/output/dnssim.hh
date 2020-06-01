@@ -25,7 +25,8 @@ typedef enum output_dnssim_transport {
     OUTPUT_DNSSIM_TRANSPORT_UDP_ONLY,
     OUTPUT_DNSSIM_TRANSPORT_UDP,
     OUTPUT_DNSSIM_TRANSPORT_TCP,
-    OUTPUT_DNSSIM_TRANSPORT_TLS
+    OUTPUT_DNSSIM_TRANSPORT_TLS,
+    OUTPUT_DNSSIM_TRANSPORT_HTTPS2
 } output_dnssim_transport_t;
 
 typedef struct output_dnssim_stats output_dnssim_stats_t;

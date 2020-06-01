@@ -116,6 +116,13 @@ void _output_dnssim_conn_close(_output_dnssim_connection_t* conn)
         lfatal(DNSSIM_MIN_GNUTLS_ERRORMSG);
 #endif
         break;
+    case OUTPUT_DNSSIM_TRANSPORT_HTTPS2:
+#if GNUTLS_VERSION_NUMBER >= DNSSIM_MIN_GNUTLS_VERSION
+        _output_dnssim_https2_close(conn);
+#else
+        lfatal(DNSSIM_MIN_GNUTLS_ERRORMSG);
+#endif
+        break;
     default:
         lfatal("unsupported transport");
         break;
@@ -154,6 +161,13 @@ static void _send_pending_queries(_output_dnssim_connection_t* conn)
             case OUTPUT_DNSSIM_TRANSPORT_TLS:
 #if GNUTLS_VERSION_NUMBER >= DNSSIM_MIN_GNUTLS_VERSION
                 _output_dnssim_tls_write_query(conn, qry);
+#else
+                mlfatal(DNSSIM_MIN_GNUTLS_ERRORMSG);
+#endif
+                break;
+            case OUTPUT_DNSSIM_TRANSPORT_HTTPS2:
+#if GNUTLS_VERSION_NUMBER >= DNSSIM_MIN_GNUTLS_VERSION
+                _output_dnssim_https2_write_query(conn, qry);
 #else
                 mlfatal(DNSSIM_MIN_GNUTLS_ERRORMSG);
 #endif

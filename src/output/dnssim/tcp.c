@@ -170,6 +170,13 @@ static void _on_tcp_read(uv_stream_t* handle, ssize_t nread, const uv_buf_t* buf
             mlfatal(DNSSIM_MIN_GNUTLS_ERRORMSG);
 #endif
             break;
+        case OUTPUT_DNSSIM_TRANSPORT_HTTPS2:
+#if GNUTLS_VERSION_NUMBER >= DNSSIM_MIN_GNUTLS_VERSION
+            mlfatal("TODO implement");
+#else
+            mlfatal(DNSSIM_MIN_GNUTLS_ERRORMSG);
+#endif
+            break;
         default:
             mlfatal("unsupported transport");
             break;
@@ -217,6 +224,13 @@ static void _on_tcp_connected(uv_connect_t* conn_req, int status)
 #if GNUTLS_VERSION_NUMBER >= DNSSIM_MIN_GNUTLS_VERSION
         mldebug("init tls handshake");
         _output_dnssim_tls_process_input_data(conn); /* Initiate TLS handshake. */
+#else
+        mlfatal(DNSSIM_MIN_GNUTLS_ERRORMSG);
+#endif
+        break;
+    case OUTPUT_DNSSIM_TRANSPORT_HTTPS2:
+#if GNUTLS_VERSION_NUMBER >= DNSSIM_MIN_GNUTLS_VERSION
+        mlfatal("TODO implement");
 #else
         mlfatal(DNSSIM_MIN_GNUTLS_ERRORMSG);
 #endif

@@ -27,7 +27,7 @@
 #include "core/object/payload.h"
 
 #define DNSSIM_MIN_GNUTLS_VERSION 0x030603
-#define DNSSIM_MIN_GNUTLS_ERRORMSG "dnssim tls transport requires GnuTLS >= 3.6.3"
+#define DNSSIM_MIN_GNUTLS_ERRORMSG "dnssim tls/https2 transport requires GnuTLS >= 3.6.3"
 
 #define _self ((_output_dnssim_t*)self)
 #define _ERR_MALFORMED -2
@@ -274,6 +274,12 @@ int  _output_dnssim_tls_init(_output_dnssim_connection_t* conn);
 void _output_dnssim_tls_process_input_data(_output_dnssim_connection_t* conn);
 void _output_dnssim_tls_close(_output_dnssim_connection_t* conn);
 void _output_dnssim_tls_write_query(_output_dnssim_connection_t* conn, _output_dnssim_query_tcp_t* qry);
+
+int _output_dnssim_create_query_https2(output_dnssim_t* self, _output_dnssim_request_t* req);
+void _output_dnssim_close_query_https2(_output_dnssim_query_tcp_t* qry);
+void _output_dnssim_https2_process_input_data(_output_dnssim_connection_t* conn);
+void _output_dnssim_https2_close(_output_dnssim_connection_t* conn);
+void _output_dnssim_https2_write_query(_output_dnssim_connection_t* conn, _output_dnssim_query_tcp_t* qry);
 #endif
 
 #endif
