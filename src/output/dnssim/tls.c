@@ -175,7 +175,8 @@ static ssize_t _tls_vec_push(gnutls_transport_ptr_t ptr, const giovec_t * iov, i
 
     size_t total_len = 0;
     uv_buf_t uv_buf[iovcnt];
-    for (int i = 0; i < iovcnt; ++i) {
+    int i;
+    for (i = 0; i < iovcnt; ++i) {
         uv_buf[i].base = iov[i].iov_base;
         uv_buf[i].len = iov[i].iov_len;
         total_len += iov[i].iov_len;
@@ -225,7 +226,8 @@ static ssize_t _tls_vec_push(gnutls_transport_ptr_t ptr, const giovec_t * iov, i
         size_t to_skip = ret;
         /* Copy the buffer into owned memory */
         size_t off = 0;
-        for (int i = 0; i < iovcnt; ++i) {
+        int i;
+        for (i = 0; i < iovcnt; ++i) {
             if (to_skip > 0) {
                 /* Ignore current buffer if it's all skipped */
                 if (to_skip >= uv_buf[i].len) {

@@ -89,7 +89,7 @@ output_dnssim_t* output_dnssim_new(size_t max_clients)
 void output_dnssim_free(output_dnssim_t* self)
 {
     mlassert_self();
-    int                      ret;
+    int                      ret, i;
     _output_dnssim_source_t* source;
     _output_dnssim_source_t* first = _self->source;
     output_dnssim_stats_t*   stats_prev;
@@ -112,7 +112,7 @@ void output_dnssim_free(output_dnssim_t* self)
         } while (_self->source != first);
     }
 
-    for (int i = 0; i < self->max_clients; ++i) {
+    for (i = 0; i < self->max_clients; ++i) {
         if (_self->client_arr[i].tls_ticket.size != 0) {
             gnutls_free(_self->client_arr[i].tls_ticket.data);
         }
