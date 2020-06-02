@@ -45,18 +45,18 @@ dnsjit_LDADD = $(PTHREAD_LIBS) $(luajit_LIBS) $(libuv_LIBS)
 
 # C source and headers';
 
-echo "dnsjit_SOURCES +=`find core lib input filter output -type f -name '*.c' -printf ' %p'|sort`"
-echo "dist_dnsjit_SOURCES +=`find core lib input filter output -type f -name '*.h' -printf ' %p'|sort`"
+echo "dnsjit_SOURCES +=`find core lib input filter output -type f -name '*.c' | sort | while read line; do echo -n " $line"; done`"
+echo "dist_dnsjit_SOURCES +=`find core lib input filter output -type f -name '*.h' | sort | while read line; do echo -n " $line"; done`"
 
 echo '
 # Lua headers'
-echo "dist_dnsjit_SOURCES +=`find core lib input filter output -type f -name '*.hh' -printf ' %p'|sort`"
-echo "lua_hobjects +=`find core lib input filter output -type f -name '*.hh' -printf ' %p'|sed -e 's%.hh%.luaho%g'|sort`"
+echo "dist_dnsjit_SOURCES +=`find core lib input filter output -type f -name '*.hh' | sort | while read line; do echo -n " $line"; done`"
+echo "lua_hobjects +=`find core lib input filter output -type f -name '*.hh' | sed -e 's%.hh%.luaho%g' | sort | while read line; do echo -n " $line"; done`"
 
 echo '
 # Lua sources'
-echo "dist_dnsjit_SOURCES +=`find core lib input filter output -type f -name '*.lua' -printf ' %p'|sort`"
-echo "lua_objects +=`find core lib input filter output -type f -name '*.lua' -printf ' %p '|sed -e 's%.lua %.luao%g'|sort`"
+echo "dist_dnsjit_SOURCES +=`find core lib input filter output -type f -name '*.lua' | sort | while read line; do echo -n " $line"; done`"
+echo "lua_objects +=`find core lib input filter output -type f -name '*.lua' | sed -e 's%.lua%.luao%g' | sort | while read line; do echo -n " $line"; done`"
 
 echo '
 dnsjit_LDFLAGS = -Wl,-E
@@ -67,7 +67,7 @@ man1_MANS = dnsjit.1
 CLEANFILES += $(man1_MANS)
 
 man3_MANS = dnsjit.core.3 dnsjit.lib.3 dnsjit.input.3 dnsjit.filter.3 dnsjit.output.3';
-echo "man3_MANS +=`find core lib input filter output -type f -name '*.lua' -printf ' dnsjit.%p'|sed -e 's%.lua%.3%g'|sed -e 's%/%.%g'|sort`"
+echo "man3_MANS +=`find core lib input filter output -type f -name '*.lua' | sed -e 's%.lua%.3%g' | sed -e 's%/%.%g' | sort | while read line; do echo -n " dnsjit.$line"; done`"
 
 echo 'CLEANFILES += *.3in $(man3_MANS)
 
@@ -113,7 +113,7 @@ dnsjit.${man}in: $file gen-manpage.lua
 	\$(LUAJIT) \"\$(srcdir)/gen-manpage.lua\" \"\$(srcdir)/$file\" > \"\$@\"";
 done
 
-find core lib input filter output -type f -name '*.lua' | while read file; do
+find core lib input filter output -type f -name '*.lua' | sort | while read file; do
     man=`echo "$file"|sed -e 's%.lua%.3%g'|sed -e 's%/%.%g'`
 echo "
 dnsjit.${man}in: $file gen-manpage.lua

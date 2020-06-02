@@ -161,7 +161,7 @@ static void _on_tcp_read(uv_stream_t* handle, ssize_t nread, const uv_buf_t* buf
             break;
         case OUTPUT_DNSSIM_TRANSPORT_TLS:
             mlassert(conn->tls, "con must have tls ctx");
-            conn->tls->buf = buf->base;
+            conn->tls->buf = (uint8_t*)buf->base;
             conn->tls->buf_pos = 0;
             conn->tls->buf_len = nread;
             _output_dnssim_tls_process_input_data(conn);
