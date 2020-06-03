@@ -32,4 +32,4 @@ typedef struct core_object_linuxsll {
 } core_object_linuxsll_t;
 
 core_object_linuxsll_t* core_object_linuxsll_copy(const core_object_linuxsll_t* self);
-void core_object_linuxsll_free(core_object_linuxsll_t* self);
+void                    core_object_linuxsll_free(core_object_linuxsll_t* self);

@@ -32,4 +32,4 @@ typedef struct core_object_ieee802 {
 } core_object_ieee802_t;
 
 core_object_ieee802_t* core_object_ieee802_copy(const core_object_ieee802_t* self);
-void core_object_ieee802_free(core_object_ieee802_t* self);
+void                   core_object_ieee802_free(core_object_ieee802_t* self);

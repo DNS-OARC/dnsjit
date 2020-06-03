@@ -29,4 +29,4 @@ typedef struct core_object_payload {
 } core_object_payload_t;
 
 core_object_payload_t* core_object_payload_copy(const core_object_payload_t* self);
-void core_object_payload_free(core_object_payload_t* self);
+void                   core_object_payload_free(core_object_payload_t* self);

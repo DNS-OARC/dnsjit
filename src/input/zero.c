@@ -29,7 +29,8 @@
 static core_log_t   _log      = LOG_T_INIT("input.zero");
 static input_zero_t _defaults = {
     LOG_T_INIT_OBJ("input.zero"),
-    0, 0,
+    0,
+    0,
 };
 
 static core_object_null_t _null = CORE_OBJECT_NULL_INIT(0);

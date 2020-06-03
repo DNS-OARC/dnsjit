@@ -39,4 +39,4 @@ typedef struct core_object_ip6 {
 } core_object_ip6_t;
 
 core_object_ip6_t* core_object_ip6_copy(const core_object_ip6_t* self);
-void core_object_ip6_free(core_object_ip6_t* self);
+void               core_object_ip6_free(core_object_ip6_t* self);

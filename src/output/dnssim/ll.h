@@ -42,7 +42,7 @@
         else if ((node) != NULL) {                                                \
             typeof(list) _current = (list);                                       \
             while (_current->next != NULL)                                        \
-                _current   = _current->next;                                      \
+                _current = _current->next;                                        \
             _current->next = node;                                                \
         }                                                                         \
     }

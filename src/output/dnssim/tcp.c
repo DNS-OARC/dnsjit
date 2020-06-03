@@ -151,18 +151,18 @@ void _output_dnssim_tcp_write_query(_output_dnssim_connection_t* conn, _output_d
 static void _on_tcp_read(uv_stream_t* handle, ssize_t nread, const uv_buf_t* buf)
 {
     _output_dnssim_connection_t* conn = (_output_dnssim_connection_t*)handle->data;
-    output_dnssim_t* self = conn->client->dnssim;
+    output_dnssim_t*             self = conn->client->dnssim;
 
     if (nread > 0) {
         mldebug("tcp nread: %d", nread);
-        switch(_self->transport) {
+        switch (_self->transport) {
         case OUTPUT_DNSSIM_TRANSPORT_TCP:
             _output_dnssim_read_dns_stream(conn, nread, buf->base);
             break;
         case OUTPUT_DNSSIM_TRANSPORT_TLS:
 #if GNUTLS_VERSION_NUMBER >= DNSSIM_MIN_GNUTLS_VERSION
             mlassert(conn->tls, "con must have tls ctx");
-            conn->tls->buf = (uint8_t*)buf->base;
+            conn->tls->buf     = (uint8_t*)buf->base;
             conn->tls->buf_pos = 0;
             conn->tls->buf_len = nread;
             _output_dnssim_tls_process_input_data(conn);
@@ -216,7 +216,7 @@ static void _on_tcp_connected(uv_connect_t* conn_req, int status)
     case OUTPUT_DNSSIM_TRANSPORT_TLS:
 #if GNUTLS_VERSION_NUMBER >= DNSSIM_MIN_GNUTLS_VERSION
         mldebug("init tls handshake");
-        _output_dnssim_tls_process_input_data(conn);  /* Initiate TLS handshake. */
+        _output_dnssim_tls_process_input_data(conn); /* Initiate TLS handshake. */
 #else
         mlfatal(DNSSIM_MIN_GNUTLS_ERRORMSG);
 #endif

@@ -45,9 +45,9 @@ core_log_t* output_udpcli_log();
 
 void output_udpcli_init(output_udpcli_t* self);
 void output_udpcli_destroy(output_udpcli_t* self);
-int output_udpcli_connect(output_udpcli_t* self, const char* host, const char* port);
-int output_udpcli_nonblocking(output_udpcli_t* self);
-int output_udpcli_set_nonblocking(output_udpcli_t* self, int nonblocking);
+int  output_udpcli_connect(output_udpcli_t* self, const char* host, const char* port);
+int  output_udpcli_nonblocking(output_udpcli_t* self);
+int  output_udpcli_set_nonblocking(output_udpcli_t* self, int nonblocking);
 
 core_receiver_t output_udpcli_receiver(output_udpcli_t* self);
 core_producer_t output_udpcli_producer(output_udpcli_t* self);

@@ -32,9 +32,9 @@ typedef struct filter_copy {
 
 core_log_t* filter_copy_log();
 
-void filter_copy_init(filter_copy_t* self);
-void filter_copy_destroy(filter_copy_t* self);
-void filter_copy_set(filter_copy_t* self, int32_t obj_type);
+void     filter_copy_init(filter_copy_t* self);
+void     filter_copy_destroy(filter_copy_t* self);
+void     filter_copy_set(filter_copy_t* self, int32_t obj_type);
 uint64_t filter_copy_get(filter_copy_t* self, int32_t obj_type);
 
 core_receiver_t filter_copy_receiver(filter_copy_t* self);

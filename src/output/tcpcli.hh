@@ -43,9 +43,9 @@ core_log_t* output_tcpcli_log();
 
 void output_tcpcli_init(output_tcpcli_t* self);
 void output_tcpcli_destroy(output_tcpcli_t* self);
-int output_tcpcli_connect(output_tcpcli_t* self, const char* host, const char* port);
-int output_tcpcli_nonblocking(output_tcpcli_t* self);
-int output_tcpcli_set_nonblocking(output_tcpcli_t* self, int nonblocking);
+int  output_tcpcli_connect(output_tcpcli_t* self, const char* host, const char* port);
+int  output_tcpcli_nonblocking(output_tcpcli_t* self);
+int  output_tcpcli_set_nonblocking(output_tcpcli_t* self, int nonblocking);
 
 core_receiver_t output_tcpcli_receiver(output_tcpcli_t* self);
 core_producer_t output_tcpcli_producer(output_tcpcli_t* self);

@@ -30,14 +30,16 @@
 
 #if GNUTLS_VERSION_NUMBER >= DNSSIM_MIN_GNUTLS_VERSION
 
-#define MIN(a,b) (((a)<(b))?(a):(b))			/** Minimum of two numbers **/
+#ifndef MIN
+#define MIN(a, b) (((a) < (b)) ? (a) : (b)) /** Minimum of two numbers **/
+#endif
 
 static core_log_t _log = LOG_T_INIT("output.dnssim");
 
 struct async_write_ctx {
-    uv_write_t write_req;
+    uv_write_t                   write_req;
     _output_dnssim_connection_t* conn;
-    char buf[];
+    char                         buf[];
 };
 
 static int _tls_handshake(_output_dnssim_connection_t* conn)
@@ -111,7 +113,7 @@ void _output_dnssim_tls_process_input_data(_output_dnssim_connection_t* conn)
         } else if (count == GNUTLS_E_INTERRUPTED) {
             continue;
         } else if (count == GNUTLS_E_REHANDSHAKE) {
-            continue;  /* Ignore rehandshake request. */
+            continue; /* Ignore rehandshake request. */
         } else if (count < 0) {
             mlwarning("gnutls_record_recv failed: %s", gnutls_strerror_name(count));
             _output_dnssim_conn_close(conn);
@@ -123,7 +125,7 @@ void _output_dnssim_tls_process_input_data(_output_dnssim_connection_t* conn)
     mlassert(conn->tls->buf_len == conn->tls->buf_pos, "tls didn't read the entire buffer");
 }
 
-static ssize_t _tls_pull(gnutls_transport_ptr_t ptr, void *buf, size_t len)
+static ssize_t _tls_pull(gnutls_transport_ptr_t ptr, void* buf, size_t len)
 {
     _output_dnssim_connection_t* conn = (_output_dnssim_connection_t*)ptr;
     mlassert(conn != NULL, "conn is null");
@@ -142,11 +144,11 @@ static ssize_t _tls_pull(gnutls_transport_ptr_t ptr, void *buf, size_t len)
     return transfer;
 }
 
-static void _tls_on_write_complete(uv_write_t *req, int status)
+static void _tls_on_write_complete(uv_write_t* req, int status)
 {
     mlassert(req->data != NULL, "uv_write req has no data pointer");
-    struct async_write_ctx *async_ctx = (struct async_write_ctx *)req->data;
-    _output_dnssim_connection_t* conn = async_ctx->conn;
+    struct async_write_ctx*      async_ctx = (struct async_write_ctx*)req->data;
+    _output_dnssim_connection_t* conn      = async_ctx->conn;
     mlassert(conn, "conn is nil");
     mlassert(conn->tls, "conn must have tls ctx");
     mlassert(conn->tls->write_queue_size > 0, "invalid write_queue_size: %d", conn->tls->write_queue_size);
@@ -157,7 +159,7 @@ static void _tls_on_write_complete(uv_write_t *req, int status)
         _output_dnssim_conn_close(conn);
 }
 
-static ssize_t _tls_vec_push(gnutls_transport_ptr_t ptr, const giovec_t * iov, int iovcnt)
+static ssize_t _tls_vec_push(gnutls_transport_ptr_t ptr, const giovec_t* iov, int iovcnt)
 {
     _output_dnssim_connection_t* conn = (_output_dnssim_connection_t*)ptr;
     mlassert(conn != NULL, "conn is null");
@@ -175,12 +177,12 @@ static ssize_t _tls_vec_push(gnutls_transport_ptr_t ptr, const giovec_t * iov, i
      * is created (with copied buffered data).
      */
 
-    size_t total_len = 0;
+    size_t   total_len = 0;
     uv_buf_t uv_buf[iovcnt];
-    int i;
+    int      i;
     for (i = 0; i < iovcnt; ++i) {
         uv_buf[i].base = iov[i].iov_base;
-        uv_buf[i].len = iov[i].iov_len;
+        uv_buf[i].len  = iov[i].iov_len;
         total_len += iov[i].iov_len;
     }
 
@@ -219,16 +221,16 @@ static ssize_t _tls_vec_push(gnutls_transport_ptr_t ptr, const giovec_t * iov, i
     }
 
     /* Fallback when the queue is full, and it's not possible to do an immediate write */
-    char *p = malloc(sizeof(struct async_write_ctx) + total_len - ret);
+    char* p = malloc(sizeof(struct async_write_ctx) + total_len - ret);
     if (p != NULL) {
-        struct async_write_ctx *async_ctx = (struct async_write_ctx *)p;
-        async_ctx->conn = conn;
-        char *buf = async_ctx->buf;
+        struct async_write_ctx* async_ctx = (struct async_write_ctx*)p;
+        async_ctx->conn                   = conn;
+        char* buf                         = async_ctx->buf;
         /* Skip data written in the partial write */
         size_t to_skip = ret;
         /* Copy the buffer into owned memory */
         size_t off = 0;
-        int i;
+        int    i;
         for (i = 0; i < iovcnt; ++i) {
             if (to_skip > 0) {
                 /* Ignore current buffer if it's all skipped */
@@ -245,10 +247,10 @@ static ssize_t _tls_vec_push(gnutls_transport_ptr_t ptr, const giovec_t * iov, i
             off += uv_buf[i].len;
         }
         uv_buf[0].base = buf;
-        uv_buf[0].len = off;
+        uv_buf[0].len  = off;
 
         /* Create an asynchronous write request */
-        uv_write_t *write_req = &async_ctx->write_req;
+        uv_write_t* write_req = &async_ctx->write_req;
         memset(write_req, 0, sizeof(uv_write_t));
         write_req->data = p;
 
@@ -259,11 +261,11 @@ static ssize_t _tls_vec_push(gnutls_transport_ptr_t ptr, const giovec_t * iov, i
         } else {
             free(p);
             errno = EIO;
-            ret = -1;
+            ret   = -1;
         }
     } else {
         errno = ENOMEM;
-        ret = -1;
+        ret   = -1;
     }
 
     return ret;
@@ -275,7 +277,7 @@ int _tls_pull_timeout(gnutls_transport_ptr_t ptr, unsigned int ms)
     mlassert(conn != NULL, "conn is null");
     mlassert(conn->tls != NULL, "conn must have tls ctx");
 
-    ssize_t	avail = conn->tls->buf_len - conn->tls->buf_pos;
+    ssize_t avail = conn->tls->buf_len - conn->tls->buf_pos;
     if (avail <= 0) {
         errno = EAGAIN;
         return -1;
@@ -290,9 +292,9 @@ int _output_dnssim_tls_init(_output_dnssim_connection_t* conn)
 
     int ret;
     mlfatal_oom(conn->tls = malloc(sizeof(_output_dnssim_tls_ctx_t)));
-    conn->tls->buf = NULL;
-    conn->tls->buf_len = 0;
-    conn->tls->buf_pos = 0;
+    conn->tls->buf              = NULL;
+    conn->tls->buf_len          = 0;
+    conn->tls->buf_pos          = 0;
     conn->tls->write_queue_size = 0;
 
     ret = gnutls_init(&conn->tls->session, GNUTLS_CLIENT | GNUTLS_NONBLOCK);
@@ -405,12 +407,11 @@ void _output_dnssim_tls_write_query(_output_dnssim_connection_t* conn, _output_d
     mlassert(conn->client->pending, "conn has no pending queries");
 
     core_object_payload_t* payload = (core_object_payload_t*)qry->qry.req->dns_q->obj_prev;
-    uint16_t len = htons(payload->len);
+    uint16_t               len     = htons(payload->len);
 
     gnutls_record_cork(conn->tls->session);
     ssize_t count = 0;
-    if ((count = gnutls_record_send(conn->tls->session, &len, sizeof(len)) < 0) ||
-            (count = gnutls_record_send(conn->tls->session, payload->payload, payload->len) < 0)) {
+    if ((count = gnutls_record_send(conn->tls->session, &len, sizeof(len)) < 0) || (count = gnutls_record_send(conn->tls->session, payload->payload, payload->len) < 0)) {
         mlwarning("gnutls_record_send failed: %s", gnutls_strerror_name(count));
         _output_dnssim_conn_close(conn);
         return;
