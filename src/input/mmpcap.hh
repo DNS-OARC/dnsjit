@@ -54,7 +54,7 @@ core_log_t* input_mmpcap_log();
 
 void input_mmpcap_init(input_mmpcap_t* self);
 void input_mmpcap_destroy(input_mmpcap_t* self);
-int input_mmpcap_open(input_mmpcap_t* self, const char* file);
-int input_mmpcap_run(input_mmpcap_t* self);
+int  input_mmpcap_open(input_mmpcap_t* self, const char* file);
+int  input_mmpcap_run(input_mmpcap_t* self);
 
 core_producer_t input_mmpcap_producer(input_mmpcap_t* self);

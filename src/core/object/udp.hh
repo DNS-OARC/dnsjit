@@ -31,4 +31,4 @@ typedef struct core_object_udp {
 } core_object_udp_t;
 
 core_object_udp_t* core_object_udp_copy(const core_object_udp_t* self);
-void core_object_udp_free(core_object_udp_t* self);
+void               core_object_udp_free(core_object_udp_t* self);

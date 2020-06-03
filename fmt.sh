@@ -17,7 +17,7 @@
 # You should have received a copy of the GNU General Public License
 # along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
 
-clang-format-4.0 \
+clang-format \
     -style=file \
     -i \
     src/*.c \

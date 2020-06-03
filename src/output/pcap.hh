@@ -33,9 +33,9 @@ typedef struct output_pcap {
 } output_pcap_t;
 
 core_log_t* output_pcap_log();
-void output_pcap_init(output_pcap_t* self);
-void output_pcap_destroy(output_pcap_t* self);
-int output_pcap_open(output_pcap_t* self, const char* file, int linktype, int snaplen);
-void output_pcap_close(output_pcap_t* self);
+void        output_pcap_init(output_pcap_t* self);
+void        output_pcap_destroy(output_pcap_t* self);
+int         output_pcap_open(output_pcap_t* self, const char* file, int linktype, int snaplen);
+void        output_pcap_close(output_pcap_t* self);
 
 core_receiver_t output_pcap_receiver(output_pcap_t* self);

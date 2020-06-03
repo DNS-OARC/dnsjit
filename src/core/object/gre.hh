@@ -34,4 +34,4 @@ typedef struct core_object_gre {
 } core_object_gre_t;
 
 core_object_gre_t* core_object_gre_copy(const core_object_gre_t* self);
-void core_object_gre_free(core_object_gre_t* self);
+void               core_object_gre_free(core_object_gre_t* self);

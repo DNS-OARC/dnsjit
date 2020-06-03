@@ -28,4 +28,4 @@ typedef struct core_object_null {
 } core_object_null_t;
 
 core_object_null_t* core_object_null_copy(const core_object_null_t* self);
-void core_object_null_free(core_object_null_t* self);
+void                core_object_null_free(core_object_null_t* self);

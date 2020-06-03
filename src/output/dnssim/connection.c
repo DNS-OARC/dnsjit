@@ -105,7 +105,7 @@ void _output_dnssim_conn_close(_output_dnssim_connection_t* conn)
         uv_close((uv_handle_t*)conn->idle_timer, _on_idle_timer_closed);
     }
 
-    switch(_self->transport) {
+    switch (_self->transport) {
     case OUTPUT_DNSSIM_TRANSPORT_TCP:
         _output_dnssim_tcp_close(conn);
         break;
@@ -120,7 +120,6 @@ void _output_dnssim_conn_close(_output_dnssim_connection_t* conn)
         lfatal("unsupported transport");
         break;
     }
-
 }
 
 /* Close connection or run idle timer when there are no more outstanding queries. */
@@ -148,7 +147,7 @@ static void _send_pending_queries(_output_dnssim_connection_t* conn)
     while (qry != NULL && conn->state == _OUTPUT_DNSSIM_CONN_ACTIVE) {
         _output_dnssim_query_tcp_t* next = (_output_dnssim_query_tcp_t*)qry->qry.next;
         if (qry->qry.state == _OUTPUT_DNSSIM_QUERY_PENDING_WRITE) {
-            switch(qry->qry.transport) {
+            switch (qry->qry.transport) {
             case OUTPUT_DNSSIM_TRANSPORT_TCP:
                 _output_dnssim_tcp_write_query(conn, qry);
                 break;
@@ -187,7 +186,7 @@ int _output_dnssim_handle_pending_queries(_output_dnssim_client_t* client)
             break;
         else if (_conn_is_connecting(conn))
             is_connecting = true;
-        conn              = conn->next;
+        conn = conn->next;
     }
 
     if (conn != NULL) { /* Send data right away over active connection. */
@@ -225,7 +224,7 @@ void _output_dnssim_conn_activate(_output_dnssim_connection_t* conn)
 
     conn->state = _OUTPUT_DNSSIM_CONN_ACTIVE;
     conn->client->dnssim->stats_current->conn_active++;
-    conn->read_state          = _OUTPUT_DNSSIM_READ_STATE_DNSLEN;
+    conn->read_state            = _OUTPUT_DNSSIM_READ_STATE_DNSLEN;
     conn->dnsbuf_len            = 2;
     conn->dnsbuf_pos            = 0;
     conn->dnsbuf_free_after_use = false;
@@ -275,7 +274,7 @@ static int _parse_dnsbuf_data(_output_dnssim_connection_t* conn)
     switch (conn->read_state) {
     case _OUTPUT_DNSSIM_READ_STATE_DNSLEN: {
         uint16_t* p_dnslen = (uint16_t*)conn->dnsbuf_data;
-        conn->dnsbuf_len     = ntohs(*p_dnslen);
+        conn->dnsbuf_len   = ntohs(*p_dnslen);
         if (conn->dnsbuf_len == 0) {
             mlwarning("invalid dnslen received: 0");
             conn->dnsbuf_len = 2;
@@ -294,7 +293,7 @@ static int _parse_dnsbuf_data(_output_dnssim_connection_t* conn)
         if (ret) {
             conn->read_state = _OUTPUT_DNSSIM_READ_STATE_INVALID;
         } else {
-            conn->dnsbuf_len   = 2;
+            conn->dnsbuf_len = 2;
             conn->read_state = _OUTPUT_DNSSIM_READ_STATE_DNSLEN;
         }
         break;
@@ -319,7 +318,7 @@ static unsigned int _read_dns_stream_chunk(_output_dnssim_connection_t* conn, si
     mlassert(data, "data can't be nil");
     mlassert(len > 0, "no data to read");
     mlassert((conn->read_state == _OUTPUT_DNSSIM_READ_STATE_DNSLEN || conn->read_state == _OUTPUT_DNSSIM_READ_STATE_DNSMSG),
-            "connection has invalid read_state");
+        "connection has invalid read_state");
 
     int          ret = 0;
     unsigned int nread;
@@ -345,7 +344,7 @@ static unsigned int _read_dns_stream_chunk(_output_dnssim_connection_t* conn, si
         mlassert(expected <= len, "not enough data to perform complete read");
         conn->dnsbuf_data = (char*)data;
         conn->dnsbuf_pos  = conn->dnsbuf_len;
-        nread           = expected;
+        nread             = expected;
     }
 
     /* If entire dnslen/dnsmsg was read, attempt to parse it. */
@@ -360,8 +359,8 @@ static unsigned int _read_dns_stream_chunk(_output_dnssim_connection_t* conn, si
 
 void _output_dnssim_read_dns_stream(_output_dnssim_connection_t* conn, size_t len, const char* data)
 {
-    int   pos   = 0;
-    int   chunk = 0;
+    int pos   = 0;
+    int chunk = 0;
     while (pos < len) {
         chunk = _read_dns_stream_chunk(conn, len - pos, data + pos);
         if (chunk < 0) {

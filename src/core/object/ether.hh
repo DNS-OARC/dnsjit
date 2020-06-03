@@ -30,4 +30,4 @@ typedef struct core_object_ether {
 } core_object_ether_t;
 
 core_object_ether_t* core_object_ether_copy(const core_object_ether_t* self);
-void core_object_ether_free(core_object_ether_t* self);
+void                 core_object_ether_free(core_object_ether_t* self);

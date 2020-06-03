@@ -46,7 +46,7 @@ core_log_t* output_tlscli_log();
 
 void output_tlscli_init(output_tlscli_t* self);
 void output_tlscli_destroy(output_tlscli_t* self);
-int output_tlscli_connect(output_tlscli_t* self, const char* host, const char* port);
+int  output_tlscli_connect(output_tlscli_t* self, const char* host, const char* port);
 
 core_receiver_t output_tlscli_receiver(output_tlscli_t* self);
 core_producer_t output_tlscli_producer(output_tlscli_t* self);

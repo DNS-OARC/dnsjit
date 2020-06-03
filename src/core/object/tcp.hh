@@ -40,4 +40,4 @@ typedef struct core_object_tcp {
 } core_object_tcp_t;
 
 core_object_tcp_t* core_object_tcp_copy(const core_object_tcp_t* self);
-void core_object_tcp_free(core_object_tcp_t* self);
+void               core_object_tcp_free(core_object_tcp_t* self);

@@ -30,4 +30,4 @@ typedef struct core_object_icmp6 {
 } core_object_icmp6_t;
 
 core_object_icmp6_t* core_object_icmp6_copy(const core_object_icmp6_t* self);
-void core_object_icmp6_free(core_object_icmp6_t* self);
+void                 core_object_icmp6_free(core_object_icmp6_t* self);

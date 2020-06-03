@@ -37,4 +37,4 @@ typedef struct core_object_ip {
 } core_object_ip_t;
 
 core_object_ip_t* core_object_ip_copy(const core_object_ip_t* self);
-void core_object_ip_free(core_object_ip_t* self);
+void              core_object_ip_free(core_object_ip_t* self);

@@ -99,13 +99,13 @@ typedef struct output_dnssim {
 core_log_t* output_dnssim_log();
 
 output_dnssim_t* output_dnssim_new(size_t max_clients);
-void output_dnssim_free(output_dnssim_t* self);
+void             output_dnssim_free(output_dnssim_t* self);
 
 void output_dnssim_set_transport(output_dnssim_t* self, output_dnssim_transport_t tr);
-int output_dnssim_target(output_dnssim_t* self, const char* ip, uint16_t port);
-int output_dnssim_bind(output_dnssim_t* self, const char* ip);
-int output_dnssim_tls_priority(output_dnssim_t* self, const char* priority);
-int output_dnssim_run_nowait(output_dnssim_t* self);
+int  output_dnssim_target(output_dnssim_t* self, const char* ip, uint16_t port);
+int  output_dnssim_bind(output_dnssim_t* self, const char* ip);
+int  output_dnssim_tls_priority(output_dnssim_t* self, const char* priority);
+int  output_dnssim_run_nowait(output_dnssim_t* self);
 void output_dnssim_timeout_ms(output_dnssim_t* self, uint64_t timeout_ms);
 void output_dnssim_stats_collect(output_dnssim_t* self, uint64_t interval_ms);
 void output_dnssim_stats_finish(output_dnssim_t* self);

@@ -28,4 +28,4 @@ typedef struct core_object_loop {
 } core_object_loop_t;
 
 core_object_loop_t* core_object_loop_copy(const core_object_loop_t* self);
-void core_object_loop_free(core_object_loop_t* self);
+void                core_object_loop_free(core_object_loop_t* self);

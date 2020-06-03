@@ -25,4 +25,4 @@ struct core_object {
 };
 
 core_object_t* core_object_copy(const core_object_t* self);
-void core_object_free(core_object_t* self);
+void           core_object_free(core_object_t* self);
