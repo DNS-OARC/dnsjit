@@ -26,6 +26,9 @@
 #include "core/object/dns.h"
 #include "core/object/payload.h"
 
+#define DNSSIM_MIN_GNUTLS_VERSION 0x030603
+#define DNSSIM_MIN_GNUTLS_ERRORMSG "dnssim tls transport requires GnuTLS >= 3.6.3"
+
 #define _self ((_output_dnssim_t*)self)
 #define _ERR_MALFORMED -2
 #define _ERR_MSGID -3
@@ -247,10 +250,8 @@ struct _output_dnssim {
 int _output_dnssim_bind_before_connect(output_dnssim_t* self, uv_handle_t* handle);
 int _output_dnssim_create_query_udp(output_dnssim_t* self, _output_dnssim_request_t* req);
 int _output_dnssim_create_query_tcp(output_dnssim_t* self, _output_dnssim_request_t* req);
-int _output_dnssim_create_query_tls(output_dnssim_t* self, _output_dnssim_request_t* req);
 void _output_dnssim_close_query_udp(_output_dnssim_query_udp_t* qry);
 void _output_dnssim_close_query_tcp(_output_dnssim_query_tcp_t* qry);
-void _output_dnssim_close_query_tls(_output_dnssim_query_tcp_t* qry);
 void _output_dnssim_request_answered(_output_dnssim_request_t* req, core_object_dns_t* msg);
 void _output_dnssim_maybe_free_request(_output_dnssim_request_t* req);
 void _output_dnssim_on_uv_alloc(uv_handle_t* handle, size_t suggested_size, uv_buf_t* buf);
@@ -259,15 +260,20 @@ int _output_dnssim_handle_pending_queries(_output_dnssim_client_t* client);
 int _output_dnssim_tcp_connect(output_dnssim_t* self, _output_dnssim_connection_t* conn);
 void _output_dnssim_tcp_close(_output_dnssim_connection_t* conn);
 void _output_dnssim_tcp_write_query(_output_dnssim_connection_t* conn, _output_dnssim_query_tcp_t* qry);
-int _output_dnssim_tls_init(_output_dnssim_connection_t* conn);
 void _output_dnssim_conn_close(_output_dnssim_connection_t* conn);
 void _output_dnssim_conn_idle(_output_dnssim_connection_t* conn);
 int _output_dnssim_handle_pending_queries(_output_dnssim_client_t* client);
 void _output_dnssim_conn_activate(_output_dnssim_connection_t* conn);
 void _output_dnssim_conn_maybe_free(_output_dnssim_connection_t* conn);
 void _output_dnssim_read_dns_stream(_output_dnssim_connection_t* conn, size_t len, const char* data);
+
+#if GNUTLS_VERSION_NUMBER >= DNSSIM_MIN_GNUTLS_VERSION
+int _output_dnssim_create_query_tls(output_dnssim_t* self, _output_dnssim_request_t* req);
+void _output_dnssim_close_query_tls(_output_dnssim_query_tcp_t* qry);
+int _output_dnssim_tls_init(_output_dnssim_connection_t* conn);
 void _output_dnssim_tls_process_input_data(_output_dnssim_connection_t* conn);
 void _output_dnssim_tls_close(_output_dnssim_connection_t* conn);
 void _output_dnssim_tls_write_query(_output_dnssim_connection_t* conn, _output_dnssim_query_tcp_t* qry);
+#endif
 
 #endif

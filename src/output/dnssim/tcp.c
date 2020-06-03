@@ -160,11 +160,15 @@ static void _on_tcp_read(uv_stream_t* handle, ssize_t nread, const uv_buf_t* buf
             _output_dnssim_read_dns_stream(conn, nread, buf->base);
             break;
         case OUTPUT_DNSSIM_TRANSPORT_TLS:
+#if GNUTLS_VERSION_NUMBER >= DNSSIM_MIN_GNUTLS_VERSION
             mlassert(conn->tls, "con must have tls ctx");
             conn->tls->buf = (uint8_t*)buf->base;
             conn->tls->buf_pos = 0;
             conn->tls->buf_len = nread;
             _output_dnssim_tls_process_input_data(conn);
+#else
+            mlfatal(DNSSIM_MIN_GNUTLS_ERRORMSG);
+#endif
             break;
         default:
             mlfatal("unsupported transport");
@@ -210,8 +214,12 @@ static void _on_tcp_connected(uv_connect_t* conn_req, int status)
         _output_dnssim_conn_activate(conn);
         break;
     case OUTPUT_DNSSIM_TRANSPORT_TLS:
+#if GNUTLS_VERSION_NUMBER >= DNSSIM_MIN_GNUTLS_VERSION
         mldebug("init tls handshake");
         _output_dnssim_tls_process_input_data(conn);  /* Initiate TLS handshake. */
+#else
+        mlfatal(DNSSIM_MIN_GNUTLS_ERRORMSG);
+#endif
         break;
     default:
         lfatal("unsupported transport protocol");

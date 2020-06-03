@@ -232,9 +232,10 @@ void output_dnssim_set_transport(output_dnssim_t* self, output_dnssim_transport_
         lnotice("transport set to TCP");
         break;
     case OUTPUT_DNSSIM_TRANSPORT_TLS:
+#if GNUTLS_VERSION_NUMBER >= DNSSIM_MIN_GNUTLS_VERSION
         lnotice("transport set to TLS");
-#if GNUTLS_VERSION_NUMBER < 0x030603
-        lwarning("TLS session resumption requires GnuTLS 3.6.3+");
+#else
+        lfatal(DNSSIM_MIN_GNUTLS_ERRORMSG);
 #endif
         break;
     case OUTPUT_DNSSIM_TRANSPORT_UDP:
