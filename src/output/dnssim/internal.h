@@ -21,14 +21,20 @@
 #ifndef __dnsjit_output_dnssim_internal_h
 #define __dnsjit_output_dnssim_internal_h
 
+#include <gnutls/gnutls.h>
 #include <uv.h>
 #include "core/object/dns.h"
 #include "core/object/payload.h"
+
+#define DNSSIM_MIN_GNUTLS_VERSION 0x030603
+#define DNSSIM_MIN_GNUTLS_ERRORMSG "dnssim tls transport requires GnuTLS >= 3.6.3"
 
 #define _self ((_output_dnssim_t*)self)
 #define _ERR_MALFORMED -2
 #define _ERR_MSGID -3
 #define _ERR_TC -4
+
+#define WIRE_BUF_SIZE 65535 + 2 + 16384  /** max tcplen + 2b tcplen + 16kb tls record */
 
 typedef struct _output_dnssim_request    _output_dnssim_request_t;
 typedef struct _output_dnssim_connection _output_dnssim_connection_t;
@@ -128,6 +134,15 @@ typedef enum _output_dnssim_read_state {
     _OUTPUT_DNSSIM_READ_STATE_INVALID
 } _output_dnssim_read_state_t;
 
+/* TLS-related data for a single connection. */
+typedef struct _output_dnssim_tls_ctx {
+    gnutls_session_t session;
+    uint8_t* buf;
+    ssize_t buf_len;
+    ssize_t buf_pos;
+    size_t write_queue_size;
+} _output_dnssim_tls_ctx_t;
+
 struct _output_dnssim_connection {
     _output_dnssim_connection_t* next;
 
@@ -151,28 +166,32 @@ struct _output_dnssim_connection {
 
     /* State of the connection. */
     enum {
-        _OUTPUT_DNSSIM_CONN_INITIALIZED,
-        _OUTPUT_DNSSIM_CONN_CONNECTING,
-        _OUTPUT_DNSSIM_CONN_ACTIVE,
-        _OUTPUT_DNSSIM_CONN_CLOSING,
-        _OUTPUT_DNSSIM_CONN_CLOSED
+        _OUTPUT_DNSSIM_CONN_INITIALIZED = 0,
+        _OUTPUT_DNSSIM_CONN_TCP_HANDSHAKE = 10,
+        _OUTPUT_DNSSIM_CONN_TLS_HANDSHAKE = 20,
+        _OUTPUT_DNSSIM_CONN_ACTIVE = 30,
+        _OUTPUT_DNSSIM_CONN_CLOSING = 40,
+        _OUTPUT_DNSSIM_CONN_CLOSED = 50
     } state;
 
     /* State of the data stream read. */
     _output_dnssim_read_state_t read_state;
 
-    /* Total length of the expected stream data (either 2 for dnslen, or dnslen itself). */
-    size_t recv_len;
+    /* Total length of the expected dns data (either 2 for dnslen, or dnslen itself). */
+    size_t dnsbuf_len;
 
-    /* Current position in the receive buffer. */
-    size_t recv_pos;
+    /* Current position in the receive dns buffer. */
+    size_t dnsbuf_pos;
 
     /* Receive buffer used for incomplete messages or dnslen. */
-    char* recv_data;
-    bool  recv_free_after_use;
+    char* dnsbuf_data;
+    bool  dnsbuf_free_after_use;
 
     /* Statistics interval in which the handshake is tracked. */
     output_dnssim_stats_t* stats;
+
+    /* TLS-related data. */
+    _output_dnssim_tls_ctx_t* tls;
 };
 
 /*
@@ -190,6 +209,9 @@ struct _output_dnssim_client {
 
     /* List of queries that are pending to be sent over any available connection. */
     _output_dnssim_query_t* pending;
+
+    /* TLS-ticket for session resumption. */
+    gnutls_datum_t tls_ticket;
 };
 
 /*
@@ -215,6 +237,10 @@ struct _output_dnssim {
 
     /* Array of clients, mapped by client ID (ranges from 0 to max_clients). */
     _output_dnssim_client_t* client_arr;
+
+    gnutls_priority_t* tls_priority;
+    gnutls_certificate_credentials_t tls_cred;
+    char wire_buf[WIRE_BUF_SIZE];  /* thread-local buffer for processing tls input */
 };
 
 /*
@@ -230,5 +256,24 @@ void _output_dnssim_request_answered(_output_dnssim_request_t* req, core_object_
 void _output_dnssim_maybe_free_request(_output_dnssim_request_t* req);
 void _output_dnssim_on_uv_alloc(uv_handle_t* handle, size_t suggested_size, uv_buf_t* buf);
 void _output_dnssim_create_request(output_dnssim_t* self, _output_dnssim_client_t* client, core_object_payload_t* payload);
+int _output_dnssim_handle_pending_queries(_output_dnssim_client_t* client);
+int _output_dnssim_tcp_connect(output_dnssim_t* self, _output_dnssim_connection_t* conn);
+void _output_dnssim_tcp_close(_output_dnssim_connection_t* conn);
+void _output_dnssim_tcp_write_query(_output_dnssim_connection_t* conn, _output_dnssim_query_tcp_t* qry);
+void _output_dnssim_conn_close(_output_dnssim_connection_t* conn);
+void _output_dnssim_conn_idle(_output_dnssim_connection_t* conn);
+int _output_dnssim_handle_pending_queries(_output_dnssim_client_t* client);
+void _output_dnssim_conn_activate(_output_dnssim_connection_t* conn);
+void _output_dnssim_conn_maybe_free(_output_dnssim_connection_t* conn);
+void _output_dnssim_read_dns_stream(_output_dnssim_connection_t* conn, size_t len, const char* data);
+
+#if GNUTLS_VERSION_NUMBER >= DNSSIM_MIN_GNUTLS_VERSION
+int _output_dnssim_create_query_tls(output_dnssim_t* self, _output_dnssim_request_t* req);
+void _output_dnssim_close_query_tls(_output_dnssim_query_tcp_t* qry);
+int _output_dnssim_tls_init(_output_dnssim_connection_t* conn);
+void _output_dnssim_tls_process_input_data(_output_dnssim_connection_t* conn);
+void _output_dnssim_tls_close(_output_dnssim_connection_t* conn);
+void _output_dnssim_tls_write_query(_output_dnssim_connection_t* conn, _output_dnssim_query_tcp_t* qry);
+#endif
 
 #endif

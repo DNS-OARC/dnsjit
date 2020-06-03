@@ -29,19 +29,6 @@
 
 static core_log_t _log = LOG_T_INIT("output.dnssim");
 
-static void _maybe_close_connection(_output_dnssim_connection_t* conn);
-static void _close_connection(_output_dnssim_connection_t* conn);
-
-static void _maybe_free_connection(_output_dnssim_connection_t* conn)
-{
-    mlassert(conn, "conn can't be nil");
-    mlassert(conn->client, "conn must belong to a client");
-    if (conn->handle == NULL && conn->handshake_timer == NULL && conn->idle_timer == NULL) {
-        _ll_remove(conn->client->conn, conn);
-        free(conn);
-    }
-}
-
 static void _move_queries_to_pending(_output_dnssim_query_tcp_t* qry)
 {
     _output_dnssim_query_tcp_t* qry_tmp;
@@ -58,7 +45,7 @@ static void _move_queries_to_pending(_output_dnssim_query_tcp_t* qry)
     }
 }
 
-static void _on_tcp_handle_closed(uv_handle_t* handle)
+static void _on_tcp_closed(uv_handle_t* handle)
 {
     _output_dnssim_connection_t* conn = (_output_dnssim_connection_t*)handle->data;
     mlassert(conn, "conn is nil");
@@ -77,34 +64,13 @@ static void _on_tcp_handle_closed(uv_handle_t* handle)
      * Attempting to establish new connection immediately leads to performance
      * issues if the number of these attempts doesn't have upper limit. */
     ///* Ensure orhpaned queries are re-sent over a different connection. */
-    //if (_handle_pending_queries(conn->client) != 0)
+    //if (_output_dnssim_handle_pending_queries(conn->client) != 0)
     //    mlinfo("tcp: orphaned queries failed to be re-sent");
 
     mlassert(conn->handle, "conn must have tcp handle when closing it");
     free(conn->handle);
     conn->handle = NULL;
-    _maybe_free_connection(conn);
-}
-
-static void _on_handshake_timer_closed(uv_handle_t* handle)
-{
-    _output_dnssim_connection_t* conn = (_output_dnssim_connection_t*)handle->data;
-    mlassert(conn, "conn is nil");
-    mlassert(conn->handshake_timer, "conn must have handshake timer when closing it");
-    free(conn->handshake_timer);
-    conn->handshake_timer = NULL;
-    _maybe_free_connection(conn);
-}
-
-static void _on_idle_timer_closed(uv_handle_t* handle)
-{
-    _output_dnssim_connection_t* conn = (_output_dnssim_connection_t*)handle->data;
-    mlassert(conn, "conn is nil");
-    mlassert(conn->idle_timer, "conn must have idle timer when closing it");
-    free(conn->idle_timer);
-    conn->is_idle    = false;
-    conn->idle_timer = NULL;
-    _maybe_free_connection(conn);
+    _output_dnssim_conn_maybe_free(conn);
 }
 
 static void _on_tcp_query_written(uv_write_t* wr_req, int status)
@@ -129,7 +95,7 @@ static void _on_tcp_query_written(uv_write_t* wr_req, int status)
             mlinfo("tcp write failed: %s", uv_strerror(status));
         if (qry != NULL)
             qry->qry.state = _OUTPUT_DNSSIM_QUERY_WRITE_FAILED;
-        _close_connection(conn);
+        _output_dnssim_conn_close(conn);
         return;
     }
 
@@ -146,7 +112,7 @@ static void _on_tcp_query_written(uv_write_t* wr_req, int status)
     }
 }
 
-static void _write_tcp_query(_output_dnssim_query_tcp_t* qry, _output_dnssim_connection_t* conn)
+void _output_dnssim_tcp_write_query(_output_dnssim_connection_t* conn, _output_dnssim_query_tcp_t* qry)
 {
     mlassert(qry, "qry can't be null");
     mlassert(qry->qry.state == _OUTPUT_DNSSIM_QUERY_PENDING_WRITE, "qry must be pending write");
@@ -182,256 +148,92 @@ static void _write_tcp_query(_output_dnssim_query_tcp_t* qry, _output_dnssim_con
     qry->qry.state = _OUTPUT_DNSSIM_QUERY_PENDING_WRITE_CB;
 }
 
-static void _send_pending_queries(_output_dnssim_connection_t* conn)
-{
-    _output_dnssim_query_tcp_t* qry;
-    mlassert(conn, "conn is nil");
-    mlassert(conn->client, "conn->client is nil");
-    qry = (_output_dnssim_query_tcp_t*)conn->client->pending;
-
-    while (qry != NULL) {
-        _output_dnssim_query_tcp_t* next = (_output_dnssim_query_tcp_t*)qry->qry.next;
-        if (qry->qry.state == _OUTPUT_DNSSIM_QUERY_PENDING_WRITE)
-            _write_tcp_query(qry, conn);
-        qry = next;
-    }
-}
-
-int _process_tcp_dnsmsg(_output_dnssim_connection_t* conn)
-{
-    mlassert(conn, "conn can't be nil");
-
-    core_object_payload_t payload = CORE_OBJECT_PAYLOAD_INIT(NULL);
-    core_object_dns_t     dns_a   = CORE_OBJECT_DNS_INIT(&payload);
-
-    payload.payload = (uint8_t*)conn->recv_data;
-    payload.len     = conn->recv_len;
-
-    dns_a.obj_prev = (core_object_t*)&payload;
-    int ret        = core_object_dns_parse_header(&dns_a);
-    if (ret != 0) {
-        mlwarning("tcp response malformed");
-        return _ERR_MALFORMED;
-    }
-    mldebug("tcp recv dnsmsg id: %04x", dns_a.id);
-
-    _output_dnssim_query_t* qry = conn->sent;
-    while (qry != NULL) {
-        if (qry->req->dns_q->id == dns_a.id) {
-            /* NOTE: QNAME, QTYPE and QCLASS checking (RFC 7766, Section 7) is
-             * omitted, since the MSGID is unique per connection. */
-            _output_dnssim_request_answered(qry->req, &dns_a);
-            break;
-        }
-        qry = qry->next;
-    }
-
-    return 0;
-}
-
-int _parse_recv_data(_output_dnssim_connection_t* conn)
-{
-    mlassert(conn, "conn can't be nil");
-    mlassert(conn->recv_pos == conn->recv_len, "attempt to parse incomplete recv_data");
-    int ret = 0;
-
-    switch (conn->read_state) {
-    case _OUTPUT_DNSSIM_READ_STATE_DNSLEN: {
-        uint16_t* p_dnslen = (uint16_t*)conn->recv_data;
-        conn->recv_len     = ntohs(*p_dnslen);
-        mldebug("tcp dnslen: %d", conn->recv_len);
-        conn->read_state = _OUTPUT_DNSSIM_READ_STATE_DNSMSG;
-        break;
-    }
-    case _OUTPUT_DNSSIM_READ_STATE_DNSMSG:
-        ret = _process_tcp_dnsmsg(conn);
-        if (ret) {
-            conn->read_state = _OUTPUT_DNSSIM_READ_STATE_INVALID;
-        } else {
-            conn->recv_len   = 2;
-            conn->read_state = _OUTPUT_DNSSIM_READ_STATE_DNSLEN;
-        }
-        break;
-    default:
-        mlfatal("tcp invalid connection read_state");
-        break;
-    }
-
-    conn->recv_pos = 0;
-    if (conn->recv_free_after_use) {
-        conn->recv_free_after_use = false;
-        free(conn->recv_data);
-    }
-    conn->recv_data = NULL;
-
-    return ret;
-}
-
-unsigned int _read_tcp_stream(_output_dnssim_connection_t* conn, size_t len, const char* data)
-{
-    mlassert(conn, "conn can't be nil");
-    mlassert(data, "data can't be nil");
-    mlassert(len > 0, "no data to read");
-    mlassert((conn->read_state == _OUTPUT_DNSSIM_READ_STATE_DNSLEN || conn->read_state == _OUTPUT_DNSSIM_READ_STATE_DNSMSG),
-        "connection has invalid read_state");
-
-    int          ret = 0;
-    unsigned int nread;
-    size_t       expected = conn->recv_len - conn->recv_pos;
-    mlassert(expected > 0, "no data expected");
-
-    if (conn->recv_free_after_use == false && expected > len) {
-        /* Start of partial read. */
-        mlassert(conn->recv_pos == 0, "conn->recv_pos must be 0 at start of partial read");
-        mlassert(conn->recv_len > 0, "conn->recv_len must be set at start of partial read");
-        mlfatal_oom(conn->recv_data = malloc(conn->recv_len * sizeof(char)));
-        conn->recv_free_after_use = true;
-    }
-
-    if (conn->recv_free_after_use) { /* Partial read is in progress. */
-        char* dest = conn->recv_data + conn->recv_pos;
-        if (expected < len)
-            len = expected;
-        memcpy(dest, data, len);
-        conn->recv_pos += len;
-        nread = len;
-    } else { /* Complete and clean read. */
-        mlassert(expected <= len, "not enough data to perform complete read");
-        conn->recv_data = (char*)data;
-        conn->recv_pos  = conn->recv_len;
-        nread           = expected;
-    }
-
-    /* If entire dnslen/dnsmsg was read, attempt to parse it. */
-    if (conn->recv_len == conn->recv_pos) {
-        ret = _parse_recv_data(conn);
-        if (ret < 0)
-            return ret;
-    }
-
-    return nread;
-}
-
 static void _on_tcp_read(uv_stream_t* handle, ssize_t nread, const uv_buf_t* buf)
 {
     _output_dnssim_connection_t* conn = (_output_dnssim_connection_t*)handle->data;
+    output_dnssim_t* self = conn->client->dnssim;
+
     if (nread > 0) {
-        int   pos   = 0;
-        int   chunk = 0;
-        char* data  = buf->base;
-        while (pos < nread) {
-            chunk = _read_tcp_stream(conn, nread - pos, data + pos);
-            if (chunk < 0) {
-                mlwarning("lost orientation in TCP stream, closing");
-                _close_connection(conn);
-                break;
-            } else {
-                pos += chunk;
-            }
+        mldebug("tcp nread: %d", nread);
+        switch(_self->transport) {
+        case OUTPUT_DNSSIM_TRANSPORT_TCP:
+            _output_dnssim_read_dns_stream(conn, nread, buf->base);
+            break;
+        case OUTPUT_DNSSIM_TRANSPORT_TLS:
+#if GNUTLS_VERSION_NUMBER >= DNSSIM_MIN_GNUTLS_VERSION
+            mlassert(conn->tls, "con must have tls ctx");
+            conn->tls->buf = (uint8_t*)buf->base;
+            conn->tls->buf_pos = 0;
+            conn->tls->buf_len = nread;
+            _output_dnssim_tls_process_input_data(conn);
+#else
+            mlfatal(DNSSIM_MIN_GNUTLS_ERRORMSG);
+#endif
+            break;
+        default:
+            mlfatal("unsupported transport");
+            break;
         }
-        mlassert((pos == nread) || (chunk < 0), "tcp data read invalid, pos != nread");
     } else if (nread < 0) {
         if (nread != UV_EOF)
             mlinfo("tcp conn unexpected close: %s", uv_strerror(nread));
-        _close_connection(conn);
+        _output_dnssim_conn_close(conn);
     }
 
     if (buf->base != NULL)
         free(buf->base);
 }
 
-static void _on_tcp_handle_connected(uv_connect_t* conn_req, int status)
+static void _on_tcp_connected(uv_connect_t* conn_req, int status)
 {
     _output_dnssim_connection_t* conn = (_output_dnssim_connection_t*)conn_req->handle->data;
     mlassert(conn, "conn is nil");
-    mlassert(conn->stats, "conn must have stats");
 
     free(conn_req);
-    uv_timer_stop(conn->handshake_timer);
 
     if (status < 0) {
         mldebug("tcp connect failed: %s", uv_strerror(status));
-        _close_connection(conn);
+        _output_dnssim_conn_close(conn);
         return;
     }
 
-    mlassert(conn->state == _OUTPUT_DNSSIM_CONN_CONNECTING, "connection state != CONNECTING");
+    mlassert(conn->state == _OUTPUT_DNSSIM_CONN_TCP_HANDSHAKE, "connection state != TCP_HANDSHAKE");
     int ret = uv_read_start((uv_stream_t*)conn->handle, _output_dnssim_on_uv_alloc, _on_tcp_read);
     if (ret < 0) {
         mlwarning("tcp uv_read_start() failed: %s", uv_strerror(ret));
-        _close_connection(conn);
+        _output_dnssim_conn_close(conn);
         return;
     }
 
-    conn->state = _OUTPUT_DNSSIM_CONN_ACTIVE;
-    conn->client->dnssim->stats_current->conn_active++;
-    conn->read_state          = _OUTPUT_DNSSIM_READ_STATE_DNSLEN;
-    conn->recv_len            = 2;
-    conn->recv_pos            = 0;
-    conn->recv_free_after_use = false;
-
-    _send_pending_queries(conn);
-    _maybe_close_connection(conn);
-}
-
-/* Close connection or run idle timer when there are no more outstanding queries. */
-static void _maybe_close_connection(_output_dnssim_connection_t* conn)
-{
-    mlassert(conn, "conn can't be nil");
-
-    if (conn->queued == NULL && conn->sent == NULL) {
-        if (conn->idle_timer == NULL)
-            _close_connection(conn);
-        else if (!conn->is_idle) {
-            conn->is_idle = true;
-            uv_timer_again(conn->idle_timer);
-        }
-    }
-}
-
-static void _close_connection(_output_dnssim_connection_t* conn)
-{
-    mlassert(conn, "conn can't be nil");
-    mlassert(conn->stats, "conn must have stats");
-
-    switch (conn->state) {
-    case _OUTPUT_DNSSIM_CONN_CLOSING:
-    case _OUTPUT_DNSSIM_CONN_CLOSED:
-        return;
-    case _OUTPUT_DNSSIM_CONN_CONNECTING:
-        conn->stats->conn_handshakes_failed++;
-        conn->client->dnssim->stats_sum->conn_handshakes_failed++;
+    mldebug("tcp connected");
+    mlassert(conn->client, "conn must be associated with a client");
+    mlassert(conn->client->dnssim, "client must be associated with dnssim");
+    output_dnssim_t* self = conn->client->dnssim;
+    switch (_self->transport) {
+    case OUTPUT_DNSSIM_TRANSPORT_TCP:
+        _output_dnssim_conn_activate(conn);
         break;
-    case _OUTPUT_DNSSIM_CONN_ACTIVE:
-        conn->client->dnssim->stats_current->conn_active--;
+    case OUTPUT_DNSSIM_TRANSPORT_TLS:
+#if GNUTLS_VERSION_NUMBER >= DNSSIM_MIN_GNUTLS_VERSION
+        mldebug("init tls handshake");
+        _output_dnssim_tls_process_input_data(conn);  /* Initiate TLS handshake. */
+#else
+        mlfatal(DNSSIM_MIN_GNUTLS_ERRORMSG);
+#endif
         break;
     default:
+        lfatal("unsupported transport protocol");
         break;
-    }
-    conn->state = _OUTPUT_DNSSIM_CONN_CLOSING;
-
-    if (conn->handshake_timer != NULL) {
-        uv_timer_stop(conn->handshake_timer);
-        uv_close((uv_handle_t*)conn->handshake_timer, _on_handshake_timer_closed);
-    }
-    if (conn->idle_timer != NULL) {
-        conn->is_idle = false;
-        uv_timer_stop(conn->idle_timer);
-        uv_close((uv_handle_t*)conn->idle_timer, _on_idle_timer_closed);
-    }
-    if (conn->handle != NULL) {
-        uv_read_stop((uv_stream_t*)conn->handle);
-        uv_close((uv_handle_t*)conn->handle, _on_tcp_handle_closed);
     }
 }
 
 static void _on_connection_timeout(uv_timer_t* handle)
 {
     _output_dnssim_connection_t* conn = (_output_dnssim_connection_t*)handle->data;
-    _close_connection(conn);
+    _output_dnssim_conn_close(conn);
 }
 
-static int _connect_tcp_handle(output_dnssim_t* self, _output_dnssim_connection_t* conn)
+int _output_dnssim_tcp_connect(output_dnssim_t* self, _output_dnssim_connection_t* conn)
 {
     mlassert_self();
     lassert(conn, "connection can't be null");
@@ -474,57 +276,30 @@ static int _connect_tcp_handle(output_dnssim_t* self, _output_dnssim_connection_
         uv_timer_stop(conn->idle_timer);
     }
 
+    mldebug("tcp connecting");
     uv_connect_t* conn_req;
     lfatal_oom(conn_req = malloc(sizeof(uv_connect_t)));
-    ret = uv_tcp_connect(conn_req, conn->handle, (struct sockaddr*)&_self->target, _on_tcp_handle_connected);
+    ret = uv_tcp_connect(conn_req, conn->handle, (struct sockaddr*)&_self->target, _on_tcp_connected);
     if (ret < 0)
         goto failure;
 
     conn->stats->conn_handshakes++;
     conn->client->dnssim->stats_sum->conn_handshakes++;
-    conn->state = _OUTPUT_DNSSIM_CONN_CONNECTING;
+    conn->state = _OUTPUT_DNSSIM_CONN_TCP_HANDSHAKE;
     return 0;
 failure:
-    _close_connection(conn);
+    _output_dnssim_conn_close(conn);
     return ret;
 }
 
-static int _handle_pending_queries(_output_dnssim_client_t* client)
+void _output_dnssim_tcp_close(_output_dnssim_connection_t* conn)
 {
-    int ret = 0;
-    mlassert(client, "client is nil");
+    mlassert(conn, "conn can't be nil");
 
-    if (client->pending == NULL)
-        return ret;
-
-    output_dnssim_t* self = client->dnssim;
-    mlassert(self, "client must belong to dnssim");
-
-    /* Get active TCP connection or find out whether new connection has to be opened. */
-    bool                         is_connecting = false;
-    _output_dnssim_connection_t* conn          = client->conn;
-    while (conn != NULL) {
-        if (conn->state == _OUTPUT_DNSSIM_CONN_ACTIVE)
-            break;
-        else if (conn->state == _OUTPUT_DNSSIM_CONN_CONNECTING)
-            is_connecting = true;
-        conn              = conn->next;
+    if (conn->handle != NULL) {
+        uv_read_stop((uv_stream_t*)conn->handle);
+        uv_close((uv_handle_t*)conn->handle, _on_tcp_closed);
     }
-
-    if (conn != NULL) { /* Send data right away over active connection. */
-        _send_pending_queries(conn);
-    } else if (!is_connecting) { /* No active or connecting connection -> open a new one. */
-        lfatal_oom(conn = calloc(1, sizeof(_output_dnssim_connection_t)));
-        conn->state  = _OUTPUT_DNSSIM_CONN_INITIALIZED;
-        conn->client = client;
-        conn->stats  = self->stats_current;
-        ret          = _connect_tcp_handle(self, conn);
-        if (ret < 0)
-            return ret;
-        _ll_append(client->conn, conn);
-    } /* Otherwise, pending queries wil be sent after connected callback. */
-
-    return ret;
 }
 
 int _output_dnssim_create_query_tcp(output_dnssim_t* self, _output_dnssim_request_t* req)
@@ -533,10 +308,7 @@ int _output_dnssim_create_query_tcp(output_dnssim_t* self, _output_dnssim_reques
     lassert(req, "req is nil");
     lassert(req->client, "request must have a client associated with it");
 
-    // int ret;
     _output_dnssim_query_tcp_t* qry;
-    // _output_dnssim_connection_t* conn;
-    // core_object_payload_t* payload = (core_object_payload_t*)req->dns_q->obj_prev;
 
     lfatal_oom(qry = calloc(1, sizeof(_output_dnssim_query_tcp_t)));
 
@@ -546,7 +318,7 @@ int _output_dnssim_create_query_tcp(output_dnssim_t* self, _output_dnssim_reques
     req->qry           = &qry->qry; // TODO change when adding support for multiple Qs for req
     _ll_append(req->client->pending, &qry->qry);
 
-    return _handle_pending_queries(req->client);
+    return _output_dnssim_handle_pending_queries(req->client);
 }
 
 void _output_dnssim_close_query_tcp(_output_dnssim_query_tcp_t* qry)
@@ -568,7 +340,7 @@ void _output_dnssim_close_query_tcp(_output_dnssim_query_tcp_t* qry)
         _ll_try_remove(conn->queued, &qry->qry); /* edge-case of cancelled queries */
         _ll_try_remove(conn->sent, &qry->qry);
         qry->conn = NULL;
-        _maybe_close_connection(conn);
+        _output_dnssim_conn_idle(conn);
     }
 
     _ll_remove(req->qry, &qry->qry);

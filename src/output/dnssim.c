@@ -27,6 +27,7 @@
 #include "core/object/ip.h"
 #include "core/object/ip6.h"
 
+#include <gnutls/gnutls.h>
 #include <string.h>
 
 static core_log_t _log = LOG_T_INIT("output.dnssim");
@@ -73,10 +74,13 @@ output_dnssim_t* output_dnssim_new(size_t max_clients)
         _self->client_arr[i].dnssim = self;
     }
 
+    ret = gnutls_certificate_allocate_credentials(&_self->tls_cred);
+    if (ret < 0)
+        lfatal("failed to allocated TLS credentials (%s)", gnutls_strerror(ret));
+
     ret = uv_loop_init(&_self->loop);
-    if (ret < 0) {
+    if (ret < 0)
         lfatal("failed to initialize uv_loop (%s)", uv_strerror(ret));
-    }
     ldebug("initialized uv_loop");
 
     return self;
@@ -85,7 +89,7 @@ output_dnssim_t* output_dnssim_new(size_t max_clients)
 void output_dnssim_free(output_dnssim_t* self)
 {
     mlassert_self();
-    int                      ret;
+    int                      ret, i;
     _output_dnssim_source_t* source;
     _output_dnssim_source_t* first = _self->source;
     output_dnssim_stats_t*   stats_prev;
@@ -108,6 +112,11 @@ void output_dnssim_free(output_dnssim_t* self)
         } while (_self->source != first);
     }
 
+    for (i = 0; i < self->max_clients; ++i) {
+        if (_self->client_arr[i].tls_ticket.size != 0) {
+            gnutls_free(_self->client_arr[i].tls_ticket.data);
+        }
+    }
     free(_self->client_arr);
 
     ret = uv_loop_close(&_self->loop);
@@ -115,6 +124,12 @@ void output_dnssim_free(output_dnssim_t* self)
         lcritical("failed to close uv_loop (%s)", uv_strerror(ret));
     } else {
         ldebug("closed uv_loop");
+    }
+
+    gnutls_certificate_free_credentials(_self->tls_cred);
+    if (_self->tls_priority != NULL) {
+        gnutls_priority_deinit(*_self->tls_priority);
+        free(_self->tls_priority);
     }
 
     free(self);
@@ -216,8 +231,14 @@ void output_dnssim_set_transport(output_dnssim_t* self, output_dnssim_transport_
     case OUTPUT_DNSSIM_TRANSPORT_TCP:
         lnotice("transport set to TCP");
         break;
-    case OUTPUT_DNSSIM_TRANSPORT_UDP:
     case OUTPUT_DNSSIM_TRANSPORT_TLS:
+#if GNUTLS_VERSION_NUMBER >= DNSSIM_MIN_GNUTLS_VERSION
+        lnotice("transport set to TLS");
+#else
+        lfatal(DNSSIM_MIN_GNUTLS_ERRORMSG);
+#endif
+        break;
+    case OUTPUT_DNSSIM_TRANSPORT_UDP:
     default:
         lfatal("unknown or unsupported transport");
         break;
@@ -277,6 +298,27 @@ int output_dnssim_bind(output_dnssim_t* self, const char* ip)
     return 0;
 }
 
+int output_dnssim_tls_priority(output_dnssim_t* self, const char* priority)
+{
+    mlassert_self();
+    lassert(priority, "priority is nil");
+
+    if (_self->tls_priority != NULL) {
+        gnutls_priority_deinit(*_self->tls_priority);
+        free(_self->tls_priority);
+    }
+    lfatal_oom(_self->tls_priority = malloc(sizeof(gnutls_priority_t)));
+
+    int ret = gnutls_priority_init(_self->tls_priority, priority, NULL);
+    if (ret < 0) {
+        lfatal("failed to initialize TLS priority cache: %s", gnutls_strerror(ret));
+    } else {
+        lnotice("GnuTLS priority set: %s", priority);
+    }
+
+    return 0;
+}
+
 int output_dnssim_run_nowait(output_dnssim_t* self)
 {
     mlassert_self();
@@ -326,7 +368,7 @@ static void _on_stats_timer_tick(uv_timer_t* handle)
     lassert(self->stats_current, "stats_current is nil");
 
     lnotice("total processed:%10ld; answers:%10ld; discarded:%10ld; ongoing:%10ld",
-        self->processed, self->stats_sum->answers, self->discarded, self->ongoing);
+            self->processed, self->stats_sum->answers, self->discarded, self->ongoing);
 
     output_dnssim_stats_t* stats_next;
     lfatal_oom(stats_next = calloc(1, sizeof(output_dnssim_stats_t)));

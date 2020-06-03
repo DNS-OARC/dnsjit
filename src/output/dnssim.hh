@@ -48,6 +48,9 @@ struct output_dnssim_stats {
     /* Number of connection handshake attempts during the stats interval. */
     uint64_t conn_handshakes;
 
+    /* Number of connection that have been resumed with TLS session resumption. */
+    uint64_t conn_resumed;
+
     /* Number of timed out connection handshakes during the stats interval. */
     uint64_t conn_handshakes_failed;
 
@@ -101,6 +104,7 @@ void output_dnssim_free(output_dnssim_t* self);
 void output_dnssim_set_transport(output_dnssim_t* self, output_dnssim_transport_t tr);
 int output_dnssim_target(output_dnssim_t* self, const char* ip, uint16_t port);
 int output_dnssim_bind(output_dnssim_t* self, const char* ip);
+int output_dnssim_tls_priority(output_dnssim_t* self, const char* priority);
 int output_dnssim_run_nowait(output_dnssim_t* self);
 void output_dnssim_timeout_ms(output_dnssim_t* self, uint64_t timeout_ms);
 void output_dnssim_stats_collect(output_dnssim_t* self, uint64_t interval_ms);

@@ -71,6 +71,13 @@ void _output_dnssim_create_request(output_dnssim_t* self, _output_dnssim_client_
     case OUTPUT_DNSSIM_TRANSPORT_TCP:
         ret = _output_dnssim_create_query_tcp(self, req);
         break;
+    case OUTPUT_DNSSIM_TRANSPORT_TLS:
+#if GNUTLS_VERSION_NUMBER >= DNSSIM_MIN_GNUTLS_VERSION
+        ret = _output_dnssim_create_query_tls(self, req);
+#else
+        lfatal(DNSSIM_MIN_GNUTLS_ERRORMSG);
+#endif
+        break;
     default:
         lfatal("unsupported dnssim transport");
         break;
@@ -145,6 +152,13 @@ static void _close_query(_output_dnssim_query_t* qry)
         break;
     case OUTPUT_DNSSIM_TRANSPORT_TCP:
         _output_dnssim_close_query_tcp((_output_dnssim_query_tcp_t*)qry);
+        break;
+    case OUTPUT_DNSSIM_TRANSPORT_TLS:
+#if GNUTLS_VERSION_NUMBER >= DNSSIM_MIN_GNUTLS_VERSION
+        _output_dnssim_close_query_tls((_output_dnssim_query_tcp_t*)qry);
+#else
+        mlfatal(DNSSIM_MIN_GNUTLS_ERRORMSG);
+#endif
         break;
     default:
         mlfatal("invalid query transport");

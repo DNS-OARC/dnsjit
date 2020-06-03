@@ -51,7 +51,7 @@ local C = ffi.C
 
 local DnsSim = {}
 
-local _DNSSIM_JSON_VERSION = 20200406
+local _DNSSIM_JSON_VERSION = 20200527
 
 -- Create a new DnsSim output for up to max_clients.
 function DnsSim.new(max_clients)
@@ -112,7 +112,23 @@ function DnsSim:tcp()
 end
 
 -- Set the transport to TLS.
-function DnsSim:tls()
+--
+-- The optional arguments is a GnuTLS priority string, whih can be used to
+-- select TLS versions, cipher suites etc.
+-- For example:
+--
+-- .RB "- """ NORMAL:%NO_TICKETS """"
+-- will use defaults without TLS session resumption.
+--
+-- .RB "- """ SECURE128:-VERS-ALL:+VERS-TLS1.3 """"
+-- will use only TLS 1.3 with 128-bit secure ciphers.
+--
+-- Refer to:
+-- .I https://gnutls.org/manual/html_node/Priority-Strings.html
+function DnsSim:tls(priority)
+    if priority ~= nil then
+        C.output_dnssim_tls_priority(self.obj, priority)
+    end
     C.output_dnssim_set_transport(self.obj, C.OUTPUT_DNSSIM_TRANSPORT_TLS)
 end
 
@@ -220,6 +236,7 @@ function DnsSim:export(filename)
                 '"answers":', tonumber(stats.answers), ',',
                 '"conn_active":', tonumber(stats.conn_active), ',',
                 '"conn_handshakes":', tonumber(stats.conn_handshakes), ',',
+                '"conn_resumed":', tonumber(stats.conn_resumed), ',',
                 '"conn_handshakes_failed":', tonumber(stats.conn_handshakes_failed), ',',
                 '"rcode_noerror":', tonumber(stats.rcode_noerror), ',',
                 '"rcode_formerr":', tonumber(stats.rcode_formerr), ',',
