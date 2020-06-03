@@ -13,6 +13,7 @@ extraction:
         - liblmdb-dev
         - libck-dev
         - libgnutls28-dev
+        - libuv1-dev
     configure:
       command:
         - ./autogen.sh
