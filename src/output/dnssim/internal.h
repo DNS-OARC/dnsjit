@@ -22,6 +22,7 @@
 #define __dnsjit_output_dnssim_internal_h
 
 #include <gnutls/gnutls.h>
+#include <nghttp2/nghttp2.h>
 #include <uv.h>
 #include "core/object/dns.h"
 #include "core/object/payload.h"
@@ -143,6 +144,11 @@ typedef struct _output_dnssim_tls_ctx {
     size_t           write_queue_size;
 } _output_dnssim_tls_ctx_t;
 
+/* HTTP2 context for a single connection. */
+typedef struct _output_dnssim_http2_ctx {
+    nghttp2_session* session;
+} _output_dnssim_http2_ctx_t;
+
 struct _output_dnssim_connection {
     _output_dnssim_connection_t* next;
 
@@ -192,6 +198,9 @@ struct _output_dnssim_connection {
 
     /* TLS-related data. */
     _output_dnssim_tls_ctx_t* tls;
+
+    /* HTTP/2-related data. */
+    _output_dnssim_http2_ctx_t* http2;
 };
 
 /*
@@ -277,6 +286,8 @@ void _output_dnssim_tls_write_query(_output_dnssim_connection_t* conn, _output_d
 
 int _output_dnssim_create_query_https2(output_dnssim_t* self, _output_dnssim_request_t* req);
 void _output_dnssim_close_query_https2(_output_dnssim_query_tcp_t* qry);
+int _output_dnssim_https2_init(_output_dnssim_connection_t* conn);
+int _output_dnssim_https2_setup(_output_dnssim_connection_t* conn);
 void _output_dnssim_https2_process_input_data(_output_dnssim_connection_t* conn);
 void _output_dnssim_https2_close(_output_dnssim_connection_t* conn);
 void _output_dnssim_https2_write_query(_output_dnssim_connection_t* conn, _output_dnssim_query_tcp_t* qry);

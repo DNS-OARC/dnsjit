@@ -220,6 +220,14 @@ int _output_dnssim_handle_pending_queries(_output_dnssim_client_t* client)
 #else
             lfatal(DNSSIM_MIN_GNUTLS_ERRORMSG);
 #endif
+        } else if (_self->transport == OUTPUT_DNSSIM_TRANSPORT_HTTPS2) {
+#if GNUTLS_VERSION_NUMBER >= DNSSIM_MIN_GNUTLS_VERSION
+            ret = _output_dnssim_https2_init(conn);
+            if (ret < 0)
+                return ret;
+#else
+            lfatal(DNSSIM_MIN_GNUTLS_ERRORMSG);
+#endif
         }
         ret = _output_dnssim_tcp_connect(self, conn);
         if (ret < 0)

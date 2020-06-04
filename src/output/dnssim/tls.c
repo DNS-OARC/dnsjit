@@ -77,9 +77,15 @@ void _output_dnssim_tls_process_input_data(_output_dnssim_connection_t* conn)
         int err = _tls_handshake(conn);
         mldebug("tls handshake returned: %s", gnutls_strerror(err));
         if (err == GNUTLS_E_SUCCESS) {
-            _output_dnssim_conn_activate(conn);
             if (gnutls_session_is_resumed(conn->tls->session))
                 conn->stats->conn_resumed++;
+            if (_self->transport == OUTPUT_DNSSIM_TRANSPORT_HTTPS2) {
+                if (_output_dnssim_https2_setup(conn) < 0) {
+                    _output_dnssim_conn_close(conn);
+                    return;
+                 }
+            }
+            _output_dnssim_conn_activate(conn);
             break;
         } else if (err == GNUTLS_E_AGAIN) {
             return; /* Wait for more data */

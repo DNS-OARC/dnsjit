@@ -30,7 +30,104 @@
 
 #if GNUTLS_VERSION_NUMBER >= DNSSIM_MIN_GNUTLS_VERSION
 
+/* This limits the number of simultaneous streams the *server* can open towards a client.
+ * It should have no effect, since we only care about responses to client requests. */
+#define DNSSIM_HTTP2_MAX_CONCURRENT_STREAMS 100
+
 static core_log_t _log = LOG_T_INIT("output.dnssim");
+
+static ssize_t _http2_send(nghttp2_session *session, const uint8_t *data, size_t length, int flags, void *user_data)
+{
+    mlfatal("TODO implement");
+}
+
+static int _http2_on_header(nghttp2_session *session, const nghttp2_frame *frame, const uint8_t *name, size_t namelen, const uint8_t *value, size_t valuelen, uint8_t flags, void *user_data)
+{
+    mlfatal("TODO implement");
+}
+
+static int _http2_on_data_recv(nghttp2_session *session, uint8_t flags, int32_t stream_id, const uint8_t *data, size_t len, void *user_data)
+{
+    mlfatal("TODO implement");
+}
+
+int _output_dnssim_https2_init(_output_dnssim_connection_t* conn)
+{
+    mlassert(conn, "conn is nil");
+    mlassert(conn->tls == NULL, "conn already has tls context");
+    mlassert(conn->http2 == NULL, "conn already has http2 context");
+
+    int ret = -1;
+    nghttp2_session_callbacks *callbacks;
+
+    /* Initialize TLS session. */
+    ret = _output_dnssim_tls_init(conn);
+    if (ret < 0)
+        return ret;
+
+    /* Configure ALPN to negotiate HTTP/2. */
+    const gnutls_datum_t protos[] = {
+        {(unsigned char *)"h2", 2}
+    };
+    ret = gnutls_alpn_set_protocols(conn->tls->session, protos, 1, 0);
+    if (ret < 0) {
+        mldebug("failed to set ALPN protocol: %s", gnutls_strerror(ret));
+        return ret;
+    }
+
+    mlfatal_oom(conn->http2 = calloc(1, sizeof(_output_dnssim_http2_ctx_t)));  // TODO free
+
+    /* Set up HTTP/2 callbacks and client. */
+    ret = nghttp2_session_callbacks_new(&callbacks);
+    if (ret < 0)
+        return ret;
+    nghttp2_session_callbacks_set_send_callback(callbacks, _http2_send);
+    nghttp2_session_callbacks_set_on_header_callback(callbacks, _http2_on_header);
+    nghttp2_session_callbacks_set_on_data_chunk_recv_callback(callbacks, _http2_on_data_recv);
+    ret = nghttp2_session_client_new(&conn->http2->session, callbacks, conn);
+    if (ret < 0)
+        return ret;
+    nghttp2_session_callbacks_del(callbacks);
+
+    ret = 0;
+    return ret;
+}
+
+int _output_dnssim_https2_setup(_output_dnssim_connection_t* conn)
+{
+    mlassert(conn, "conn is nil");
+    mlassert(conn->tls, "conn must have tls ctx");
+    mlassert(conn->tls->session, "conn must have tls session");
+    mlassert(conn->http2, "conn must have http2 ctx");
+    mlassert(conn->http2->session, "conn must have http2 session");
+
+    int ret = -1;
+
+    /* Check "h2" protocol was negotiated with ALPN. */
+    gnutls_datum_t proto;
+    ret = gnutls_alpn_get_selected_protocol(conn->tls->session, &proto);
+    if (ret < 0) {
+        mldebug("failed to get negotiated protocol: %s", gnutls_strerror(ret));
+        return ret;
+    }
+    if (proto.size != 2 || memcmp("h2", proto.data, 2) != 0) {
+        mldebug("http2 is not negotiated");
+        return ret;
+    }
+
+    /* Submit SETTIGNS frame. */
+    static const nghttp2_settings_entry iv[] = {
+        { NGHTTP2_SETTINGS_MAX_CONCURRENT_STREAMS, DNSSIM_HTTP2_MAX_CONCURRENT_STREAMS }
+    };
+    ret = nghttp2_submit_settings(conn->http2->session, NGHTTP2_FLAG_NONE, iv, sizeof(iv)/sizeof(*iv) );
+    if (ret < 0) {
+        mldebug("failed to submit http2 settings: %s", nghttp2_strerror(ret));
+        return ret;
+    }
+
+    ret = 0;
+    return ret;
+}
 
 void _output_dnssim_https2_process_input_data(_output_dnssim_connection_t* conn)
 {
