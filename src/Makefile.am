@@ -27,7 +27,8 @@ AM_CFLAGS = -Werror=attributes \
   $(SIMD_FLAGS) $(CPUEXT_FLAGS) \
   $(PTHREAD_CFLAGS) \
   $(luajit_CFLAGS) \
-  $(libuv_CFLAGS)
+  $(libuv_CFLAGS) \
+  $(libnghttp2_CFLAGS)
 
 EXTRA_DIST = gen-manpage.lua gen-compat.lua gen-errno.sh dnsjit.1in
 
@@ -40,7 +41,7 @@ dist_dnsjit_SOURCES = core.lua lib.lua input.lua filter.lua globals.h \
   output.lua
 lua_hobjects = core/compat.luaho
 lua_objects = core.luao lib.luao input.luao filter.luao output.luao
-dnsjit_LDADD = $(PTHREAD_LIBS) $(luajit_LIBS) $(libuv_LIBS)
+dnsjit_LDADD = $(PTHREAD_LIBS) $(luajit_LIBS) $(libuv_LIBS) $(libnghttp2_LIBS)
 
 # C source and headers
 dnsjit_SOURCES += core/channel.c core/compat.c core/log.c core/object.c core/object/dns.c core/object/ether.c core/object/gre.c core/object/icmp6.c core/object/icmp.c core/object/ieee802.c core/object/ip6.c core/object/ip.c core/object/linuxsll.c core/object/loop.c core/object/null.c core/object/payload.c core/object/pcap.c core/object/tcp.c core/object/udp.c core/producer.c core/receiver.c core/thread.c filter/copy.c filter/ipsplit.c filter/layer.c filter/split.c filter/timing.c input/fpcap.c input/mmpcap.c input/pcap.c input/zero.c lib/clock.c lib/trie.c output/dnscli.c output/dnssim.c output/dnssim/common.c output/dnssim/connection.c output/dnssim/https2.c output/dnssim/tcp.c output/dnssim/tls.c output/dnssim/udp.c output/null.c output/pcap.c output/respdiff.c output/tcpcli.c output/tlscli.c output/udpcli.c

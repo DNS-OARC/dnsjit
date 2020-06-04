@@ -29,6 +29,7 @@ BuildRequires:  lmdb-devel
 BuildRequires:  ck-devel
 BuildRequires:  gnutls-devel
 BuildRequires:  libuv-devel
+BuildRequires:  libnghttp2-devel
 BuildRequires:  autoconf >= 2.64
 BuildRequires:  automake
 BuildRequires:  libtool

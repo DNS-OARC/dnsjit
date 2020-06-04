@@ -29,7 +29,8 @@ AM_CFLAGS = -Werror=attributes \
   $(SIMD_FLAGS) $(CPUEXT_FLAGS) \
   $(PTHREAD_CFLAGS) \
   $(luajit_CFLAGS) \
-  $(libuv_CFLAGS)
+  $(libuv_CFLAGS) \
+  $(libnghttp2_CFLAGS)
 
 EXTRA_DIST = gen-manpage.lua gen-compat.lua gen-errno.sh dnsjit.1in
 
@@ -42,7 +43,7 @@ dist_dnsjit_SOURCES = core.lua lib.lua input.lua filter.lua globals.h \
   output.lua
 lua_hobjects = core/compat.luaho
 lua_objects = core.luao lib.luao input.luao filter.luao output.luao
-dnsjit_LDADD = $(PTHREAD_LIBS) $(luajit_LIBS) $(libuv_LIBS)
+dnsjit_LDADD = $(PTHREAD_LIBS) $(luajit_LIBS) $(libuv_LIBS) $(libnghttp2_LIBS)
 
 # C source and headers';
 

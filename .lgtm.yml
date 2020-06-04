@@ -14,6 +14,7 @@ extraction:
         - libck-dev
         - libgnutls28-dev
         - libuv1-dev
+        - libnghttp2-dev
     configure:
       command:
         - ./autogen.sh
