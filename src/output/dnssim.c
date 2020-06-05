@@ -263,6 +263,7 @@ int output_dnssim_target(output_dnssim_t* self, const char* ip, uint16_t port)
     lassert(ip, "ip is nil");
     lassert(port, "port is nil");
 
+
     ret = uv_ip6_addr(ip, port, (struct sockaddr_in6*)&_self->target);
     if (ret != 0) {
         lcritical("failed to parse IPv6 from \"%s\"", ip);
@@ -273,6 +274,13 @@ int output_dnssim_target(output_dnssim_t* self, const char* ip, uint16_t port)
         //    lcritical("failed to parse IP/IP6 from \"%s\"", ip);
         //    return -1;
         //}
+    } else {
+        if (_self->transport == OUTPUT_DNSSIM_TRANSPORT_HTTPS2) {
+            if (snprintf(_self->uri_authority, _MAX_URI_LEN, "[%s]:%d", ip, port) > 0)
+                lnotice("set uri authority to: %s", _self->uri_authority);
+            else
+                lfatal("failed to set authority");
+        }
     }
 
     lnotice("set target to %s port %d", ip, port);
@@ -364,6 +372,15 @@ void output_dnssim_timeout_ms(output_dnssim_t* self, uint64_t timeout_ms)
     lfatal_oom(self->stats_current->latency = calloc(self->timeout_ms + 1, sizeof(uint64_t)));
 
     self->stats_first = self->stats_current;
+}
+
+void output_dnssim_uri_path(output_dnssim_t* self, const char* uri_path)
+{
+    mlassert_self();
+    lassert(uri_path, "uri_path is nil");
+
+    strncpy(_self->uri_path, uri_path, _MAX_URI_LEN - 1);
+    lnotice("set uri path to: %s", _self->uri_path);
 }
 
 static void _on_stats_timer_tick(uv_timer_t* handle)

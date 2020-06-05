@@ -35,7 +35,9 @@
 #define _ERR_MSGID -3
 #define _ERR_TC -4
 
-#define WIRE_BUF_SIZE 65535 + 2 + 16384 /** max tcplen + 2b tcplen + 16kb tls record */
+#define _MAX_URI_LEN 65536
+#define MAX_DNSMSG_SIZE 65535
+#define WIRE_BUF_SIZE (MAX_DNSMSG_SIZE + 2 + 16384) /** max tcplen + 2b tcplen + 16kb tls record */
 
 typedef struct _output_dnssim_request    _output_dnssim_request_t;
 typedef struct _output_dnssim_connection _output_dnssim_connection_t;
@@ -90,6 +92,16 @@ struct _output_dnssim_query_tcp {
 
     /* Send buffers for libuv; 0 is for dnslen, 1 is for dnsmsg. */
     uv_buf_t bufs[2];
+
+    /* HTTP/2 stream id that was used to send this query. */
+    int32_t stream_id;
+
+    /* HTTP/2 expected content length. */
+    int32_t content_len;
+
+    /* Receive buffer (currently used only by HTTP/2). */
+    uint8_t* recv_buf;
+    ssize_t  recv_buf_len;
 };
 
 struct _output_dnssim_request {
@@ -243,6 +255,8 @@ struct _output_dnssim {
     struct sockaddr_storage   target;
     _output_dnssim_source_t*  source;
     output_dnssim_transport_t transport;
+    char                      uri_authority[_MAX_URI_LEN];
+    char                      uri_path[_MAX_URI_LEN];
 
     /* Array of clients, mapped by client ID (ranges from 0 to max_clients). */
     _output_dnssim_client_t* client_arr;
@@ -251,6 +265,12 @@ struct _output_dnssim {
     gnutls_certificate_credentials_t tls_cred;
     char                             wire_buf[WIRE_BUF_SIZE]; /* thread-local buffer for processing tls input */
 };
+
+/* Provides data for HTTP/2 data frames. */
+typedef struct {
+    const uint8_t* buf;
+    size_t len;
+} _output_dnssim_https2_data_provider_t;
 
 /*
  * Forward function declarations.
@@ -275,6 +295,7 @@ int  _output_dnssim_handle_pending_queries(_output_dnssim_client_t* client);
 void _output_dnssim_conn_activate(_output_dnssim_connection_t* conn);
 void _output_dnssim_conn_maybe_free(_output_dnssim_connection_t* conn);
 void _output_dnssim_read_dns_stream(_output_dnssim_connection_t* conn, size_t len, const char* data);
+void _output_dnssim_read_dnsmsg(_output_dnssim_connection_t* conn, size_t len, const char* data);
 
 #if GNUTLS_VERSION_NUMBER >= DNSSIM_MIN_GNUTLS_VERSION
 int  _output_dnssim_create_query_tls(output_dnssim_t* self, _output_dnssim_request_t* req);
@@ -288,7 +309,7 @@ int _output_dnssim_create_query_https2(output_dnssim_t* self, _output_dnssim_req
 void _output_dnssim_close_query_https2(_output_dnssim_query_tcp_t* qry);
 int _output_dnssim_https2_init(_output_dnssim_connection_t* conn);
 int _output_dnssim_https2_setup(_output_dnssim_connection_t* conn);
-void _output_dnssim_https2_process_input_data(_output_dnssim_connection_t* conn);
+void _output_dnssim_https2_process_input_data(_output_dnssim_connection_t* conn, size_t len, const char* data);
 void _output_dnssim_https2_close(_output_dnssim_connection_t* conn);
 void _output_dnssim_https2_write_query(_output_dnssim_connection_t* conn, _output_dnssim_query_tcp_t* qry);
 #endif

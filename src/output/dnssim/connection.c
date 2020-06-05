@@ -40,10 +40,11 @@ void _output_dnssim_conn_maybe_free(_output_dnssim_connection_t* conn)
     mlassert(conn->client, "conn must belong to a client");
     if (conn->handle == NULL && conn->handshake_timer == NULL && conn->idle_timer == NULL) {
         _ll_remove(conn->client->conn, conn);
-        if (conn->tls != NULL) {
+        if (conn->tls != NULL) {  // TODO gnutls deinit?
             free(conn->tls);
             conn->tls = NULL;
         }
+        // TODO http2 deinit
         free(conn);
     }
 }
@@ -275,6 +276,7 @@ int _process_dnsmsg(_output_dnssim_connection_t* conn)
     }
     mldebug("tcp recv dnsmsg id: %04x", dns_a.id);
 
+    // TODO in http, message should be paired by stream, not msgid
     _output_dnssim_query_t* qry = conn->sent;
     while (qry != NULL) {
         if (qry->req->dns_q->id == dns_a.id) {
@@ -396,4 +398,30 @@ void _output_dnssim_read_dns_stream(_output_dnssim_connection_t* conn, size_t le
         }
     }
     mlassert((pos == len) || (chunk < 0), "dns stream read invalid, pos != len");
+}
+
+void _output_dnssim_read_dnsmsg(_output_dnssim_connection_t* conn, size_t len, const char* data)
+{
+    mlassert(conn, "conn is nil");
+    mlassert(len > 0, "len is zero");
+    mlassert(data, "no data");
+    mlassert(conn->dnsbuf_pos == 0, "dnsbuf not empty");
+    mlassert(conn->dnsbuf_free_after_use == false, "dnsbuf read in progress");
+
+    /* Read dnsmsg from input data and length. */
+    conn->read_state = _OUTPUT_DNSSIM_READ_STATE_DNSMSG;
+    conn->dnsbuf_len = len;
+    int nread = _read_dns_stream_chunk(conn, len, data);
+
+    if (nread != len) {
+        mlwarning("failed to read received dnsmsg");
+        if (conn->dnsbuf_free_after_use)
+            free(conn->dnsbuf_data);
+    }
+
+    /* Clean state afterwards. */
+    conn->read_state = _OUTPUT_DNSSIM_READ_STATE_DNSLEN;
+    conn->dnsbuf_len = 2;
+    conn->dnsbuf_pos = 0;
+    conn->dnsbuf_free_after_use = false;
 }

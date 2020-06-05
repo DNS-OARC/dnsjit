@@ -132,11 +132,16 @@ function DnsSim:tls(tls_priority)
     C.output_dnssim_set_transport(self.obj, C.OUTPUT_DNSSIM_TRANSPORT_TLS)
 end
 
--- Set the transport to HTTP/2 over TLS.
-function DnsSim:https2(tls_priority)
+-- Set the transport to HTTP/2 over TLS. TODO document
+function DnsSim:https2(method, uri_path, tls_priority)
     if tls_priority ~= nil then
         C.output_dnssim_tls_priority(self.obj, tls_priority)
     end
+    -- TODO method
+    if uri_path == nil then
+        uri_path = "/dns-query"
+    end
+    C.output_dnssim_uri_path(self.obj, uri_path)
     C.output_dnssim_set_transport(self.obj, C.OUTPUT_DNSSIM_TRANSPORT_HTTPS2)
 end
 
