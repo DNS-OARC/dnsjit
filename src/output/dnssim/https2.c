@@ -36,20 +36,19 @@
 
 #define OUTPUT_DNSSIM_MAKE_NV(NAME, VALUE, VALUELEN)                           \
   {                                                                            \
-    (uint8_t *)NAME, (uint8_t *)VALUE, sizeof(NAME) - 1, VALUELEN,             \
+    (uint8_t* )NAME, (uint8_t* )VALUE, sizeof(NAME) - 1, VALUELEN,             \
         NGHTTP2_NV_FLAG_NONE                                                   \
   }
 
 #define OUTPUT_DNSSIM_MAKE_NV2(NAME, VALUE)                                    \
   {                                                                            \
-    (uint8_t *)NAME, (uint8_t *)VALUE, sizeof(NAME) - 1, sizeof(VALUE) - 1,    \
+    (uint8_t* )NAME, (uint8_t* )VALUE, sizeof(NAME) - 1, sizeof(VALUE) - 1,    \
         NGHTTP2_NV_FLAG_NONE                                                   \
   }
 
 static core_log_t _log = LOG_T_INIT("output.dnssim");
 
-// TODO use consistent style for pointers in func declarations
-static ssize_t _http2_send(nghttp2_session *session, const uint8_t *data, size_t length, int flags, void *user_data)
+static ssize_t _http2_send(nghttp2_session* session, const uint8_t* data, size_t length, int flags, void* user_data)
 {
     _output_dnssim_connection_t* conn = (_output_dnssim_connection_t*)user_data;
     mlassert(conn, "conn can't be null");
@@ -64,7 +63,7 @@ static ssize_t _http2_send(nghttp2_session *session, const uint8_t *data, size_t
     return len;
 }
 
-static ssize_t _https2_send_data(nghttp2_session *session, int32_t stream_id, uint8_t *buf, size_t length, uint32_t *data_flags, nghttp2_data_source *source, void *user_data)
+static ssize_t _https2_send_data(nghttp2_session* session, int32_t stream_id, uint8_t* buf, size_t length, uint32_t* data_flags, nghttp2_data_source* source, void* user_data)
 {
     _output_dnssim_https2_data_provider_t* buffer = source->ptr;
     ssize_t sent = (length < buffer->len) ? length : buffer->len;
@@ -92,7 +91,7 @@ static _output_dnssim_query_tcp_t* _http2_get_stream_qry(_output_dnssim_connecti
     return qry;
 }
 
-static int _http2_on_data_recv(nghttp2_session *session, uint8_t flags, int32_t stream_id, const uint8_t *data, size_t len, void *user_data)
+static int _http2_on_data_recv(nghttp2_session* session, uint8_t flags, int32_t stream_id, const uint8_t* data, size_t len, void* user_data)
 {
     _output_dnssim_connection_t* conn = (_output_dnssim_connection_t*)user_data;
     mlassert(conn, "conn is nil");
@@ -127,7 +126,7 @@ static int _http2_on_data_recv(nghttp2_session *session, uint8_t flags, int32_t 
     return 0;
 }
 
-static int _http2_on_frame_recv(nghttp2_session *session, const nghttp2_frame *frame, void *user_data)
+static int _http2_on_frame_recv(nghttp2_session* session, const nghttp2_frame* frame, void* user_data)
 {
     _output_dnssim_connection_t* conn = (_output_dnssim_connection_t*)user_data;
     mlassert(conn, "conn can't be null");
@@ -160,7 +159,7 @@ int _output_dnssim_https2_init(_output_dnssim_connection_t* conn)
     mlassert(conn->http2 == NULL, "conn already has http2 context");
 
     int ret = -1;
-    nghttp2_session_callbacks *callbacks;
+    nghttp2_session_callbacks* callbacks;
 
     /* Initialize TLS session. */
     ret = _output_dnssim_tls_init(conn);
