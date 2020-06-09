@@ -300,10 +300,9 @@ void _output_dnssim_close_query_https2(_output_dnssim_query_tcp_t* qry)
 void _output_dnssim_https2_close(_output_dnssim_connection_t* conn)
 {
     mlassert(conn, "conn can't be nil");
-    mlassert(conn->tls, "conn must have tls ctx");
-    mlassert(conn->client, "conn must belong to a client");
+    mlassert(conn->http2, "conn must have http2 ctx");
 
-    free(conn->http2);
+    nghttp2_session_del(conn->http2->session);
     _output_dnssim_tls_close(conn);
 }
 

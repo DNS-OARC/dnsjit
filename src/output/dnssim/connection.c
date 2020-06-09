@@ -40,11 +40,14 @@ void _output_dnssim_conn_maybe_free(_output_dnssim_connection_t* conn)
     mlassert(conn->client, "conn must belong to a client");
     if (conn->handle == NULL && conn->handshake_timer == NULL && conn->idle_timer == NULL) {
         _ll_remove(conn->client->conn, conn);
-        if (conn->tls != NULL) {  // TODO gnutls deinit?
+        if (conn->tls != NULL) {
             free(conn->tls);
             conn->tls = NULL;
         }
-        // TODO http2 deinit
+        if (conn->http2 != NULL) {
+            free(conn->http2);
+            conn->http2 = NULL;
+        }
         free(conn);
     }
 }
