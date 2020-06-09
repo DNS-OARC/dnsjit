@@ -141,8 +141,10 @@ static int _http2_on_frame_recv(nghttp2_session *session, const nghttp2_frame *f
             _output_dnssim_query_tcp_t* qry = _http2_get_stream_qry(conn, frame->hd.stream_id);
             mldebug("http2: DATA frame recv, session=%p, len=%d", session, qry->recv_buf_len);
 
-            if (qry != NULL)
+            if (qry != NULL) {
+                conn->http2->current_qry = qry;
                 _output_dnssim_read_dnsmsg(conn, qry->recv_buf_len, (char*)qry->recv_buf);
+            }
         }
         break;
     default:
@@ -360,7 +362,6 @@ void _output_dnssim_https2_write_query(_output_dnssim_connection_t* conn, _outpu
         return;
     }
 
-    // TODO move to nghttp2_on_frame_send_callback
     qry->conn = conn;
     _ll_remove(conn->client->pending, &qry->qry);
     _ll_append(conn->sent, &qry->qry);
@@ -371,7 +372,6 @@ void _output_dnssim_https2_write_query(_output_dnssim_connection_t* conn, _outpu
         uv_timer_stop(conn->idle_timer);
     }
 
-    // TODO change to pending write
     qry->qry.state = _OUTPUT_DNSSIM_QUERY_SENT;
 }
 

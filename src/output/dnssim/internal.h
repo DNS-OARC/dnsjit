@@ -159,6 +159,9 @@ typedef struct _output_dnssim_tls_ctx {
 /* HTTP2 context for a single connection. */
 typedef struct _output_dnssim_http2_ctx {
     nghttp2_session* session;
+
+    /* Query to which the dnsbuf currently being processed belongs to. */
+    _output_dnssim_query_tcp_t* current_qry;
 } _output_dnssim_http2_ctx_t;
 
 struct _output_dnssim_connection {

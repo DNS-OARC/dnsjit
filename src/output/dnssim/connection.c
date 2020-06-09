@@ -264,6 +264,10 @@ void _output_dnssim_conn_activate(_output_dnssim_connection_t* conn)
 int _process_dnsmsg(_output_dnssim_connection_t* conn)
 {
     mlassert(conn, "conn can't be nil");
+    mlassert(conn->client, "conn must have client");
+    mlassert(conn->client->dnssim, "client must have dnssim");
+
+    output_dnssim_t* self = conn->client->dnssim;
 
     core_object_payload_t payload = CORE_OBJECT_PAYLOAD_INIT(NULL);
     core_object_dns_t     dns_a   = CORE_OBJECT_DNS_INIT(&payload);
@@ -274,21 +278,34 @@ int _process_dnsmsg(_output_dnssim_connection_t* conn)
     dns_a.obj_prev = (core_object_t*)&payload;
     int ret        = core_object_dns_parse_header(&dns_a);
     if (ret != 0) {
-        mlwarning("tcp response malformed");
+        lwarning("tcp response malformed");
         return _ERR_MALFORMED;
     }
-    mldebug("tcp recv dnsmsg id: %04x", dns_a.id);
+    ldebug("tcp recv dnsmsg id: %04x", dns_a.id);
 
-    // TODO in http, message should be paired by stream, not msgid
-    _output_dnssim_query_t* qry = conn->sent;
-    while (qry != NULL) {
-        if (qry->req->dns_q->id == dns_a.id) {
-            /* NOTE: QNAME, QTYPE and QCLASS checking (RFC 7766, Section 7) is
-             * omitted, since the MSGID is unique per connection. */
-            _output_dnssim_request_answered(qry->req, &dns_a);
-            break;
+    _output_dnssim_query_t* qry;
+
+    if (_self->transport == OUTPUT_DNSSIM_TRANSPORT_HTTPS2) {
+        lassert(conn->http2, "conn must have http2 ctx");
+        lassert(conn->http2->current_qry, "http2 has no current_qry");
+
+        if (conn->http2->current_qry->qry.req->dns_q->id != dns_a.id)
+            lwarning("answer received over HTTPS2 doesn't match question QID");
+        else {
+            /* NOTE: QNAME, QTYPE and QCLASS checking (RFC 7766, Section 7) is omitted. */
+            _output_dnssim_request_answered(conn->http2->current_qry->qry.req, &dns_a);
         }
-        qry = qry->next;
+    } else {
+        qry = conn->sent;
+        while (qry != NULL) {
+            if (qry->req->dns_q->id == dns_a.id) {
+                /* NOTE: QNAME, QTYPE and QCLASS checking (RFC 7766, Section 7) is
+                 * omitted, since the MSGID is unique per connection. */
+                _output_dnssim_request_answered(qry->req, &dns_a);
+                break;
+            }
+            qry = qry->next;
+        }
     }
 
     return 0;
