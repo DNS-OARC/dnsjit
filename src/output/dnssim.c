@@ -66,6 +66,7 @@ output_dnssim_t* output_dnssim_new(size_t max_clients)
 
     _self->source    = NULL;
     _self->transport = OUTPUT_DNSSIM_TRANSPORT_UDP_ONLY;
+    _self->zero_out_msgid = false;
 
     self->max_clients = max_clients;
     lfatal_oom(_self->client_arr = calloc(max_clients, sizeof(_output_dnssim_client_t)));
@@ -203,6 +204,18 @@ static void _receive(output_dnssim_t* self, const core_object_t* obj)
                 core_object_free(parent);
             }
         }
+    }
+
+    if (_self->zero_out_msgid) {
+        lassert(_self->transport == OUTPUT_DNSSIM_TRANSPORT_HTTPS2, "must use HTTP/2 to zero-out msgid");
+        if (payload->len < 2) {
+            self->discarded++;
+            lwarning("packet discarded (payload len < 2)");
+            return;
+        }
+        uint8_t* data = (uint8_t*)payload->payload;
+        data[0] = 0x00;
+        data[1] = 0x00;
     }
 
     if (client >= self->max_clients) {
@@ -381,6 +394,16 @@ void output_dnssim_uri_path(output_dnssim_t* self, const char* uri_path)
 
     strncpy(_self->uri_path, uri_path, _MAX_URI_LEN - 1);
     lnotice("set uri path to: %s", _self->uri_path);
+}
+
+void output_dnssim_zero_out_msgid(output_dnssim_t* self, bool zero_out_msgid)
+{
+    mlassert_self();
+
+    if (zero_out_msgid) {
+        lassert(_self->transport == OUTPUT_DNSSIM_TRANSPORT_HTTPS2, "transport must be set to HTTP/2 to set zero_out_msgid");
+        _self->zero_out_msgid = zero_out_msgid;
+    }
 }
 
 static void _on_stats_timer_tick(uv_timer_t* handle)

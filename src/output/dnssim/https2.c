@@ -325,7 +325,7 @@ void _output_dnssim_https2_write_query(_output_dnssim_connection_t* conn, _outpu
     mlassert(conn->client->dnssim, "client must have dnssim");
 
     output_dnssim_t* self = conn->client->dnssim;
-    core_object_payload_t* content = qry->qry.req->payload;  // TODO zero-out MSGID
+    core_object_payload_t* content = qry->qry.req->payload;
 
     char content_length[6];  /* max dnslen "65535" */
     int content_length_len = sprintf(content_length, "%d", content->len);

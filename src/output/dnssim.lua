@@ -133,16 +133,26 @@ function DnsSim:tls(tls_priority)
 end
 
 -- Set the transport to HTTP/2 over TLS. TODO document
-function DnsSim:https2(method, uri_path, tls_priority)
+function DnsSim:https2(http2_options, tls_priority)
     if tls_priority ~= nil then
         C.output_dnssim_tls_priority(self.obj, tls_priority)
     end
+
     -- TODO method
-    if uri_path == nil then
-        uri_path = "/dns-query"
+    uri_path = "/dns-query"
+    zero_out_msgid = true
+    if http2_options ~= nil and type(http2_options) == "table" then
+        if http2_options["uri_path"] ~= nil then
+            uri_path = http2_options["uri_path"]
+        end
+        if http2_options["zero_out_msgid"] ~= nil and http2_options["zero_out_msgid"] ~= true then
+            zero_out_msgid = false
+        end
     end
+
     C.output_dnssim_uri_path(self.obj, uri_path)
     C.output_dnssim_set_transport(self.obj, C.OUTPUT_DNSSIM_TRANSPORT_HTTPS2)
+    C.output_dnssim_zero_out_msgid(self.obj, zero_out_msgid)
 end
 
 -- Set timeout for the individual requests in seconds (default 2s).

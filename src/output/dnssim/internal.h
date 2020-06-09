@@ -267,6 +267,8 @@ struct _output_dnssim {
     gnutls_priority_t*               tls_priority;
     gnutls_certificate_credentials_t tls_cred;
     char                             wire_buf[WIRE_BUF_SIZE]; /* thread-local buffer for processing tls input */
+
+    bool zero_out_msgid;
 };
 
 /* Provides data for HTTP/2 data frames. */
