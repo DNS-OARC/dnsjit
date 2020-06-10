@@ -291,8 +291,9 @@ int _process_dnsmsg(_output_dnssim_connection_t* conn)
         lassert(conn->http2, "conn must have http2 ctx");
         lassert(conn->http2->current_qry, "http2 has no current_qry");
 
-        if (conn->http2->current_qry->qry.req->dns_q->id != dns_a.id)
-            lwarning("answer received over HTTPS2 doesn't match question QID");
+        uint16_t req_id = conn->http2->current_qry->qry.req->dns_q->id;
+        if (req_id != dns_a.id)
+            lwarning("https2 QID mismatch: request=0x%04x, response=0x%04x", req_id, dns_a.id);
         else {
             /* NOTE: QNAME, QTYPE and QCLASS checking (RFC 7766, Section 7) is omitted. */
             _output_dnssim_request_answered(conn->http2->current_qry->qry.req, &dns_a);
