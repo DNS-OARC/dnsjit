@@ -91,6 +91,28 @@ static _output_dnssim_query_tcp_t* _http2_get_stream_qry(_output_dnssim_connecti
     return qry;
 }
 
+static int _http2_on_header(nghttp2_session* session, const nghttp2_frame* frame, const uint8_t* name, size_t namelen, const uint8_t* value, size_t valuelen, uint8_t flags, void* user_data)
+{
+    if (frame->hd.type == NGHTTP2_HEADERS && frame->headers.cat == NGHTTP2_HCAT_RESPONSE) {
+        if (namelen == 7 && strncmp((char*)name, ":status", 7) == 0) {
+            if (valuelen != 3 || (value[0] != '1' && value[0] != '2')) {
+                /* When reponse code isn't 1xx or 2xx, close the query.
+                 * This will result in request timeout, which currently seems
+                 * slightly better than mocking SERVFAIL for statistics. */
+                _output_dnssim_connection_t* conn = (_output_dnssim_connection_t*)user_data;
+                mlassert(conn, "conn is nil");
+                _output_dnssim_query_tcp_t* qry = _http2_get_stream_qry(conn, frame->hd.stream_id);
+
+                if (qry != NULL) {
+                    _output_dnssim_close_query_https2(qry);
+                    mlinfo("http response %s, closing query", value);
+                }
+            }
+        }
+    }
+    return 0;
+}
+
 static int _http2_on_data_recv(nghttp2_session* session, uint8_t flags, int32_t stream_id, const uint8_t* data, size_t len, void* user_data)
 {
     _output_dnssim_connection_t* conn = (_output_dnssim_connection_t*)user_data;
@@ -183,6 +205,7 @@ int _output_dnssim_https2_init(_output_dnssim_connection_t* conn)
     if (ret < 0)
         return ret;
     nghttp2_session_callbacks_set_send_callback(callbacks, _http2_send);
+    nghttp2_session_callbacks_set_on_header_callback(callbacks, _http2_on_header);
     nghttp2_session_callbacks_set_on_data_chunk_recv_callback(callbacks, _http2_on_data_recv);
     nghttp2_session_callbacks_set_on_frame_recv_callback(callbacks, _http2_on_frame_recv);
     ret = nghttp2_session_client_new(&conn->http2->session, callbacks, conn);
