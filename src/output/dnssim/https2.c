@@ -137,8 +137,8 @@ static int _http2_on_frame_recv(nghttp2_session* session, const nghttp2_frame* f
     case NGHTTP2_DATA:
         /* Check that the client request has finished. */
         if (frame->hd.flags & NGHTTP2_FLAG_END_STREAM) {
+            mldebug("http2: final DATA frame recv, session=%p", session);
             _output_dnssim_query_tcp_t* qry = _http2_get_stream_qry(conn, frame->hd.stream_id);
-            mldebug("http2: DATA frame recv, session=%p, len=%d", session, qry->recv_buf_len);
 
             if (qry != NULL) {
                 conn->http2->current_qry = qry;
@@ -327,7 +327,7 @@ void _output_dnssim_https2_write_query(_output_dnssim_connection_t* conn, _outpu
     core_object_payload_t* content = qry->qry.req->payload;
 
     char content_length[6];  /* max dnslen "65535" */
-    int content_length_len = sprintf(content_length, "%d", content->len);
+    int content_length_len = sprintf(content_length, "%ld", content->len);
 
     nghttp2_nv hdrs[] = {
         OUTPUT_DNSSIM_MAKE_NV2(":method", "POST"),  // TODO GET
