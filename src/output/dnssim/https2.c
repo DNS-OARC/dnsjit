@@ -66,6 +66,9 @@ static ssize_t _http2_send(nghttp2_session* session, const uint8_t* data, size_t
 static ssize_t _https2_send_data(nghttp2_session* session, int32_t stream_id, uint8_t* buf, size_t length, uint32_t* data_flags, nghttp2_data_source* source, void* user_data)
 {
     _output_dnssim_https2_data_provider_t* buffer = source->ptr;
+    mlassert(buffer, "no data provider");
+    mlassert(buffer->len <= MAX_DNSMSG_SIZE, "invalid dnsmsg size: %zu B", buffer->len);
+
     ssize_t sent = (length < buffer->len) ? length : buffer->len;
 
     memcpy(buf, buffer->buf, sent);
