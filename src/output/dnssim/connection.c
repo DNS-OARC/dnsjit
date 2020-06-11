@@ -39,7 +39,7 @@ void _output_dnssim_conn_maybe_free(_output_dnssim_connection_t* conn)
     mlassert(conn, "conn can't be nil");
     mlassert(conn->client, "conn must belong to a client");
     if (conn->handle == NULL && conn->handshake_timer == NULL && conn->idle_timer == NULL) {
-        _ll_remove(conn->client->conn, conn);
+        _ll_try_remove(conn->client->conn, conn);
         if (conn->tls != NULL) {
             free(conn->tls);
             conn->tls = NULL;
