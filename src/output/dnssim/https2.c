@@ -59,6 +59,7 @@ static ssize_t _http2_send(nghttp2_session* session, const uint8_t* data, size_t
     if ((len = gnutls_record_send(conn->tls->session, data, length)) < 0) {
         mlwarning("gnutls_record_send failed: %s", gnutls_strerror(len));
         _output_dnssim_conn_close(conn);
+        len = NGHTTP2_ERR_CALLBACK_FAILURE;
     }
     return len;
 }
