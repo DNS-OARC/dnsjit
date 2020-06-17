@@ -21,7 +21,8 @@ CLEANFILES =
 
 SUBDIRS = test
 
-AM_CFLAGS = -I$(srcdir) \
+AM_CFLAGS = -Werror=attributes \
+  -I$(srcdir) \
   -I$(top_srcdir) \
   $(SIMD_FLAGS) $(CPUEXT_FLAGS) \
   $(PTHREAD_CFLAGS) \
