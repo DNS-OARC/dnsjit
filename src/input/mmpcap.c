@@ -122,7 +122,13 @@ int input_mmpcap_open(input_mmpcap_t* self, const char* file)
         lcritical("could not read full PCAP header");
         return -2;
     }
-    memcpy(&self->magic_number, self->buf, 24);
+    memcpy(&self->magic_number, self->buf, 4);
+    memcpy(&self->version_major, self->buf + 4, 2);
+    memcpy(&self->version_minor, self->buf + 6, 2);
+    memcpy(&self->thiszone, self->buf + 8, 4);
+    memcpy(&self->sigfigs, self->buf + 12, 4);
+    memcpy(&self->snaplen, self->buf + 16, 4);
+    memcpy(&self->network, self->buf + 20, 4);
     self->at = 24;
     switch (self->magic_number) {
     case 0x4d3cb2a1:

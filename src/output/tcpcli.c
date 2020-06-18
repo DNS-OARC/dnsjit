@@ -270,7 +270,7 @@ static const core_object_t* _produce(output_tcpcli_t* self)
         p.fd      = self->fd;
         p.events  = POLLIN;
         p.revents = 0;
-        to        = (self->timeout.sec * 1e3) + (self->timeout.nsec / 1e6);
+        to        = (self->timeout.sec * 1e3) + (self->timeout.nsec / 1e6); //NOSONAR
         if (!to) {
             to = 1;
         }

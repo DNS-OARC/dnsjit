@@ -101,7 +101,13 @@ int input_fpcap_open(input_fpcap_t* self, const char* file)
         return -1;
     }
 
-    if (fread(&self->magic_number, 1, 24, self->file) != 24) {
+    if (fread(&self->magic_number, 1, 4, self->file) != 4
+        || fread(&self->version_major, 1, 2, self->file) != 2
+        || fread(&self->version_minor, 1, 2, self->file) != 2
+        || fread(&self->thiszone, 1, 4, self->file) != 4
+        || fread(&self->sigfigs, 1, 4, self->file) != 4
+        || fread(&self->snaplen, 1, 4, self->file) != 4
+        || fread(&self->network, 1, 4, self->file) != 4) {
         lcritical("could not read full PCAP header");
         return -2;
     }
