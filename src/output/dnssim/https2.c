@@ -55,29 +55,32 @@ static ssize_t _http2_send(nghttp2_session* session, const uint8_t* data, size_t
     mlassert(conn->tls, "conn must have tls ctx");
     mlassert(conn->tls->session, "conn must have tls session");
 
+    mldebug("http2 (%p): sending data, len=%ld", session, length);
+
     ssize_t len = 0;
     if ((len = gnutls_record_send(conn->tls->session, data, length)) < 0) {
         mlwarning("gnutls_record_send failed: %s", gnutls_strerror(len));
         _output_dnssim_conn_close(conn);
         len = NGHTTP2_ERR_CALLBACK_FAILURE;
     }
+
     return len;
 }
 
-static ssize_t _https2_send_data(nghttp2_session* session, int32_t stream_id, uint8_t* buf, size_t length, uint32_t* data_flags, nghttp2_data_source* source, void* user_data)
+static ssize_t _http2_send_data(nghttp2_session* session, int32_t stream_id, uint8_t* buf, size_t length, uint32_t* data_flags, nghttp2_data_source* source, void* user_data)
 {
     _output_dnssim_https2_data_provider_t* buffer = source->ptr;
     mlassert(buffer, "no data provider");
     mlassert(buffer->len <= MAX_DNSMSG_SIZE, "invalid dnsmsg size: %zu B", buffer->len);
 
     ssize_t sent = (length < buffer->len) ? length : buffer->len;
+    mlassert(sent >= 0, "negative length of bytes to send");
 
     memcpy(buf, buffer->buf, sent);
     buffer->buf += sent;
     buffer->len -= sent;
-    if (!buffer->len) {
+    if (buffer->len == 0)
         *data_flags |= NGHTTP2_DATA_FLAG_EOF;
-    }
 
     return sent;
 }
@@ -350,8 +353,20 @@ void _output_dnssim_https2_write_query(_output_dnssim_connection_t* conn, _outpu
     mlassert(conn->client->pending, "conn has no pending queries");
     mlassert(conn->client->dnssim, "client must have dnssim");
 
+    if (!nghttp2_session_check_request_allowed(conn->http2->session)) {
+       mldebug("http2 (%p): request not allowed", conn->http2->session);
+       _output_dnssim_conn_close(conn);
+       return;
+    }
+
     output_dnssim_t* self = conn->client->dnssim;
     core_object_payload_t* content = qry->qry.req->payload;
+
+    int32_t window_size = nghttp2_session_get_remote_window_size(conn->http2->session);
+    if (content->len > window_size) { // TODO: and method is POST
+           mldebug("http2 (%p): insufficient remote window size, deferring", conn->http2->session);
+           return;
+    }
 
     char content_length[6];  /* max dnslen "65535" */
     int content_length_len = sprintf(content_length, "%ld", content->len);
@@ -373,17 +388,25 @@ void _output_dnssim_https2_write_query(_output_dnssim_connection_t* conn, _outpu
 
     nghttp2_data_provider data_provider = {
         .source.ptr = &data,
-        .read_callback = _https2_send_data
+        .read_callback = _http2_send_data
     };
 
     qry->stream_id = nghttp2_submit_request(conn->http2->session, NULL, hdrs, sizeof(hdrs) / sizeof(nghttp2_nv), &data_provider, NULL);
 
     if (qry->stream_id < 0) {
+        mldebug("http2 (%p): failed to submit request: %s", conn->http2->session, nghttp2_strerror(qry->stream_id));
         _output_dnssim_conn_close(conn);
         return;
     }
+    mldebug("http2 (%p): request submitted, payload len %ld B", conn->http2->session, content->len);
+    window_size = nghttp2_session_get_stream_remote_window_size(conn->http2->session, qry->stream_id);
+    mlassert(content->len <= window_size,  // TODO and method is POST
+        "unsupported: http2 stream window size (%ld B) is smaller than dns payload (%ld B)",
+        window_size, content->len);
+
     int ret = nghttp2_session_send(conn->http2->session);
     if (ret < 0) {
+        mldebug("http2 (%p): failed session send: %s", conn->http2->session, nghttp2_strerror(ret));
         _output_dnssim_conn_close(conn);
         return;
     }
