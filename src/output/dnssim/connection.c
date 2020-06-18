@@ -199,8 +199,10 @@ int _output_dnssim_handle_pending_queries(_output_dnssim_client_t* client)
         if (_self->transport == OUTPUT_DNSSIM_TRANSPORT_TLS) {
 #if GNUTLS_VERSION_NUMBER >= DNSSIM_MIN_GNUTLS_VERSION
             ret = _output_dnssim_tls_init(conn);
-            if (ret < 0)
+            if (ret < 0) {
+                free(conn);
                 return ret;
+            }
 #else
             lfatal(DNSSIM_MIN_GNUTLS_ERRORMSG);
 #endif

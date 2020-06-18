@@ -300,6 +300,8 @@ int _output_dnssim_tls_init(_output_dnssim_connection_t* conn)
     ret = gnutls_init(&conn->tls->session, GNUTLS_CLIENT | GNUTLS_NONBLOCK);
     if (ret < 0) {
         mldebug("failed gnutls_init() (%s)", gnutls_strerror(ret));
+        free(conn->tls);
+        conn->tls = 0;
         return ret;
     }
 
@@ -308,12 +310,18 @@ int _output_dnssim_tls_init(_output_dnssim_connection_t* conn)
         ret = gnutls_set_default_priority(conn->tls->session);
         if (ret < 0) {
             mldebug("failed gnutls_set_default_priority() (%s)", gnutls_strerror(ret));
+            gnutls_deinit(conn->tls->session);
+            free(conn->tls);
+            conn->tls = 0;
             return ret;
         }
     } else {
         ret = gnutls_priority_set(conn->tls->session, *_self->tls_priority);
         if (ret < 0) {
             mldebug("failed gnutls_priority_set() (%s)", gnutls_strerror(ret));
+            gnutls_deinit(conn->tls->session);
+            free(conn->tls);
+            conn->tls = 0;
             return ret;
         }
     }
@@ -321,6 +329,9 @@ int _output_dnssim_tls_init(_output_dnssim_connection_t* conn)
     ret = gnutls_credentials_set(conn->tls->session, GNUTLS_CRD_CERTIFICATE, _self->tls_cred);
     if (ret < 0) {
         mldebug("failed gnutls_credentials_set() (%s)", gnutls_strerror(ret));
+        gnutls_deinit(conn->tls->session);
+        free(conn->tls);
+        conn->tls = 0;
         return ret;
     }
 
