@@ -155,12 +155,47 @@ static int _http2_on_data_recv(nghttp2_session* session, uint8_t flags, int32_t 
     return 0;
 }
 
+static void _http2_check_max_streams(_output_dnssim_connection_t* conn)
+{
+    mlassert(conn, "conn can't be null");
+    mlassert(conn->http2, "conn must have http2 ctx");
+
+    switch (conn->state) {
+    case _OUTPUT_DNSSIM_CONN_ACTIVE:
+        if (conn->http2->open_streams >= conn->http2->max_concurrent_streams) {
+            mlinfo("http2 (%p): reached maximum number of concurrent streams (%ld)",
+                conn->http2->session, conn->http2->max_concurrent_streams);
+            conn->state = _OUTPUT_DNSSIM_CONN_CONGESTED;
+        }
+        break;
+    case _OUTPUT_DNSSIM_CONN_CONGESTED:
+        if (conn->http2->open_streams < conn->http2->max_concurrent_streams)
+            conn->state = _OUTPUT_DNSSIM_CONN_ACTIVE;
+        break;
+    default:
+        break;
+    }
+}
+
+static int _http2_on_stream_close(nghttp2_session *session, int32_t stream_id, uint32_t error_code, void *user_data)
+{
+    _output_dnssim_connection_t* conn = (_output_dnssim_connection_t*)user_data;
+    mlassert(conn, "conn can't be null");
+    mlassert(conn->http2, "conn must have http2 ctx");
+    mlassert(conn->http2->open_streams > 0, "conn has no open streams");
+
+    conn->http2->open_streams--;
+    _http2_check_max_streams(conn);
+    return 0;
+}
+
 static int _http2_on_frame_recv(nghttp2_session* session, const nghttp2_frame* frame, void* user_data)
 {
     _output_dnssim_connection_t* conn = (_output_dnssim_connection_t*)user_data;
     mlassert(conn, "conn can't be null");
     mlassert(conn->tls, "conn must have tls ctx");
     mlassert(conn->tls->session, "conn must have tls session");
+    mlassert(conn->http2, "conn must have http2 ctx");
 
     switch (frame->hd.type) {
     case NGHTTP2_DATA:
@@ -175,6 +210,21 @@ static int _http2_on_frame_recv(nghttp2_session* session, const nghttp2_frame* f
             }
         }
         break;
+    case NGHTTP2_SETTINGS: {
+        nghttp2_settings* settings = (nghttp2_settings*)frame;
+        for (int i = 0; i < settings->niv; i++) {
+            switch (settings->iv[i].settings_id) {
+            case NGHTTP2_SETTINGS_MAX_CONCURRENT_STREAMS:
+                conn->http2->max_concurrent_streams = settings->iv[i].value;
+                mlnotice("http2 (%p): max_concurrent_stream set to %ld", conn->http2->session, conn->http2->max_concurrent_streams);  // TODO lower debug level
+                _http2_check_max_streams(conn);
+                break;
+            default:
+                break;
+            }
+        }
+        break;
+    }
     default:
       break;
     }
@@ -206,6 +256,7 @@ int _output_dnssim_https2_init(_output_dnssim_connection_t* conn)
     }
 
     mlfatal_oom(conn->http2 = calloc(1, sizeof(_output_dnssim_http2_ctx_t)));
+    conn->http2->max_concurrent_streams = 100;  // nghttp2 default limit
 
     /* Set up HTTP/2 callbacks and client. */
     ret = nghttp2_session_callbacks_new(&callbacks);
@@ -215,6 +266,7 @@ int _output_dnssim_https2_init(_output_dnssim_connection_t* conn)
     nghttp2_session_callbacks_set_on_header_callback(callbacks, _http2_on_header);
     nghttp2_session_callbacks_set_on_data_chunk_recv_callback(callbacks, _http2_on_data_recv);
     nghttp2_session_callbacks_set_on_frame_recv_callback(callbacks, _http2_on_frame_recv);
+    nghttp2_session_callbacks_set_on_stream_close_callback(callbacks, _http2_on_stream_close);
     ret = nghttp2_session_client_new(&conn->http2->session, callbacks, conn);
     if (ret < 0)
         return ret;
@@ -249,7 +301,8 @@ int _output_dnssim_https2_setup(_output_dnssim_connection_t* conn)
     /* Submit SETTIGNS frame. */
     static const nghttp2_settings_entry iv[] = {
         { NGHTTP2_SETTINGS_MAX_CONCURRENT_STREAMS, OUTPUT_DNSSIM_HTTP2_MAX_CONCURRENT_STREAMS },
-        { NGHTTP2_SETTINGS_MAX_FRAME_SIZE, MAX_DNSMSG_SIZE }
+        { NGHTTP2_SETTINGS_MAX_FRAME_SIZE, MAX_DNSMSG_SIZE },
+        { NGHTTP2_SETTINGS_ENABLE_PUSH, 0 },  /* Only we can initiate streams. */
     };
     ret = nghttp2_submit_settings(conn->http2->session, NGHTTP2_FLAG_NONE, iv, sizeof(iv)/sizeof(*iv) );
     if (ret < 0) {
@@ -399,6 +452,9 @@ void _output_dnssim_https2_write_query(_output_dnssim_connection_t* conn, _outpu
         return;
     }
     mldebug("http2 (%p): request submitted, payload len %ld B", conn->http2->session, content->len);
+    conn->http2->open_streams++;
+    _http2_check_max_streams(conn);
+
     window_size = nghttp2_session_get_stream_remote_window_size(conn->http2->session, qry->stream_id);
     mlassert(content->len <= window_size,  // TODO and method is POST
         "unsupported: http2 stream window size (%ld B) is smaller than dns payload (%ld B)",

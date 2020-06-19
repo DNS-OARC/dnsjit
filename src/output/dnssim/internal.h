@@ -162,6 +162,10 @@ typedef struct _output_dnssim_http2_ctx {
 
     /* Query to which the dnsbuf currently being processed belongs to. */
     _output_dnssim_query_tcp_t* current_qry;
+
+    /* Maximum number of concurrent and currently open streams. */
+    int32_t max_concurrent_streams;
+    int32_t open_streams;
 } _output_dnssim_http2_ctx_t;
 
 struct _output_dnssim_connection {
@@ -191,6 +195,7 @@ struct _output_dnssim_connection {
         _OUTPUT_DNSSIM_CONN_TCP_HANDSHAKE = 10,
         _OUTPUT_DNSSIM_CONN_TLS_HANDSHAKE = 20,
         _OUTPUT_DNSSIM_CONN_ACTIVE        = 30,
+        _OUTPUT_DNSSIM_CONN_CONGESTED     = 35,
         _OUTPUT_DNSSIM_CONN_CLOSING       = 40,
         _OUTPUT_DNSSIM_CONN_CLOSED        = 50
     } state;
