@@ -263,8 +263,11 @@ struct _output_dnssim {
     struct sockaddr_storage   target;
     _output_dnssim_source_t*  source;
     output_dnssim_transport_t transport;
-    char                      uri_authority[_MAX_URI_LEN];
-    char                      uri_path[_MAX_URI_LEN];
+
+    char                      h2_uri_authority[_MAX_URI_LEN];
+    char                      h2_uri_path[_MAX_URI_LEN];
+    uint32_t                  h2_max_concurrent_streams;
+    bool                      h2_zero_out_msgid;
 
     /* Array of clients, mapped by client ID (ranges from 0 to max_clients). */
     _output_dnssim_client_t* client_arr;
@@ -272,8 +275,6 @@ struct _output_dnssim {
     gnutls_priority_t*               tls_priority;
     gnutls_certificate_credentials_t tls_cred;
     char                             wire_buf[WIRE_BUF_SIZE]; /* thread-local buffer for processing tls input */
-
-    bool zero_out_msgid;
 };
 
 /* Provides data for HTTP/2 data frames. */

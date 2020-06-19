@@ -141,6 +141,7 @@ function DnsSim:https2(http2_options, tls_priority)
     -- TODO method
     uri_path = "/dns-query"
     zero_out_msgid = true
+    max_concurrent_streams = 100
     if http2_options ~= nil and type(http2_options) == "table" then
         if http2_options["uri_path"] ~= nil then
             uri_path = http2_options["uri_path"]
@@ -148,11 +149,15 @@ function DnsSim:https2(http2_options, tls_priority)
         if http2_options["zero_out_msgid"] ~= nil and http2_options["zero_out_msgid"] ~= true then
             zero_out_msgid = false
         end
+        if http2_options["max_concurrent_streams"] ~= nil then
+            max_concurrent_streams = http2_options["max_concurrent_streams"]
+        end
     end
 
-    C.output_dnssim_uri_path(self.obj, uri_path)
     C.output_dnssim_set_transport(self.obj, C.OUTPUT_DNSSIM_TRANSPORT_HTTPS2)
-    C.output_dnssim_zero_out_msgid(self.obj, zero_out_msgid)
+    C.output_dnssim_h2_uri_path(self.obj, uri_path)
+    C.output_dnssim_h2_zero_out_msgid(self.obj, zero_out_msgid)
+    C.output_dnssim_h2_max_concurrent_streams(self.obj, max_concurrent_streams)
 end
 
 -- Set timeout for the individual requests in seconds (default 2s).

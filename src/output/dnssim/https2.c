@@ -30,10 +30,6 @@
 
 #if GNUTLS_VERSION_NUMBER >= DNSSIM_MIN_GNUTLS_VERSION
 
-/* This limits the number of simultaneous streams the *server* can open towards a client.
- * It should have no effect, since we only care about responses to client requests. */
-#define OUTPUT_DNSSIM_HTTP2_MAX_CONCURRENT_STREAMS 100
-
 #define OUTPUT_DNSSIM_MAKE_NV(NAME, VALUE, VALUELEN)                           \
   {                                                                            \
     (uint8_t* )NAME, (uint8_t* )VALUE, sizeof(NAME) - 1, VALUELEN,             \
@@ -216,7 +212,7 @@ static int _http2_on_frame_recv(nghttp2_session* session, const nghttp2_frame* f
             switch (settings->iv[i].settings_id) {
             case NGHTTP2_SETTINGS_MAX_CONCURRENT_STREAMS:
                 conn->http2->max_concurrent_streams = settings->iv[i].value;
-                mlnotice("http2 (%p): max_concurrent_stream set to %ld", conn->http2->session, conn->http2->max_concurrent_streams);  // TODO lower debug level
+                mldebug("http2 (%p): max_concurrent_streams set to %ld", conn->http2->session, conn->http2->max_concurrent_streams);
                 _http2_check_max_streams(conn);
                 break;
             default:
@@ -236,9 +232,13 @@ int _output_dnssim_https2_init(_output_dnssim_connection_t* conn)
     mlassert(conn, "conn is nil");
     mlassert(conn->tls == NULL, "conn already has tls context");
     mlassert(conn->http2 == NULL, "conn already has http2 context");
+    mlassert(conn->client, "conn must be associated with a client");
+    mlassert(conn->client->dnssim, "client must have dnssim");
 
     int ret = -1;
     nghttp2_session_callbacks* callbacks;
+    nghttp2_option* option;
+    output_dnssim_t* self = conn->client->dnssim;
 
     /* Initialize TLS session. */
     ret = _output_dnssim_tls_init(conn);
@@ -251,26 +251,29 @@ int _output_dnssim_https2_init(_output_dnssim_connection_t* conn)
     };
     ret = gnutls_alpn_set_protocols(conn->tls->session, protos, 1, 0);
     if (ret < 0) {
-        mlwarning("failed to set ALPN protocol: %s", gnutls_strerror(ret));
+        lwarning("failed to set ALPN protocol: %s", gnutls_strerror(ret));
         return ret;
     }
 
-    mlfatal_oom(conn->http2 = calloc(1, sizeof(_output_dnssim_http2_ctx_t)));
-    conn->http2->max_concurrent_streams = 100;  // nghttp2 default limit
+    lfatal_oom(conn->http2 = calloc(1, sizeof(_output_dnssim_http2_ctx_t)));
+    conn->http2->max_concurrent_streams = _self->h2_max_concurrent_streams;
 
     /* Set up HTTP/2 callbacks and client. */
-    ret = nghttp2_session_callbacks_new(&callbacks);
-    if (ret < 0)
-        return ret;
+    lassert(nghttp2_session_callbacks_new(&callbacks) == 0, "out of memory");
     nghttp2_session_callbacks_set_send_callback(callbacks, _http2_send);
     nghttp2_session_callbacks_set_on_header_callback(callbacks, _http2_on_header);
     nghttp2_session_callbacks_set_on_data_chunk_recv_callback(callbacks, _http2_on_data_recv);
     nghttp2_session_callbacks_set_on_frame_recv_callback(callbacks, _http2_on_frame_recv);
     nghttp2_session_callbacks_set_on_stream_close_callback(callbacks, _http2_on_stream_close);
-    ret = nghttp2_session_client_new(&conn->http2->session, callbacks, conn);
-    if (ret < 0)
+
+    lassert(nghttp2_option_new(&option) == 0, "out of memory");
+    nghttp2_option_set_peer_max_concurrent_streams(option, conn->http2->max_concurrent_streams);
+
+    ret = nghttp2_session_client_new2(&conn->http2->session, callbacks, conn, option);
+    if (ret < 0)  // TODO fix memory leak
         return ret;
     nghttp2_session_callbacks_del(callbacks);
+    nghttp2_option_del(option);
 
     ret = 0;
     return ret;
@@ -300,7 +303,6 @@ int _output_dnssim_https2_setup(_output_dnssim_connection_t* conn)
 
     /* Submit SETTIGNS frame. */
     static const nghttp2_settings_entry iv[] = {
-        { NGHTTP2_SETTINGS_MAX_CONCURRENT_STREAMS, OUTPUT_DNSSIM_HTTP2_MAX_CONCURRENT_STREAMS },
         { NGHTTP2_SETTINGS_MAX_FRAME_SIZE, MAX_DNSMSG_SIZE },
         { NGHTTP2_SETTINGS_ENABLE_PUSH, 0 },  /* Only we can initiate streams. */
     };
@@ -427,8 +429,8 @@ void _output_dnssim_https2_write_query(_output_dnssim_connection_t* conn, _outpu
     nghttp2_nv hdrs[] = {
         OUTPUT_DNSSIM_MAKE_NV2(":method", "POST"),  // TODO GET
         OUTPUT_DNSSIM_MAKE_NV2(":scheme", "https"),
-        OUTPUT_DNSSIM_MAKE_NV(":authority", _self->uri_authority, strlen(_self->uri_authority)),
-        OUTPUT_DNSSIM_MAKE_NV(":path", _self->uri_path, strlen(_self->uri_path)),
+        OUTPUT_DNSSIM_MAKE_NV(":authority", _self->h2_uri_authority, strlen(_self->h2_uri_authority)),
+        OUTPUT_DNSSIM_MAKE_NV(":path", _self->h2_uri_path, strlen(_self->h2_uri_path)),
         OUTPUT_DNSSIM_MAKE_NV2("accept", "application/dns-message"),
         OUTPUT_DNSSIM_MAKE_NV2("content-type", "application/dns-message"),
         OUTPUT_DNSSIM_MAKE_NV("content-length", content_length, content_length_len)
