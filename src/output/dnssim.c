@@ -392,8 +392,9 @@ void output_dnssim_h2_uri_path(output_dnssim_t* self, const char* uri_path)
 {
     mlassert_self();
     lassert(uri_path, "uri_path is nil");
+    lassert(strlen(uri_path) < _MAX_URI_LEN, "uri_path too long");
 
-    strncpy(_self->h2_uri_path, uri_path, _MAX_URI_LEN - 1);
+    strncpy(_self->h2_uri_path, uri_path, _MAX_URI_LEN);
     lnotice("http2: set uri path to: %s", _self->h2_uri_path);
 }
 

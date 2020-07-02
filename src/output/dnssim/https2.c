@@ -24,6 +24,7 @@
 #include "output/dnssim/internal.h"
 #include "output/dnssim/ll.h"
 #include "core/assert.h"
+#include "lib/base64url.h"
 
 #include <gnutls/gnutls.h>
 #include <string.h>
@@ -41,6 +42,8 @@
     (uint8_t* )NAME, (uint8_t* )VALUE, sizeof(NAME) - 1, sizeof(VALUE) - 1,    \
         NGHTTP2_NV_FLAG_NONE                                                   \
   }
+
+#define OUTPUT_DNSSIM_HTTP_GET_TEMPLATE "?dns="
 
 static core_log_t _log = LOG_T_INIT("output.dnssim");
 
@@ -392,42 +395,92 @@ void _output_dnssim_https2_close(_output_dnssim_connection_t* conn)
     _output_dnssim_tls_close(conn);
 }
 
-void _output_dnssim_https2_write_query(_output_dnssim_connection_t* conn, _output_dnssim_query_tcp_t* qry)
+static int _http2_send_query_get(_output_dnssim_connection_t* conn, _output_dnssim_query_tcp_t* qry)
 {
+    mlassert(conn, "conn can't be null");
     mlassert(qry, "qry can't be null");
-    mlassert(qry->qry.state == _OUTPUT_DNSSIM_QUERY_PENDING_WRITE, "qry must be pending write");
     mlassert(qry->qry.req, "req can't be null");
-    mlassert(qry->qry.req->dns_q, "dns_q can't be null");
     mlassert(qry->qry.req->payload, "payload can't be null");
     mlassert(qry->qry.req->payload->len <= MAX_DNSMSG_SIZE, "payload too big");
-    mlassert(conn, "conn can't be null");
-    mlassert(conn->state == _OUTPUT_DNSSIM_CONN_ACTIVE, "connection state != ACTIVE");
-    mlassert(conn->http2, "conn must have http2 ctx");
-    mlassert(conn->http2->session, "conn must have http2 session");
     mlassert(conn->client, "conn must be associated with client");
-    mlassert(conn->client->pending, "conn has no pending queries");
     mlassert(conn->client->dnssim, "client must have dnssim");
-
-    if (!nghttp2_session_check_request_allowed(conn->http2->session)) {
-       mldebug("http2 (%p): request not allowed", conn->http2->session);
-       _output_dnssim_conn_close(conn);
-       return;
-    }
 
     output_dnssim_t* self = conn->client->dnssim;
     core_object_payload_t* content = qry->qry.req->payload;
 
-    int32_t window_size = nghttp2_session_get_remote_window_size(conn->http2->session);
-    if (content->len > window_size) { // TODO: and method is POST
+    const size_t path_len = strlen(_self->h2_uri_path) +
+                            sizeof(OUTPUT_DNSSIM_HTTP_GET_TEMPLATE) +
+                            (content->len * 4) / 3 + 3;  /* upper limit of base64 encoding */
+    if (path_len >= _MAX_URI_LEN) {
+        // TODO dicarded?
+        linfo("http2: uri path with query too long, query discarded");
+        return 0;
+    }
+    char path[path_len];
+    strncpy(path, _self->h2_uri_path, path_len);
+    strncat(path, OUTPUT_DNSSIM_HTTP_GET_TEMPLATE, path_len);
+
+    size_t tmp_path_len = strlen(path);
+    int32_t ret = base64url_encode(content->payload, content->len,
+        (uint8_t *)(path + tmp_path_len), path_len - tmp_path_len - 1);
+    if (ret < 0) {
+        // TODO discarded?
+        linfo("http2: base64url encode of query failed, query discarded");
+        return 0;
+    }
+
+    nghttp2_nv hdrs[] = {
+        OUTPUT_DNSSIM_MAKE_NV2(":method", "GET"),
+        OUTPUT_DNSSIM_MAKE_NV2(":scheme", "https"),
+        OUTPUT_DNSSIM_MAKE_NV(":authority", _self->h2_uri_authority, strlen(_self->h2_uri_authority)),
+        OUTPUT_DNSSIM_MAKE_NV(":path", path, tmp_path_len + ret),
+        OUTPUT_DNSSIM_MAKE_NV2("accept", "application/dns-message"),
+    };
+
+    qry->stream_id = nghttp2_submit_request(conn->http2->session, NULL, hdrs, sizeof(hdrs) / sizeof(nghttp2_nv), NULL, NULL);
+
+    if (qry->stream_id < 0) {
+        mldebug("http2 (%p): failed to submit request: %s", conn->http2->session, nghttp2_strerror(qry->stream_id));
+        return -1;
+    }
+    mldebug("http2 (%p): GET %s", conn->http2->session, path);
+    conn->http2->open_streams++;
+    _http2_check_max_streams(conn);
+
+    ret = nghttp2_session_send(conn->http2->session);
+    if (ret < 0) {
+        mldebug("http2 (%p): failed session send: %s", conn->http2->session, nghttp2_strerror(ret));
+        return -1;
+    }
+
+    return 0;
+}
+
+static int _http2_send_query_post(_output_dnssim_connection_t* conn, _output_dnssim_query_tcp_t* qry)
+{
+    mlassert(conn, "conn can't be null");
+    mlassert(qry, "qry can't be null");
+    mlassert(qry->qry.req, "req can't be null");
+    mlassert(qry->qry.req->payload, "payload can't be null");
+    mlassert(qry->qry.req->payload->len <= MAX_DNSMSG_SIZE, "payload too big");
+    mlassert(conn->client, "conn must be associated with client");
+    mlassert(conn->client->dnssim, "client must have dnssim");
+
+    output_dnssim_t* self = conn->client->dnssim;
+
+    core_object_payload_t* content = qry->qry.req->payload;
+
+    int window_size = nghttp2_session_get_remote_window_size(conn->http2->session);
+    if (content->len > window_size) {
            mldebug("http2 (%p): insufficient remote window size, deferring", conn->http2->session);
-           return;
+           return 0;
     }
 
     char content_length[6];  /* max dnslen "65535" */
     int content_length_len = sprintf(content_length, "%ld", content->len);
 
     nghttp2_nv hdrs[] = {
-        OUTPUT_DNSSIM_MAKE_NV2(":method", "POST"),  // TODO GET
+        OUTPUT_DNSSIM_MAKE_NV2(":method", "POST"),
         OUTPUT_DNSSIM_MAKE_NV2(":scheme", "https"),
         OUTPUT_DNSSIM_MAKE_NV(":authority", _self->h2_uri_authority, strlen(_self->h2_uri_authority)),
         OUTPUT_DNSSIM_MAKE_NV(":path", _self->h2_uri_path, strlen(_self->h2_uri_path)),
@@ -450,21 +503,59 @@ void _output_dnssim_https2_write_query(_output_dnssim_connection_t* conn, _outpu
 
     if (qry->stream_id < 0) {
         mldebug("http2 (%p): failed to submit request: %s", conn->http2->session, nghttp2_strerror(qry->stream_id));
-        _output_dnssim_conn_close(conn);
-        return;
+        return -1;
     }
-    mldebug("http2 (%p): request submitted, payload len %ld B", conn->http2->session, content->len);
+    mldebug("http2 (%p): POST payload len=%ld", conn->http2->session, content->len);
     conn->http2->open_streams++;
     _http2_check_max_streams(conn);
 
     window_size = nghttp2_session_get_stream_remote_window_size(conn->http2->session, qry->stream_id);
-    mlassert(content->len <= window_size,  // TODO and method is POST
+    mlassert(content->len <= window_size,
         "unsupported: http2 stream window size (%ld B) is smaller than dns payload (%ld B)",
         window_size, content->len);
 
     int ret = nghttp2_session_send(conn->http2->session);
     if (ret < 0) {
         mldebug("http2 (%p): failed session send: %s", conn->http2->session, nghttp2_strerror(ret));
+        return -1;
+    }
+
+    return 0;
+}
+
+void _output_dnssim_https2_write_query(_output_dnssim_connection_t* conn, _output_dnssim_query_tcp_t* qry)
+{
+    mlassert(qry, "qry can't be null");
+    mlassert(qry->qry.state == _OUTPUT_DNSSIM_QUERY_PENDING_WRITE, "qry must be pending write");
+    mlassert(conn, "conn can't be null");
+    mlassert(conn->state == _OUTPUT_DNSSIM_CONN_ACTIVE, "connection state != ACTIVE");
+    mlassert(conn->http2, "conn must have http2 ctx");
+    mlassert(conn->http2->session, "conn must have http2 session");
+    mlassert(conn->client, "conn must be associated with client");
+    mlassert(conn->client->pending, "conn has no pending queries");
+    mlassert(conn->client->dnssim, "client must have dnssim");
+
+    int ret;
+    output_dnssim_t* self = conn->client->dnssim;
+
+    if (!nghttp2_session_check_request_allowed(conn->http2->session)) {
+       mldebug("http2 (%p): request not allowed", conn->http2->session);
+       _output_dnssim_conn_close(conn);
+       return;
+    }
+
+    switch (_self->h2_method) {
+    case OUTPUT_DNSSIM_H2_POST:
+        ret = _http2_send_query_post(conn, qry);
+        break;
+    case OUTPUT_DNSSIM_H2_GET:
+        ret = _http2_send_query_get(conn, qry);
+        break;
+    default:
+        lfatal("http2: unsupported method");
+    }
+
+    if (ret < 0) {
         _output_dnssim_conn_close(conn);
         return;
     }
