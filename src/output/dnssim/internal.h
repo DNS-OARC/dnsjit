@@ -268,6 +268,7 @@ struct _output_dnssim {
     char                      h2_uri_path[_MAX_URI_LEN];
     uint32_t                  h2_max_concurrent_streams;
     bool                      h2_zero_out_msgid;
+    output_dnssim_h2_method_t h2_method;
 
     /* Array of clients, mapped by client ID (ranges from 0 to max_clients). */
     _output_dnssim_client_t* client_arr;

@@ -29,6 +29,11 @@ typedef enum output_dnssim_transport {
     OUTPUT_DNSSIM_TRANSPORT_HTTPS2
 } output_dnssim_transport_t;
 
+typedef enum output_dnssim_h2_method {
+    OUTPUT_DNSSIM_H2_GET,
+    OUTPUT_DNSSIM_H2_POST
+} output_dnssim_h2_method_t;
+
 typedef struct output_dnssim_stats output_dnssim_stats_t;
 struct output_dnssim_stats {
     output_dnssim_stats_t* prev;
@@ -109,6 +114,7 @@ int  output_dnssim_tls_priority(output_dnssim_t* self, const char* priority);
 int  output_dnssim_run_nowait(output_dnssim_t* self);
 void output_dnssim_timeout_ms(output_dnssim_t* self, uint64_t timeout_ms);
 void output_dnssim_h2_uri_path(output_dnssim_t* self, const char* uri_path);
+void output_dnssim_h2_method(output_dnssim_t* self, const char* method);
 void output_dnssim_h2_zero_out_msgid(output_dnssim_t* self, bool zero_out_msgid);
 void output_dnssim_h2_max_concurrent_streams(output_dnssim_t* self, uint32_t max_concurrent_streams);
 void output_dnssim_stats_collect(output_dnssim_t* self, uint64_t interval_ms);

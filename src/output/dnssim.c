@@ -394,7 +394,23 @@ void output_dnssim_h2_uri_path(output_dnssim_t* self, const char* uri_path)
     lassert(uri_path, "uri_path is nil");
 
     strncpy(_self->h2_uri_path, uri_path, _MAX_URI_LEN - 1);
-    lnotice("set uri path to: %s", _self->h2_uri_path);
+    lnotice("http2: set uri path to: %s", _self->h2_uri_path);
+}
+
+void output_dnssim_h2_method(output_dnssim_t* self, const char* method)
+{
+    mlassert_self();
+    lassert(method, "method is nil");
+
+    if (strcmp("GET", method) == 0) {
+        _self->h2_method = OUTPUT_DNSSIM_H2_GET;
+    } else if (strcmp("POST", method) == 0) {
+        _self->h2_method = OUTPUT_DNSSIM_H2_POST;
+    } else {
+        lfatal("http2: unsupported method: \"%s\"", method);
+    }
+
+    lnotice("http2: set method to %s", method);
 }
 
 void output_dnssim_h2_zero_out_msgid(output_dnssim_t* self, bool zero_out_msgid)
