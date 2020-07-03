@@ -132,13 +132,34 @@ function DnsSim:tls(tls_priority)
     C.output_dnssim_set_transport(self.obj, C.OUTPUT_DNSSIM_TRANSPORT_TLS)
 end
 
--- Set the transport to HTTP/2 over TLS. TODO document
+-- Set the transport to HTTP/2 over TLS. The following
+-- .B http2_options
+-- can be set:
+--
+-- .B method:
+-- .B GET
+-- or
+-- .B POST
+-- (default)
+--
+-- .B uri_path:
+-- where queries will be sent. Defaults to
+-- .B /dns-query
+--
+-- .B zero_out_msgig:
+-- when
+-- .B true
+-- (default), query ID is always set to 0
+--
+-- .B max_concurrent_streams:
+-- initial number of maximum concurrent HTTP/2 streams.
+-- This can be overriden by the server's SETTINGS frame. Defaults to
+-- .B 100
 function DnsSim:https2(http2_options, tls_priority)
     if tls_priority ~= nil then
         C.output_dnssim_tls_priority(self.obj, tls_priority)
     end
 
-    -- TODO method
     uri_path = "/dns-query"
     zero_out_msgid = true
     max_concurrent_streams = 100
