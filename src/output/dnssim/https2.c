@@ -273,12 +273,15 @@ int _output_dnssim_https2_init(_output_dnssim_connection_t* conn)
     nghttp2_option_set_peer_max_concurrent_streams(option, conn->http2->max_concurrent_streams);
 
     ret = nghttp2_session_client_new2(&conn->http2->session, callbacks, conn, option);
-    if (ret < 0)  // TODO fix memory leak
-        return ret;
+
     nghttp2_session_callbacks_del(callbacks);
     nghttp2_option_del(option);
 
-    ret = 0;
+    if (ret < 0) {
+        free(conn->http2);
+        conn->http2 = NULL;
+    }
+
     return ret;
 }
 
@@ -412,7 +415,7 @@ static int _http2_send_query_get(_output_dnssim_connection_t* conn, _output_dnss
                             sizeof(OUTPUT_DNSSIM_HTTP_GET_TEMPLATE) +
                             (content->len * 4) / 3 + 3;  /* upper limit of base64 encoding */
     if (path_len >= _MAX_URI_LEN) {
-        // TODO dicarded?
+        self->discarded++;
         linfo("http2: uri path with query too long, query discarded");
         return 0;
     }
@@ -424,7 +427,7 @@ static int _http2_send_query_get(_output_dnssim_connection_t* conn, _output_dnss
     int32_t ret = base64url_encode(content->payload, content->len,
         (uint8_t *)(path + tmp_path_len), path_len - tmp_path_len - 1);
     if (ret < 0) {
-        // TODO discarded?
+        self->discarded++;
         linfo("http2: base64url encode of query failed, query discarded");
         return 0;
     }
