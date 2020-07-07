@@ -255,6 +255,8 @@ void output_dnssim_set_transport(output_dnssim_t* self, output_dnssim_transport_
     case OUTPUT_DNSSIM_TRANSPORT_HTTPS2:
 #if GNUTLS_VERSION_NUMBER >= DNSSIM_MIN_GNUTLS_VERSION
         lnotice("transport set to HTTP/2 over TLS");
+        if (strlen(_self->h2_uri_authority) > 0)
+            lnotice("set uri authority to: %s", _self->h2_uri_authority);
 #else
         lfatal(DNSSIM_MIN_GNUTLS_ERRORMSG);
 #endif
@@ -277,7 +279,6 @@ int output_dnssim_target(output_dnssim_t* self, const char* ip, uint16_t port)
     lassert(ip, "ip is nil");
     lassert(port, "port is nil");
 
-
     ret = uv_ip6_addr(ip, port, (struct sockaddr_in6*)&_self->target);
     if (ret != 0) {
         lcritical("failed to parse IPv6 from \"%s\"", ip);
@@ -289,10 +290,14 @@ int output_dnssim_target(output_dnssim_t* self, const char* ip, uint16_t port)
         //    return -1;
         //}
     } else {
-        if (_self->transport == OUTPUT_DNSSIM_TRANSPORT_HTTPS2) {
-            if (snprintf(_self->h2_uri_authority, _MAX_URI_LEN, "[%s]:%d", ip, port) > 0)
+        ret = snprintf(_self->h2_uri_authority, _MAX_URI_LEN, "[%s]:%d", ip, port);
+
+        if (ret > 0) {
+            if (_self->transport == OUTPUT_DNSSIM_TRANSPORT_HTTPS2)
                 lnotice("set uri authority to: %s", _self->h2_uri_authority);
-            else
+        } else {
+            _self->h2_uri_authority[0] = '\0';
+            if (_self->transport == OUTPUT_DNSSIM_TRANSPORT_HTTPS2)
                 lfatal("failed to set authority");
         }
     }
