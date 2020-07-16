@@ -126,6 +126,22 @@ function Object:cast()
     return ffi.cast(_cast[self.obj_type], self)
 end
 
+-- Cast the object to the specified object module and return it.
+-- Returns nil if the object chain doesn't contained the specified object type.
+function Object:cast_to(obj_type)
+    if obj_type == nil then
+        obj_type = self.obj_type
+    end
+
+    local obj = self
+    while obj.obj_type ~= obj_type do
+        obj = obj.obj_prev
+        if obj == nil then return nil end
+    end
+
+    return ffi.cast(_cast[obj_type], obj)
+end
+
 -- Cast the object to the generic object module and return it.
 function Object:uncast()
     return self
