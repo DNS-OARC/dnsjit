@@ -24,7 +24,7 @@
 #include "core/assert.h"
 #include "core/object/ip.h"
 #include "core/object/ip6.h"
-#include "contrib/trie.h"
+#include "lib/trie.h"
 
 #include <string.h>
 

@@ -21,7 +21,17 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "contrib/trie.h"
+#include "lib/trie.h"
+
+/*! \brief Error codes used in the library. */
+enum knot_error {
+	KNOT_EOK = 0,
+
+	/* Directly mapped error codes. */
+	KNOT_ENOMEM        = -ENOMEM,
+	KNOT_EINVAL        = -EINVAL,
+	KNOT_ENOENT        = -ENOENT,
+};
 
 #if defined(__i386) || defined(__x86_64) || defined(_M_IX86) \
 	|| (defined(__BYTE_ORDER__) && defined(__ORDER_LITTLE_ENDIAN) \

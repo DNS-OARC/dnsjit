@@ -14,24 +14,6 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#pragma once
-
-#include <errno.h>
-#include <stdbool.h>
-#include <stdint.h>
-
-#ifndef likely
-/*! \brief Optimize for x to be true value. */
-#define likely(x) __builtin_expect((x), 1)
-#endif
-
-#ifndef unlikely
-/*! \brief Optimize for x to be false value. */
-#define unlikely(x) __builtin_expect((x), 0)
-#endif
-
-#define MIN(a,b) (((a)<(b))?(a):(b))			/** Minimum of two numbers **/
-
 /* Memory allocation function prototypes. */
 typedef void* (*knot_mm_alloc_t)(void *ctx, size_t len);
 typedef void (*knot_mm_free_t)(void *p);
@@ -42,16 +24,6 @@ typedef struct knot_mm {
 	knot_mm_alloc_t alloc;
 	knot_mm_free_t free;
 } knot_mm_t;
-
-/*! \brief Error codes used in the library. */
-enum knot_error {
-	KNOT_EOK = 0,
-
-	/* Directly mapped error codes. */
-	KNOT_ENOMEM        = -ENOMEM,
-	KNOT_EINVAL        = -EINVAL,
-	KNOT_ENOENT        = -ENOENT,
-};
 
 /*!
  * \brief Native API of QP-tries:
