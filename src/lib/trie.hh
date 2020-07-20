@@ -56,14 +56,14 @@ void trie_clear(trie_t *tbl);
 size_t trie_weight(const trie_t *tbl);
 
 /*! \brief Search the trie, returning NULL on failure. */
-trie_val_t* trie_get_try(trie_t *tbl, const char *key, uint32_t len);
+trie_val_t* trie_get_try(trie_t *tbl, const uint8_t *key, uint32_t len);
 
 /*!
  * \brief Return pointer to the minimum.  Optionally with key and its length. */
-trie_val_t* trie_get_first(trie_t *tbl, char **key, uint32_t *len);
+trie_val_t* trie_get_first(trie_t *tbl, uint8_t **key, uint32_t *len);
 
 /*! \brief Search the trie, inserting NULL trie_val_t on failure. */
-trie_val_t* trie_get_ins(trie_t *tbl, const char *key, uint32_t len);
+trie_val_t* trie_get_ins(trie_t *tbl, const uint8_t *key, uint32_t len);
 
 /*!
  * \brief Search for less-or-equal element.
@@ -75,7 +75,7 @@ trie_val_t* trie_get_ins(trie_t *tbl, const char *key, uint32_t len);
  * \return KNOT_EOK for exact match, 1 for previous, KNOT_ENOENT for not-found,
  *         or KNOT_E*.
  */
-int trie_get_leq(trie_t *tbl, const char *key, uint32_t len, trie_val_t **val);
+int trie_get_leq(trie_t *tbl, const uint8_t *key, uint32_t len, trie_val_t **val);
 
 /*!
  * \brief Apply a function to every trie_val_t, in order.
@@ -111,7 +111,7 @@ void trie_it_free(trie_it_t *it);
  * \note The optional len is uint32_t internally but size_t is better for our usage,
  *       as it is without an additional type conversion.
  */
-const char* trie_it_key(trie_it_t *it, size_t *len);
+const uint8_t* trie_it_key(trie_it_t *it, size_t *len);
 
 /*! \brief Return pointer to the value of the current element (writable). */
 trie_val_t* trie_it_val(trie_it_t *it);
