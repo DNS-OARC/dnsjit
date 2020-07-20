@@ -106,12 +106,17 @@ end
 
 -- Return the IP source as a string.
 function Ip:source()
-    return self.src[0] ..".".. self.src[1] ..".".. self.src[2] ..".".. self.src[3]
+    return self.tostring(self.src)
 end
 
 -- Return the IP destination as a string.
 function Ip:destination()
-    return self.dst[0] ..".".. self.dst[1] ..".".. self.dst[2] ..".".. self.dst[3]
+    return self.tostring(self.dst)
+end
+
+-- Return the IP as a string.
+function Ip.tostring(ip)
+    return ip[0] ..".".. ip[1] ..".".. ip[2] ..".".. ip[3]
 end
 
 core_object_ip_t = ffi.metatype(t_name, { __index = Ip })

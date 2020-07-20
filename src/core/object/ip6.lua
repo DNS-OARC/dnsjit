@@ -160,32 +160,30 @@ local function _pretty(ip)
     return table.concat(src,":")
 end
 
--- Return the IP source as a string. If
+-- Return the IPv6 source as a string. If
 -- .I pretty
--- is true then return a easier to read IPv6 address.
+-- is true then return an easier to read IPv6 address.
 function Ip6:source(pretty)
-    if pretty == true then
-        return _pretty(self.src)
-    end
-    return string.format("%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x",
-        self.src[0], self.src[1], self.src[2], self.src[3],
-        self.src[4], self.src[5], self.src[6], self.src[7],
-        self.src[8], self.src[9], self.src[10], self.src[11],
-        self.src[12], self.src[13], self.src[14], self.src[15])
+    return self.tostring(self.src, pretty)
 end
 
--- Return the IP destination as a string. If
+-- Return the IPv6 destination as a string. If
 -- .I pretty
--- is true then return a easier to read IPv6 address.
+-- is true then return an easier to read IPv6 address.
 function Ip6:destination(pretty)
+    return self.tostring(self.dst, pretty)
+end
+
+-- Return the IPv6 as a string. If
+-- .I pretty
+-- is true then return an easier to read IPv6 address.
+function Ip6.tostring(ip6, pretty)
     if pretty == true then
-        return _pretty(self.dst)
+        return _pretty(ip6)
     end
     return string.format("%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x",
-        self.dst[0], self.dst[1], self.dst[2], self.dst[3],
-        self.dst[4], self.dst[5], self.dst[6], self.dst[7],
-        self.dst[8], self.dst[9], self.dst[10], self.dst[11],
-        self.dst[12], self.dst[13], self.dst[14], self.dst[15])
+        ip6[0], ip6[1], ip6[2], ip6[3], ip6[4], ip6[5], ip6[6], ip6[7],
+        ip6[8], ip6[9], ip6[10], ip6[11], ip6[12], ip6[13], ip6[14], ip6[15])
 end
 
 core_object_ip6_t = ffi.metatype(t_name, { __index = Ip6 })
