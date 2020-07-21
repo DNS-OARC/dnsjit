@@ -174,10 +174,16 @@ function Ip6:destination(pretty)
     return self.tostring(self.dst, pretty)
 end
 
--- Return the IPv6 as a string. If
+-- Return the IPv6 as a string.
+-- The input is a 16-byte cdata array.
+-- If
 -- .I pretty
 -- is true then return an easier to read IPv6 address.
+-- Returns empty string on invalid input.
 function Ip6.tostring(ip6, pretty)
+    if type(ip6) ~= "cdata" or ffi.sizeof(ip6) ~= 16 then
+        return ""
+    end
     if pretty == true then
         return _pretty(ip6)
     end

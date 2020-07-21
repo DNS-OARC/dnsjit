@@ -115,7 +115,12 @@ function Ip:destination()
 end
 
 -- Return the IP as a string.
+-- The input is a 4-byte cdata array.
+-- Returns nil on invalid input.
 function Ip.tostring(ip)
+    if type(ip) ~= "cdata" or ffi.sizeof(ip) ~= 4 then
+        return ""
+    end
     return ip[0] ..".".. ip[1] ..".".. ip[2] ..".".. ip[3]
 end
 
