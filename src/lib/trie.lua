@@ -62,12 +62,15 @@ Trie = {}
 
 -- Create a new Trie that stores
 -- .I ctype
--- values as data. By default, keys are handled as strings. To use trie with byte arrays, set
+-- values as data.
+-- By default, keys are handled as strings.
+-- To use trie with byte arrays, set
 -- .I binary
--- to true. Optionally,
+-- to true.
+-- Optionally,
 -- .I keylen
--- may be specified as a default keylen for binary keys. For string keys, their
--- string length is used by default.
+-- may be specified as a default keylen for binary keys.
+-- For string keys, their string length is used by default.
 function Trie.new(ctype, binary, keylen)
     if ctype == nil then
         module_log:fatal("missing value ctype")
@@ -153,7 +156,6 @@ function Trie:get_first()
     local key_ptr = ffi.new("uint8_t *[1]")
     local keylen_ptr = ffi.new("uint32_t[1]")
     local val = C.trie_get_first(self.obj, key_ptr, keylen_ptr)
-    --val = ffi.cast("trie_val_t *", val)
     local keylen = tonumber(keylen_ptr[0])
     key = key_ptr[0]
     if not self._binary then
@@ -162,9 +164,10 @@ function Trie:get_first()
     return TrieNode.new(self, val, key, keylen)
 end
 
--- Search trie for less-or-equal node. Returns value and return code. Return
--- code is 0 for exact match, 1 for previous or negative for error. Value is
--- nil on error.
+-- Search trie for less-or-equal node.
+-- Returns value and return code.
+-- Return code is 0 for exact match, 1 for previous or negative for error.
+-- Value is nil on error.
 function Trie:get_leq(key, keylen)
     keylen = self:_get_keylen(key, keylen)
     local val_ptr = ffi.new("trie_val_t*[1]")
@@ -173,7 +176,8 @@ function Trie:get_leq(key, keylen)
     return TrieNode.new(self, val_ptr[0], key, keylen), ret
 end
 
--- Return a trie iterator. It is only valid as long as the key-set remains unchanged.
+-- Return a trie iterator.
+-- It is only valid as long as the key-set remains unchanged.
 function Trie:iter()
     return TrieIter.new(self)
 end

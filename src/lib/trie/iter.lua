@@ -62,8 +62,8 @@ function TrieIter:log()
     return self._log
 end
 
--- Return the node pointer to by the iterator. Returns nil when iterator has
--- gone past the last element.
+-- Return the node pointer to by the iterator.
+-- Returns nil when iterator has gone past the last element.
 function TrieIter:node()
     if C.trie_it_finished(self.obj) then
         return nil
@@ -82,11 +82,10 @@ end
 
 -- Advance the iterator to the next element.
 --
--- Iteration is in ascending lexicographical order. Empty string would be
--- considered as the very first.
+-- Iteration is in ascending lexicographical order.
+-- Empty string would be considered as the very first.
 --
--- You may not use this function if the trie's key-set has been modified during the
--- lifetime of the iterator (modifying only values is OK).
+-- You may not use this function if the trie's key-set has been modified during the lifetime of the iterator (modifying only values is OK).
 function TrieIter:next()
     C.trie_it_next(self.obj)
 end

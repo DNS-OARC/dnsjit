@@ -27,7 +27,8 @@
 -- .SS Attributes
 -- .TP
 -- key
--- Key of this node. It is either string or a byte array, depending on the trie's
+-- Key of this node.
+-- It is either string or a byte array, depending on the trie's
 -- .I binary
 -- setting.
 -- .TP
