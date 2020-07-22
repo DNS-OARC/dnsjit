@@ -114,9 +114,6 @@ assert(node:key() == "172.17.0.10")
 pkt = node:get():cast()
 assert(pkt:source() == "172.17.0.10")
 assert(pkt.id == 0x538b)
-node, exact = trie:get_leq("172.17.0.10")
-assert(exact == 0)
-assert(node:key() == "172.17.0.10")
 pkt:free()
 
 node = trie:get_try("8.8.8.8")
@@ -132,9 +129,6 @@ assert(pkt:source() == "216.58.218.206")
 pkt:free()
 
 node = trie:get_try("nonexistent")
-assert(node == nil)
-
-node = trie:get_leq("172.17.0.10", 2)
 assert(node == nil)
 
 trie:clear()

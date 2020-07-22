@@ -161,18 +161,6 @@ function Trie:get_first()
     return TrieNode.new(self, val, key, keylen)
 end
 
--- Search trie for less-or-equal node.
--- Returns value and return code.
--- Return code is 0 for exact match, 1 for previous or negative for error.
--- Value is nil on error.
-function Trie:get_leq(key, keylen)
-    keylen = self:_get_keylen(key, keylen)
-    local val_ptr = ffi.new("trie_val_t*[1]")
-    local ret = C.trie_get_leq(self.obj, key, keylen, val_ptr)
-    if ret < 0 then return nil, ret end
-    return TrieNode.new(self, val_ptr[0], key, keylen), ret
-end
-
 -- Return a trie iterator.
 -- It is only valid as long as the key-set remains unchanged.
 function Trie:iter()
