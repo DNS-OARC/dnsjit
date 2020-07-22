@@ -46,8 +46,9 @@
 --   assert(node:get() == obj1)
 --
 -- Prefix-tree data structure that stores values indexed by strings or byte
--- arrays, such as IP addresses. Values of size up to sizeof(size_t) can be
--- stored directly, otherwise a pointer must be used.
+-- arrays, such as IP addresses.
+-- Values of size up to sizeof(size_t) can be stored directly, otherwise
+-- a pointer must be used.
 module(...,package.seeall)
 
 require("dnsjit.lib.trie_h")

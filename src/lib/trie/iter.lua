@@ -18,7 +18,6 @@
 
 -- dnsjit.lib.trie.iter
 -- Iterator of the trie.
--- Beware that iterator is only valid as long as the trie's key-set remains unchanged.
 -- .SS Iterate over all trie's key-value pairs
 --   local trie = require("dnsjit.lib.trie").new("uint64_t")
 --   local iter = trie:iter()
@@ -30,6 +29,9 @@
 --       iter:next()
 --       node = iter:node()
 --   end
+--
+-- Beware that iterator is only valid as long as the trie's key-set
+-- remains unchanged.
 module(...,package.seeall)
 
 require("dnsjit.lib.trie_h")
