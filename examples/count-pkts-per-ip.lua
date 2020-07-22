@@ -4,8 +4,7 @@
 local input = require("dnsjit.input.pcap").new()
 local layer = require("dnsjit.filter.layer").new()
 local object = require("dnsjit.core.objects")
-local ip = require("dnsjit.core.object.ip")
-local ip6 = require("dnsjit.core.object.ip6")
+local ip = require("dnsjit.lib.ip")
 local trie = require("dnsjit.lib.trie").new("uint64_t", true)
 local getopt = require("dnsjit.lib.getopt").new({})
 
@@ -42,13 +41,8 @@ local node = iter:node()
 
 while node ~= nil do
     local npkts = tonumber(node:get())
-    local ipstr
-    local key, keylen = node:key()
-    if keylen == 4 then
-        ipstr = ip.tostring(key)
-    elseif keylen == 16 then
-        ipstr = ip6.tostring(key, true)
-    end
+    local key = node:key()
+    local ipstr = ip.tostring(key, true)
 
     print(ipstr.." sent "..npkts.." packets")
     iter:next()
