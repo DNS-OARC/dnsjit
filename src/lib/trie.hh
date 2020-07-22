@@ -14,24 +14,6 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#pragma once
-
-#include <errno.h>
-#include <stdbool.h>
-#include <stdint.h>
-
-#ifndef likely
-/*! \brief Optimize for x to be true value. */
-#define likely(x) __builtin_expect((x), 1)
-#endif
-
-#ifndef unlikely
-/*! \brief Optimize for x to be false value. */
-#define unlikely(x) __builtin_expect((x), 0)
-#endif
-
-#define MIN(a,b) (((a)<(b))?(a):(b))			/** Minimum of two numbers **/
-
 /* Memory allocation function prototypes. */
 typedef void* (*knot_mm_alloc_t)(void *ctx, size_t len);
 typedef void (*knot_mm_free_t)(void *p);
@@ -42,16 +24,6 @@ typedef struct knot_mm {
 	knot_mm_alloc_t alloc;
 	knot_mm_free_t free;
 } knot_mm_t;
-
-/*! \brief Error codes used in the library. */
-enum knot_error {
-	KNOT_EOK = 0,
-
-	/* Directly mapped error codes. */
-	KNOT_ENOMEM        = -ENOMEM,
-	KNOT_EINVAL        = -EINVAL,
-	KNOT_ENOENT        = -ENOENT,
-};
 
 /*!
  * \brief Native API of QP-tries:
@@ -84,14 +56,14 @@ void trie_clear(trie_t *tbl);
 size_t trie_weight(const trie_t *tbl);
 
 /*! \brief Search the trie, returning NULL on failure. */
-trie_val_t* trie_get_try(trie_t *tbl, const char *key, uint32_t len);
+trie_val_t* trie_get_try(trie_t *tbl, const uint8_t *key, uint32_t len);
 
 /*!
  * \brief Return pointer to the minimum.  Optionally with key and its length. */
-trie_val_t* trie_get_first(trie_t *tbl, char **key, uint32_t *len);
+trie_val_t* trie_get_first(trie_t *tbl, uint8_t **key, uint32_t *len);
 
 /*! \brief Search the trie, inserting NULL trie_val_t on failure. */
-trie_val_t* trie_get_ins(trie_t *tbl, const char *key, uint32_t len);
+trie_val_t* trie_get_ins(trie_t *tbl, const uint8_t *key, uint32_t len);
 
 /*!
  * \brief Search for less-or-equal element.
@@ -103,7 +75,7 @@ trie_val_t* trie_get_ins(trie_t *tbl, const char *key, uint32_t len);
  * \return KNOT_EOK for exact match, 1 for previous, KNOT_ENOENT for not-found,
  *         or KNOT_E*.
  */
-int trie_get_leq(trie_t *tbl, const char *key, uint32_t len, trie_val_t **val);
+int trie_get_leq(trie_t *tbl, const uint8_t *key, uint32_t len, trie_val_t **val);
 
 /*!
  * \brief Apply a function to every trie_val_t, in order.
@@ -139,7 +111,7 @@ void trie_it_free(trie_it_t *it);
  * \note The optional len is uint32_t internally but size_t is better for our usage,
  *       as it is without an additional type conversion.
  */
-const char* trie_it_key(trie_it_t *it, size_t *len);
+const uint8_t* trie_it_key(trie_it_t *it, size_t *len);
 
 /*! \brief Return pointer to the value of the current element (writable). */
 trie_val_t* trie_it_val(trie_it_t *it);

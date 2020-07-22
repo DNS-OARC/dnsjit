@@ -24,7 +24,7 @@
 #include "core/assert.h"
 #include "core/object/ip.h"
 #include "core/object/ip6.h"
-#include "contrib/trie.h"
+#include "lib/trie.h"
 
 #include <string.h>
 
@@ -237,12 +237,12 @@ static void _receive(filter_ipsplit_t* self, const core_object_t* obj)
     switch (pkt->obj_type) {
     case CORE_OBJECT_IP: {
         core_object_ip_t* ip = (core_object_ip_t*)pkt;
-        node                 = trie_get_ins(_self->trie, (char*)ip->src, sizeof(ip->src));
+        node                 = trie_get_ins(_self->trie, ip->src, sizeof(ip->src));
         break;
     }
     case CORE_OBJECT_IP6: {
         core_object_ip6_t* ip6 = (core_object_ip6_t*)pkt;
-        node                   = trie_get_ins(_self->trie, (char*)ip6->src, sizeof(ip6->src));
+        node                   = trie_get_ins(_self->trie, ip6->src, sizeof(ip6->src));
         break;
     }
     default:

@@ -21,7 +21,17 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "contrib/trie.h"
+#include "lib/trie.h"
+
+/*! \brief Error codes used in the library. */
+enum knot_error {
+	KNOT_EOK = 0,
+
+	/* Directly mapped error codes. */
+	KNOT_ENOMEM        = -ENOMEM,
+	KNOT_EINVAL        = -EINVAL,
+	KNOT_ENOENT        = -ENOENT,
+};
 
 #if defined(__i386) || defined(__x86_64) || defined(_M_IX86) \
 	|| (defined(__BYTE_ORDER__) && defined(__ORDER_LITTLE_ENDIAN) \
@@ -53,7 +63,7 @@ typedef uint bitmap_t; /*! Bit-maps, using the range of 1<<0 to 1<<16 (inclusive
 
 typedef struct {
 	uint32_t len; // 32 bits are enough for key lengths; probably even 16 bits would be.
-	char chars[];
+	uint8_t chars[];
 } tkey_t;
 
 /*! \brief Leaf of trie. */
@@ -233,7 +243,7 @@ static bitmap_t nibbit(byte k, uint flags)
 }
 
 /*! \brief Extract a nibble from a key and turn it into a bitmask. */
-static bitmap_t twigbit(const node_t *t, const char *key, uint32_t len)
+static bitmap_t twigbit(const node_t *t, const uint8_t *key, uint32_t len)
 {
 	assert(isbranch(t));
 	uint i = t->branch.index;
@@ -276,7 +286,7 @@ static node_t* twig(node_t *t, uint i)
 	} while(0)
 
 /*! \brief Simple string comparator. */
-static int key_cmp(const char *k1, uint32_t k1_len, const char *k2, uint32_t k2_len)
+static int key_cmp(const uint8_t *k1, uint32_t k1_len, const uint8_t *k2, uint32_t k2_len)
 {
 	int ret = memcmp(k1, k2, MIN(k1_len, k2_len));
 	if (ret != 0) {
@@ -354,7 +364,7 @@ struct found {
 	bitmap_t b;	/**< bit-mask with a single bit marking l under p */
 };
 /** Search trie for an item with the given key (equality only). */
-static struct found find_equal(trie_t *tbl, const char *key, uint32_t len)
+static struct found find_equal(trie_t *tbl, const uint8_t *key, uint32_t len)
 {
 	assert(tbl);
 	struct found ret0;
@@ -404,13 +414,13 @@ static struct found find_first(trie_t *tbl)
 	};
 }
 
-trie_val_t* trie_get_try(trie_t *tbl, const char *key, uint32_t len)
+trie_val_t* trie_get_try(trie_t *tbl, const uint8_t *key, uint32_t len)
 {
 	struct found found = find_equal(tbl, key, len);
 	return found.l ? &found.l->val : NULL;
 }
 
-trie_val_t* trie_get_first(trie_t *tbl, char **key, uint32_t *len)
+trie_val_t* trie_get_first(trie_t *tbl, uint8_t **key, uint32_t *len)
 {
 	struct found found = find_first(tbl);
 	if (!found.l)
@@ -509,7 +519,7 @@ static inline int ns_longer(nstack_t *ns)
  *
  *  \return KNOT_EOK or KNOT_ENOMEM.
  */
-static int ns_find_branch(nstack_t *ns, const char *key, uint32_t len,
+static int ns_find_branch(nstack_t *ns, const uint8_t *key, uint32_t len,
                           branch_t *info, int *first)
 {
 	assert(ns && ns->len && info);
@@ -679,7 +689,7 @@ static int ns_next_leaf(nstack_t *ns)
 	} while (true);
 }
 
-int trie_get_leq(trie_t *tbl, const char *key, uint32_t len, trie_val_t **val)
+int trie_get_leq(trie_t *tbl, const uint8_t *key, uint32_t len, trie_val_t **val)
 {
 	assert(tbl && val);
 	*val = NULL; // so on failure we can just return;
@@ -736,7 +746,7 @@ success:
 }
 
 /*! \brief Initialize a new leaf, copying the key, and returning failure code. */
-static int mk_leaf(node_t *leaf, const char *key, uint32_t len, knot_mm_t *mm)
+static int mk_leaf(node_t *leaf, const uint8_t *key, uint32_t len, knot_mm_t *mm)
 {
 	tkey_t *k = mm_alloc(mm, sizeof(tkey_t) + len);
 	#if FLAGS_HACK
@@ -756,7 +766,7 @@ static int mk_leaf(node_t *leaf, const char *key, uint32_t len, knot_mm_t *mm)
 	return KNOT_EOK;
 }
 
-trie_val_t* trie_get_ins(trie_t *tbl, const char *key, uint32_t len)
+trie_val_t* trie_get_ins(trie_t *tbl, const uint8_t *key, uint32_t len)
 {
 	assert(tbl);
 	// First leaf in an empty tbl?
@@ -888,7 +898,7 @@ void trie_it_free(trie_it_t *it)
 	free(it);
 }
 
-const char* trie_it_key(trie_it_t *it, size_t *len)
+const uint8_t* trie_it_key(trie_it_t *it, size_t *len)
 {
 	assert(it && it->len);
 	node_t *t = it->stack[it->len - 1];

@@ -69,6 +69,7 @@ module(...,package.seeall)
 require("dnsjit.core.object.ip_h")
 local ffi = require("ffi")
 local C = ffi.C
+local libip = require("dnsjit.lib.ip")
 
 local t_name = "core_object_ip_t"
 local core_object_ip_t
@@ -106,22 +107,12 @@ end
 
 -- Return the IP source as a string.
 function Ip:source()
-    return self.tostring(self.src)
+    return libip.ipstring(self.src)
 end
 
 -- Return the IP destination as a string.
 function Ip:destination()
-    return self.tostring(self.dst)
-end
-
--- Return the IP as a string.
--- The input is a 4-byte cdata array.
--- Returns nil on invalid input.
-function Ip.tostring(ip)
-    if type(ip) ~= "cdata" or ffi.sizeof(ip) ~= 4 then
-        return ""
-    end
-    return ip[0] ..".".. ip[1] ..".".. ip[2] ..".".. ip[3]
+    return libip.ipstring(self.dst)
 end
 
 core_object_ip_t = ffi.metatype(t_name, { __index = Ip })
