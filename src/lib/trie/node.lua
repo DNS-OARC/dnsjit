@@ -21,19 +21,8 @@
 -- .SS Set a node's value.
 --      node:set(42)
 -- .SS Get a node's key and value.
---      local key = node.key
---      local val = tonumber(node:get())
---
--- .SS Attributes
--- .TP
--- key
--- Key of this node.
--- It is either string or a byte array, depending on the trie's
--- .I binary
--- setting.
--- .TP
--- keylen
--- Length of key content.
+--      local key = node:key()
+--      local val = node:get()
 module(...,package.seeall)
 
 require("dnsjit.lib.trie_h")
@@ -47,14 +36,29 @@ TrieNode = {}
 -- Create a new node object.
 function TrieNode.new(trie, val, key, keylen)
     local self = setmetatable({
-        key = key,
-        keylen = keylen,
+        _key = key,
+        _keylen = keylen,
         _val = val,
         _trie = trie,
         _log = log.new("lib.trie.node", module_log),
     }, { __index = TrieNode })
 
     return self
+end
+
+-- Return key and keylen of this node.
+-- Key is string or byte array if the trie's
+-- .I
+-- binary
+-- setting is set to true.
+function TrieNode:key()
+    if self._trie._binary then
+        local key = ffi.new("uint8_t[?]", self._keylen)
+        ffi.copy(key, self._key, self._keylen)
+        return key, self._keylen
+    else
+        return ffi.string(self._key, self._keylen), self._keylen
+    end
 end
 
 -- Return the Log object to control logging of this instance or module.

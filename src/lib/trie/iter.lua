@@ -24,7 +24,7 @@
 --      local iter = trie:iter()
 --      local node = iter:node()
 --      while node ~= nil do
---          local key = node.key
+--          local key = node:key()
 --          local value = tonumber(node:get())
 --          print(key..": "..value)
 --          iter:next()
@@ -72,9 +72,6 @@ function TrieIter:node()
     local keylen_ptr = ffi.new("size_t[1]")
     local key = C.trie_it_key(self.obj, keylen_ptr)
     local keylen = tonumber(keylen_ptr[0])
-    if not self._trie._binary then
-        key = ffi.string(key, keylen)
-    end
 
     local val = C.trie_it_val(self.obj)
     return TrieNode.new(self._trie, val, key, keylen)

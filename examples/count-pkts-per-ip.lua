@@ -43,10 +43,11 @@ local node = iter:node()
 while node ~= nil do
     local npkts = tonumber(node:get())
     local ipstr
-    if node.keylen == 4 then
-        ipstr = ip.tostring(node.key)
-    elseif node.keylen == 16 then
-        ipstr = ip6.tostring(node.key, true)
+    local key, keylen = node:key()
+    if keylen == 4 then
+        ipstr = ip.tostring(key)
+    elseif keylen == 16 then
+        ipstr = ip6.tostring(key, true)
     end
 
     print(ipstr.." sent "..npkts.." packets")

@@ -30,7 +30,7 @@
 --      local iter = trie:iter()
 --      local node = iter:node()
 --      while node ~= nil do
---          local ip_bytes = node.key
+--          local ip_bytes = node:key()
 --          local npkts = tonumber(node:get())
 --          print(ip.tostring(ip_bytes).." sent "..npkts.." packets")
 --          iter:next()
@@ -158,9 +158,6 @@ function Trie:get_first()
     local val = C.trie_get_first(self.obj, key_ptr, keylen_ptr)
     local keylen = tonumber(keylen_ptr[0])
     key = key_ptr[0]
-    if not self._binary then
-        key = ffi.string(key, keylen)
-    end
     return TrieNode.new(self, val, key, keylen)
 end
 

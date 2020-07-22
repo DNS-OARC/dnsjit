@@ -1,5 +1,15 @@
 -- Test cases for dnsjit.lib.trie
 
+local function key_compare(node1, node2)
+    local key1, keylen1 = node1:key()
+    local key2, keylen2 = node2:key()
+    if keylen1 ~= keylen2 then return false end
+    for i = 0, keylen1 - 1 do
+        if key1[i] ~= key2[i] then return false end
+    end
+    return true
+end
+
 -----------------------------------------------------
 --    binary-key trie with which stores numbers
 -----------------------------------------------------
@@ -37,22 +47,20 @@ local npkts = 0
 local i = 0
 while node ~= nil do
     i = i + 1
-    local ip6str = ip6.tostring(node.key)
+    local ip6str = ip6.tostring(node:key())
     local val = tonumber(node:get())
     npkts = npkts + val
 
     if i == 1 then assert(ip6str == "2001:0db8:beef:feed:0000:0000:0000:0003" and val == 1) end
     if i == 1 then
         local first = trie:get_first()
-        assert(node.key == first.key)
-        assert(node.keylen == first.keylen)
+        assert(key_compare(node, first))
         assert(node:get() == first:get())
     end
     if i == 2 then assert(ip6str == "2001:0db8:beef:feed:0000:0000:0000:0004" and val == 1) end
     if i == 2 then
-        local second = trie:get_try(node.key)
-        assert(node.key == second.key)
-        assert(node.keylen == second.keylen)
+        local second = trie:get_try(node:key())
+        assert(key_compare(node, second))
         assert(node:get() == second:get())
     end
     if i == 5 then assert(ip6str == "2001:0db8:beef:feed:0000:0000:0000:0008" and val == 10) end
@@ -102,23 +110,23 @@ assert(trie:weight() == 3)
 
 local node
 node = trie:get_first()
-assert(node.key == "172.17.0.10")
+assert(node:key() == "172.17.0.10")
 pkt = node:get():cast()
 assert(pkt:source() == "172.17.0.10")
 assert(pkt.id == 0x538b)
 node, exact = trie:get_leq("172.17.0.10")
 assert(exact == 0)
-assert(node.key == "172.17.0.10")
+assert(node:key() == "172.17.0.10")
 pkt:free()
 
 node = trie:get_try("8.8.8.8")
-assert(node.key == "8.8.8.8")
+assert(node:key() == "8.8.8.8")
 pkt = node:get():cast()
 assert(pkt:source() == "8.8.8.8")
 pkt:free()
 
 node = trie:get_try("216.58.218.206")
-assert(node.key == "216.58.218.206")
+assert(node:key() == "216.58.218.206")
 pkt = node:get():cast()
 assert(pkt:source() == "216.58.218.206")
 pkt:free()
