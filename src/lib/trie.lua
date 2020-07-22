@@ -19,30 +19,31 @@
 -- dnsjit.lib.trie
 -- Prefix-tree data structure which addresses values by strings or byte arrays
 -- .SS Binary-key trie with integer values
---      local trie = require("dnsjit.lib.trie").new("uint64_t", true, 4)
---      -- assume we have a bunch of dnsjit.core.object.ip packets to process
---      for _, pkt in pairs(pkts) do
---          local node = trie:get_ins(pkt.src)
---          local value = node:get()  -- new nodes' values are initialized to 0
---          node:set(value + 1)
---      end
---      -- iterate over unique IPs and print number of packets received from each
---      local iter = trie:iter()
---      local node = iter:node()
---      while node ~= nil do
---          local ip_bytes = node:key()
---          local npkts = tonumber(node:get())
---          print(ip.tostring(ip_bytes).." sent "..npkts.." packets")
---          iter:next()
---          node = iter:node()
---      end
+--   local trie = require("dnsjit.lib.trie").new("uint64_t", true, 4)
+--   -- assume we have a bunch of dnsjit.core.object.ip packets to process
+--   for _, pkt in pairs(pkts) do
+--       local node = trie:get_ins(pkt.src)
+--       local value = node:get()  -- new nodes' values are initialized to 0
+--       node:set(value + 1)
+--   end
+--   -- iterate over unique IPs and print number of packets received from each
+--   local iter = trie:iter()
+--   local node = iter:node()
+--   local p = require("dnsjit.lib.ip")
+--   while node ~= nil do
+--       local ip_bytes = node:key()
+--       local npkts = tonumber(node:get())
+--       print(ip.tostring(ip_bytes).." sent "..npkts.." packets")
+--       iter:next()
+--       node = iter:node()
+--   end
 -- .SS String-key trie with cdata values
---      local trie = require("dnsjit.lib.trie").new("core_object_t*")
---      local obj1  -- assume this contains cdata of type core_object_t*
---      local node = trie:get_ins("obj1")
---      node:set(obj1)
---      node = trie:get_try("obj1")
---      assert(node:get() == obj1)
+--   local trie = require("dnsjit.lib.trie").new("core_object_t*")
+--   local obj1  -- assume this contains cdata of type core_object_t*
+--   local node = trie:get_ins("obj1")
+--   node:set(obj1)
+--   node = trie:get_try("obj1")
+--   assert(node:get() == obj1)
 --
 -- Fast and scalable data structure that stores values indexed by strings or
 -- byte arrays, such as IP addresses. Values of size up to sizeof(size_t) can

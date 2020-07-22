@@ -16,7 +16,7 @@ end
 local input = require("dnsjit.input.pcap").new()
 local layer = require("dnsjit.filter.layer").new()
 local object = require("dnsjit.core.objects")
-local ip6 = require("dnsjit.core.object.ip6")
+local ip = require("dnsjit.lib.ip")
 local trie = require("dnsjit.lib.trie").new("uint32_t", true, 16)
 
 input:open_offline("pellets.pcap-dist")
@@ -47,7 +47,7 @@ local npkts = 0
 local i = 0
 while node ~= nil do
     i = i + 1
-    local ip6str = ip6.tostring(node:key())
+    local ip6str = ip.tostring(node:key())
     local val = tonumber(node:get())
     npkts = npkts + val
 
@@ -82,7 +82,6 @@ assert(trie:weight() == 0)
 local input = require("dnsjit.input.pcap").new()
 local layer = require("dnsjit.filter.layer").new()
 local object = require("dnsjit.core.objects")
-local ip6 = require("dnsjit.core.object.ip6")
 local trie = require("dnsjit.lib.trie").new("core_object_t*")
 
 input:open_offline("dns.pcap-dist")

@@ -101,7 +101,8 @@ end
 
 print[[
 .SH AUTHORS
-Jerry Lundström, DNS-OARC
+Jerry Lundström (DNS-OARC),
+Tomáš Křížek (CZ.NIC)
 .LP
 Maintained by DNS-OARC
 .LP

@@ -71,6 +71,7 @@ module(...,package.seeall)
 require("dnsjit.core.object.ip6_h")
 local ffi = require("ffi")
 local C = ffi.C
+local libip = require("dnsjit.lib.ip")
 
 local t_name = "core_object_ip6_t"
 local core_object_ip6_t
@@ -106,90 +107,20 @@ function Ip6:free()
     C.core_object_ip6_free(self)
 end
 
-local function _pretty(ip)
-    local src = {}
-
-    local n, nn
-    nn = 1
-    for n = 0, 15, 2 do
-        if ip[n] ~= 0 then
-            src[nn] = string.format("%x%02x", ip[n], ip[n + 1])
-        elseif ip[n + 1] ~= 0 then
-            src[nn] = string.format("%x", ip[n + 1])
-        else
-            src[nn] = "0"
-        end
-        nn = nn + 1
-    end
-
-    local best_n, best_at, at = 0, 0, 0
-    n = 0
-    for nn = 1, 8 do
-        if src[nn] == "0" then
-            if n == 0 then
-                at = nn
-            end
-            n = n + 1
-        else
-            if n > 0 then
-                if n > best_n then
-                    best_n = n
-                    best_at = at
-                end
-                n = 0
-            end
-        end
-    end
-    if n > 0 then
-        if n > best_n then
-            best_n = n
-            best_at = at
-        end
-    end
-    if best_n > 1 then
-        for n = 2, best_n do
-            table.remove(src, best_at)
-        end
-        if best_at == 1 or best_at + best_n > 8 then
-            src[best_at] = ":"
-        else
-            src[best_at] = ""
-        end
-    end
-
-    return table.concat(src,":")
-end
-
--- Return the IPv6 source as a string. If
--- .I pretty
--- is true then return an easier to read IPv6 address.
-function Ip6:source(pretty)
-    return self.tostring(self.src, pretty)
-end
-
--- Return the IPv6 destination as a string. If
--- .I pretty
--- is true then return an easier to read IPv6 address.
-function Ip6:destination(pretty)
-    return self.tostring(self.dst, pretty)
-end
-
--- Return the IPv6 as a string.
--- The input is a 16-byte cdata array.
+-- Return the IPv6 source as a string.
 -- If
 -- .I pretty
 -- is true then return an easier to read IPv6 address.
--- Returns empty string on invalid input.
-function Ip6.tostring(ip6, pretty)
-    if type(ip6) ~= "cdata" or ffi.sizeof(ip6) ~= 16 then
-        return ""
-    end
-    if pretty == true then
-        return _pretty(ip6)
-    end
-    return string.format("%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x",
-        ip6[0], ip6[1], ip6[2], ip6[3], ip6[4], ip6[5], ip6[6], ip6[7],
-        ip6[8], ip6[9], ip6[10], ip6[11], ip6[12], ip6[13], ip6[14], ip6[15])
+function Ip6:source(pretty)
+    return libip.ip6string(self.src, pretty)
+end
+
+-- Return the IPv6 destination as a string.
+-- If
+-- .I pretty
+-- is true then return an easier to read IPv6 address.
+function Ip6:destination(pretty)
+    return libip.ip6string(self.dst, pretty)
 end
 
 core_object_ip6_t = ffi.metatype(t_name, { __index = Ip6 })

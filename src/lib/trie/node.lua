@@ -19,10 +19,10 @@
 -- dnsjit.lib.trie.node
 -- Node of trie, which contains the value and key.
 -- .SS Set a node's value.
---      node:set(42)
+--   node:set(42)
 -- .SS Get a node's key and value.
---      local key = node:key()
---      local val = node:get()
+--   local key = node:key()
+--   local val = node:get()
 module(...,package.seeall)
 
 require("dnsjit.lib.trie_h")

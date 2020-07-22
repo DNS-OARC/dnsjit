@@ -20,16 +20,16 @@
 -- Iterator of the trie.
 -- Beware that iterator is only valid as long as the trie's key-set remains unchanged.
 -- .SS Iterate over all trie's key-value pairs
---      local trie = require("dnsjit.lib.trie").new("uint64_t")
---      local iter = trie:iter()
---      local node = iter:node()
---      while node ~= nil do
---          local key = node:key()
---          local value = tonumber(node:get())
---          print(key..": "..value)
---          iter:next()
---          node = iter:node()
---      end
+--   local trie = require("dnsjit.lib.trie").new("uint64_t")
+--   local iter = trie:iter()
+--   local node = iter:node()
+--   while node ~= nil do
+--       local key = node:key()
+--       local value = tonumber(node:get())
+--       print(key..": "..value)
+--       iter:next()
+--       node = iter:node()
+--   end
 module(...,package.seeall)
 
 require("dnsjit.lib.trie_h")
