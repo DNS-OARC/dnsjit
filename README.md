@@ -14,9 +14,6 @@ requirements.
 Another core functionality is the ability to parse and process DNS messages
 even if the messages are non-compliant with the DNS standards.
 
-**NOTE** current implementation is _ALPHA_ which means functionality are not
-set and may be changed or removed.
-
 The following Lua module categories exists:
 - `dnsjit.core`: Core modules for handling things like logging, DNS messages and receiver/receive functionality.
 - `dnsjit.lib`: Various Lua libraries or C library bindings.
@@ -36,21 +33,25 @@ architectures because of LuaJIT.
 
 ## Dependencies
 
-- [libluajit](http://luajit.org/) 2.0+
+- [libluajit](http://luajit.org/) 2.0+ (or compatible alternatives)
 - [libpcap](http://www.tcpdump.org/)
 - [liblmdb](https://github.com/LMDB/lmdb)
 - [libck](https://github.com/concurrencykit/ck)
 - [libgnutls](https://www.gnutls.org/)
+- [libuv](http://libuv.org/)
 - [luajit](http://luajit.org/) (for building)
 - automake/autoconf/libtool/pkg-config (for building)
 
-Debian/Ubuntu: `apt-get install libluajit-5.1-dev libpcap-dev luajit liblmdb-dev libck-dev libgnutls28-dev`
+Debian/Ubuntu: `apt-get install libluajit-5.1-dev libpcap-dev luajit liblmdb-dev libck-dev libgnutls28-dev libuv1-dev`
 
-CentOS: `yum install luajit-devel libpcap-devel lmdb-devel ck-devel gnutls-devel`
+CentOS: `yum install luajit-devel libpcap-devel lmdb-devel ck-devel gnutls-devel libuv-devel`
 
-FreeBSD: `pkg install luajit libpcap lmdb gnutls concurrencykit`
+FreeBSD: `pkg install luajit libpcap lmdb gnutls concurrencykit libuv`
 
-OpenBSD: `pkg_add luajit gnutls` + manual install of libpcap, liblmdb and libck
+OpenBSD: `pkg_add luajit gnutls libuv` + manual install of libpcap, liblmdb and libck
+
+On some version of SUSE Linux Enterprise moonjit is used as an compatible
+alternative to luajit.
 
 ## Build
 
