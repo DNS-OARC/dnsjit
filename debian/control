@@ -1,0 +1,21 @@
+Source: dnsjit
+Section: net
+Priority: optional
+Maintainer: Jerry Lundström <lundstrom.jerry@gmail.com>
+Build-Depends: debhelper (>= 8.0.0), build-essential, automake,
+ autoconf (>= 2.64), libpcap-dev, netbase, libtool,
+ libluajit-5.1-dev (>= 2.0.0), luajit (>= 2.0.0), pkg-config, liblmdb-dev,
+ libck-dev, gcc (>= 4:5.0.0) | gcc-5, libgnutls28-dev, libuv1-dev
+Standards-Version: 3.9.4
+Homepage: https://www.dns-oarc.net/tools/dnsjit
+Vcs-Git: https://github.com/DNS-OARC/dnsjit.git
+Vcs-Browser: https://github.com/DNS-OARC/dnsjit
+
+Package: dnsjit
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Engine for capturing, parsing and replaying DNS
+ dnsjit is a combination of parts taken from dsc, dnscap, drool,
+ and put together around Lua to create a script-based engine for easy
+ capturing, parsing and statistics gathering of DNS message while also
+ providing facilities for replaying DNS traffic.

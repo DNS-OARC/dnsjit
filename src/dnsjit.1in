@@ -1,0 +1,144 @@
+.\" Copyright (c) 2018-2020, OARC, Inc.
+.\" All rights reserved.
+.\"
+.\" This file is part of dnsjit.
+.\"
+.\" dnsjit is free software: you can redistribute it and/or modify
+.\" it under the terms of the GNU General Public License as published by
+.\" the Free Software Foundation, either version 3 of the License, or
+.\" (at your option) any later version.
+.\"
+.\" dnsjit is distributed in the hope that it will be useful,
+.\" but WITHOUT ANY WARRANTY; without even the implied warranty of
+.\" MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+.\" GNU General Public License for more details.
+.\"
+.\" You should have received a copy of the GNU General Public License
+.\" along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
+.\"
+.TH dnsjit 1 "@PACKAGE_VERSION@" "dnsjit"
+.SH NAME
+dnsjit \- DNS engine based around LuaJIT for capturing, parsing, replaying and statistics gathering
+.SH SYNOPSIS
+.SS Run a Lua script
+.B dnsjit
+.I file.lua
+.I ...
+.SS Shebang-style
+  #!/usr/bin/env dnsjit
+  ...
+.SH DESCRIPTION
+.B dnsjit
+is a combination of parts taken from
+.BR dsc ,
+.BR dnscap ,
+.BR drool,
+and put together around Lua to create a script-based engine for easy
+capturing, parsing and statistics gathering of DNS message while also
+providing facilities for replaying DNS traffic.
+.LP
+One of the core functionality that
+.B dnsjit
+brings is to tie together C and Lua modules through a receiver/receive
+interface.
+This allows creation of custom chains of functionality to meet various
+requirements.
+Another core functionality is the ability to parse and process DNS messages
+even if the messages are non-compliant with the DNS standards.
+.LP
+.B NOTE
+current implementation is
+.I ALPHA
+which means functionality are not set and may be changed or removed.
+.LP
+.SH MODULE CATEGORIES
+The following Lua module categories exists:
+.TP
+.B dnsjit.core
+Core modules for handling things like logging, DNS messages and
+receiver/receive functionality.
+.TP
+.B dnsjit.lib
+Various Lua libraries or C library bindings.
+.TP
+.B dnsjit.input
+Input modules used to read DNS messages in various ways.
+.TP
+.B dnsjit.filter
+Filter modules to process or manipulate DNS messages.
+.TP
+.B dnsjit.output
+Output modules used to display DNS message, export to various formats or
+replay them against other targets.
+.LP
+See each category's man-page for more information.
+.SH LUA GLOBALS
+The following Lua global variables are defined:
+.TP
+.B DNSJIT_VERSION
+A string with the full version.
+.TP
+.B DNSJIT_MAJOR_VERSION
+An integer with the major version number.
+.TP
+.B DNSJIT_MINOR_VERSION
+An integer with the minor version number.
+.TP
+.B DNSJIT_PATCH_VERSION
+An integer with the patch version number.
+.TP
+.B DNSJIT_BUGREPORT
+A string with the email address to file bug reports to.
+.TP
+.B DNSJIT_URL
+A string with the URL to the repository issue tracker, preferred place to
+file bug reports.
+.SH EXAMPLE
+Following example display the DNS ID found in queries.
+.LP
+  local input = require("dnsjit.input.pcapthread").new()
+  local output = require("dnsjit.filter.lua").new()
+
+  output:func(function(filter, object)
+      local packet = object:cast()
+      local dns = require("dnsjit.core.object.dns").new(packet)
+      dns:parse()
+      print(dns.id)
+  end)
+
+  input:open_offline("file.pcap")
+  input:only_queries(true)
+  input:receiver(output)
+  input:run()
+.LP
+See more examples in the
+.I examples
+directory.
+.SH SEE ALSO
+.BR dnsjit.core (3),
+.BR dnsjit.lib (3),
+.BR dnsjit.input (3),
+.BR dnsjit.filter (3),
+.BR dnsjit.output (3)
+.SH AUTHORS
+Jerry Lundström, DNS-OARC
+.LP
+Maintained by DNS-OARC
+.LP
+.RS
+.I https://www.dns-oarc.net/
+.RE
+.LP
+.SH BUGS
+For issues and feature requests please use:
+.LP
+.RS
+\fI@PACKAGE_URL@\fP
+.RE
+.LP
+For question and help please use:
+.LP
+.RS
+\fI@PACKAGE_BUGREPORT@\fP
+.RE
+.LP

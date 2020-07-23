@@ -1,0 +1,20 @@
+extraction:
+  cpp:
+    prepare:
+      packages:
+        - build-essential
+        - automake
+        - autoconf
+        - libtool
+        - pkg-config
+        - libluajit-5.1-dev
+        - libpcap-dev
+        - luajit
+        - liblmdb-dev
+        - libck-dev
+        - libgnutls28-dev
+        - libuv1-dev
+    configure:
+      command:
+        - ./autogen.sh
+        - ./configure
