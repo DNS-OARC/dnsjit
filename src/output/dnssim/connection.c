@@ -290,6 +290,8 @@ int _process_dnsmsg(_output_dnssim_connection_t* conn)
     if (_self->transport == OUTPUT_DNSSIM_TRANSPORT_HTTPS2) {
         lassert(conn->http2, "conn must have http2 ctx");
         lassert(conn->http2->current_qry, "http2 has no current_qry");
+        lassert(conn->http2->current_qry->qry.req, "current_qry has no req");
+        lassert(conn->http2->current_qry->qry.req->dns_q, "req has no dns_q");
 
         uint16_t req_id = conn->http2->current_qry->qry.req->dns_q->id;
         if (req_id != dns_a.id)
@@ -431,9 +433,9 @@ void _output_dnssim_read_dnsmsg(_output_dnssim_connection_t* conn, size_t len, c
     mlassert(conn->dnsbuf_pos == 0, "dnsbuf not empty");
     mlassert(conn->dnsbuf_free_after_use == false, "dnsbuf read in progress");
 
-    /* Read dnsmsg from input data and length. */
-    conn->read_state = _OUTPUT_DNSSIM_READ_STATE_DNSMSG;
+    /* Read dnsmsg of given length from input data. */
     conn->dnsbuf_len = len;
+    conn->read_state = _OUTPUT_DNSSIM_READ_STATE_DNSMSG;
     int nread = _read_dns_stream_chunk(conn, len, data);
 
     if (nread != len) {

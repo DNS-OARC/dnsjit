@@ -132,7 +132,8 @@ function DnsSim:tls(tls_priority)
     C.output_dnssim_set_transport(self.obj, C.OUTPUT_DNSSIM_TRANSPORT_TLS)
 end
 
--- Set the transport to HTTP/2 over TLS. The following
+-- Set the transport to HTTP/2 over TLS.
+-- The following
 -- .B http2_options
 -- can be set:
 --
@@ -143,7 +144,8 @@ end
 -- (default)
 --
 -- .B uri_path:
--- where queries will be sent. Defaults to
+-- where queries will be sent.
+-- Defaults to
 -- .B /dns-query
 --
 -- .B zero_out_msgig:

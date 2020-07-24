@@ -288,17 +288,16 @@ int output_dnssim_target(output_dnssim_t* self, const char* ip, uint16_t port)
         //    lcritical("failed to parse IP/IP6 from \"%s\"", ip);
         //    return -1;
         //}
-    } else {
-        ret = snprintf(_self->h2_uri_authority, _MAX_URI_LEN, "[%s]:%d", ip, port);
+    }
 
-        if (ret > 0) {
-            if (_self->transport == OUTPUT_DNSSIM_TRANSPORT_HTTPS2)
-                lnotice("set uri authority to: %s", _self->h2_uri_authority);
-        } else {
-            _self->h2_uri_authority[0] = '\0';
-            if (_self->transport == OUTPUT_DNSSIM_TRANSPORT_HTTPS2)
-                lfatal("failed to set authority");
-        }
+    ret = snprintf(_self->h2_uri_authority, _MAX_URI_LEN, "[%s]:%d", ip, port);
+    if (ret > 0) {
+        if (_self->transport == OUTPUT_DNSSIM_TRANSPORT_HTTPS2)
+            lnotice("set uri authority to: %s", _self->h2_uri_authority);
+    } else {
+        _self->h2_uri_authority[0] = '\0';
+        if (_self->transport == OUTPUT_DNSSIM_TRANSPORT_HTTPS2)
+            lfatal("failed to set authority");
     }
 
     lnotice("set target to %s port %d", ip, port);

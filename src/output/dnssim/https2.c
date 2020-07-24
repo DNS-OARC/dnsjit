@@ -44,8 +44,8 @@
   }
 
 #define OUTPUT_DNSSIM_HTTP_GET_TEMPLATE "?dns="
-#define OUTPUT_DNSSIM_HTTP_INITIAL_MAX_CONCURRENT_STREAMS 100
-#define OUTPUT_DNSSIM_HTTP_DEFAULT_MAX_CONCURRENT_STREAMS 0xffffffffu
+#define OUTPUT_DNSSIM_HTTP2_INITIAL_MAX_CONCURRENT_STREAMS 100
+#define OUTPUT_DNSSIM_HTTP2_DEFAULT_MAX_CONCURRENT_STREAMS 0xffffffffu
 
 static core_log_t _log = LOG_T_INIT("output.dnssim");
 
@@ -68,7 +68,7 @@ static ssize_t _http2_send(nghttp2_session* session, const uint8_t* data, size_t
     return len;
 }
 
-static ssize_t _http2_send_data(nghttp2_session* session, int32_t stream_id, uint8_t* buf, size_t length, uint32_t* data_flags, nghttp2_data_source* source, void* user_data)
+static ssize_t _http2_on_data_provider_read(nghttp2_session* session, int32_t stream_id, uint8_t* buf, size_t length, uint32_t* data_flags, nghttp2_data_source* source, void* user_data)
 {
     _output_dnssim_https2_data_provider_t* buffer = source->ptr;
     mlassert(buffer, "no data provider");
@@ -200,9 +200,8 @@ static int _http2_on_frame_recv(nghttp2_session* session, const nghttp2_frame* f
 
     switch (frame->hd.type) {
     case NGHTTP2_DATA:
-        /* Check that the client request has finished. */
         if (frame->hd.flags & NGHTTP2_FLAG_END_STREAM) {
-            mldebug("http2: final DATA frame recv, session=%p", session);
+            mldebug("http2 (%p): final DATA frame recv", session);
             _output_dnssim_query_tcp_t* qry = _http2_get_stream_qry(conn, frame->hd.stream_id);
 
             if (qry != NULL) {
@@ -211,10 +210,11 @@ static int _http2_on_frame_recv(nghttp2_session* session, const nghttp2_frame* f
             }
         }
         break;
-    case NGHTTP2_SETTINGS: {
-        if (!conn->http2->remote_settings_received) {  /* Emulate nghttp2 behaviour. */
+    case NGHTTP2_SETTINGS:
+        if (!conn->http2->remote_settings_received) {
+            /* On the first SETTINGS frame, set concurrent streams to unlimited, same as nghttp2. */
             conn->http2->remote_settings_received = true;
-            conn->http2->max_concurrent_streams = OUTPUT_DNSSIM_HTTP_DEFAULT_MAX_CONCURRENT_STREAMS;
+            conn->http2->max_concurrent_streams = OUTPUT_DNSSIM_HTTP2_DEFAULT_MAX_CONCURRENT_STREAMS;
             _http2_check_max_streams(conn);
         }
         nghttp2_settings* settings = (nghttp2_settings*)frame;
@@ -229,7 +229,6 @@ static int _http2_on_frame_recv(nghttp2_session* session, const nghttp2_frame* f
             }
         }
         break;
-    }
     default:
       break;
     }
@@ -265,7 +264,7 @@ int _output_dnssim_https2_init(_output_dnssim_connection_t* conn)
     }
 
     lfatal_oom(conn->http2 = calloc(1, sizeof(_output_dnssim_http2_ctx_t)));
-    conn->http2->max_concurrent_streams = OUTPUT_DNSSIM_HTTP_INITIAL_MAX_CONCURRENT_STREAMS;
+    conn->http2->max_concurrent_streams = OUTPUT_DNSSIM_HTTP2_INITIAL_MAX_CONCURRENT_STREAMS;
 
     /* Set up HTTP/2 callbacks and client. */
     lassert(nghttp2_session_callbacks_new(&callbacks) == 0, "out of memory");
@@ -305,11 +304,11 @@ int _output_dnssim_https2_setup(_output_dnssim_connection_t* conn)
     gnutls_datum_t proto;
     ret = gnutls_alpn_get_selected_protocol(conn->tls->session, &proto);
     if (ret < 0) {
-        mlinfo("failed to get negotiated protocol: %s", gnutls_strerror(ret));
+        mlwarning("http2: failed to get negotiated protocol: %s", gnutls_strerror(ret));
         return ret;
     }
     if (proto.size != 2 || memcmp("h2", proto.data, 2) != 0) {
-        mlinfo("http2 is not negotiated");
+        mlwarning("http2: protocol is not negotiated");
         return ret;
     }
 
@@ -320,7 +319,7 @@ int _output_dnssim_https2_setup(_output_dnssim_connection_t* conn)
     };
     ret = nghttp2_submit_settings(conn->http2->session, NGHTTP2_FLAG_NONE, iv, sizeof(iv)/sizeof(*iv) );
     if (ret < 0) {
-        mlwarning("failed to submit http2 settings: %s", nghttp2_strerror(ret));
+        mlwarning("http2: failed to submit SETTINGS: %s", nghttp2_strerror(ret));
         return ret;
     }
 
@@ -505,7 +504,7 @@ static int _http2_send_query_post(_output_dnssim_connection_t* conn, _output_dns
 
     nghttp2_data_provider data_provider = {
         .source.ptr = &data,
-        .read_callback = _http2_send_data
+        .read_callback = _http2_on_data_provider_read
     };
 
     qry->stream_id = nghttp2_submit_request(conn->http2->session, NULL, hdrs, sizeof(hdrs) / sizeof(nghttp2_nv), &data_provider, NULL);
