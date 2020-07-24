@@ -67,7 +67,6 @@ output_dnssim_t* output_dnssim_new(size_t max_clients)
     _self->source    = NULL;
     _self->transport = OUTPUT_DNSSIM_TRANSPORT_UDP_ONLY;
     _self->h2_zero_out_msgid = false;
-    _self->h2_max_concurrent_streams = 100;
 
     self->max_clients = max_clients;
     lfatal_oom(_self->client_arr = calloc(max_clients, sizeof(_output_dnssim_client_t)));
@@ -427,15 +426,6 @@ void output_dnssim_h2_zero_out_msgid(output_dnssim_t* self, bool zero_out_msgid)
         lassert(_self->transport == OUTPUT_DNSSIM_TRANSPORT_HTTPS2, "transport must be set to HTTP/2 to set zero_out_msgid");
         _self->h2_zero_out_msgid = zero_out_msgid;
     }
-}
-
-void output_dnssim_h2_max_concurrent_streams(output_dnssim_t* self, uint32_t max_concurrent_streams)
-{
-    mlassert_self();
-    lassert(max_concurrent_streams > 0, "max concurrent streams must be greater than 0");
-
-    _self->h2_max_concurrent_streams = max_concurrent_streams;
-    lnotice("http2: setting initial max_concurrent streams to %ld", max_concurrent_streams);
 }
 
 static void _on_stats_timer_tick(uv_timer_t* handle)

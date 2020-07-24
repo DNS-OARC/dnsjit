@@ -44,6 +44,8 @@
   }
 
 #define OUTPUT_DNSSIM_HTTP_GET_TEMPLATE "?dns="
+#define OUTPUT_DNSSIM_HTTP_INITIAL_MAX_CONCURRENT_STREAMS 100
+#define OUTPUT_DNSSIM_HTTP_DEFAULT_MAX_CONCURRENT_STREAMS 0xffffffffu
 
 static core_log_t _log = LOG_T_INIT("output.dnssim");
 
@@ -210,12 +212,16 @@ static int _http2_on_frame_recv(nghttp2_session* session, const nghttp2_frame* f
         }
         break;
     case NGHTTP2_SETTINGS: {
+        if (!conn->http2->remote_settings_received) {  /* Emulate nghttp2 behaviour. */
+            conn->http2->remote_settings_received = true;
+            conn->http2->max_concurrent_streams = OUTPUT_DNSSIM_HTTP_DEFAULT_MAX_CONCURRENT_STREAMS;
+            _http2_check_max_streams(conn);
+        }
         nghttp2_settings* settings = (nghttp2_settings*)frame;
         for (int i = 0; i < settings->niv; i++) {
             switch (settings->iv[i].settings_id) {
             case NGHTTP2_SETTINGS_MAX_CONCURRENT_STREAMS:
                 conn->http2->max_concurrent_streams = settings->iv[i].value;
-                mldebug("http2 (%p): max_concurrent_streams set to %ld", conn->http2->session, conn->http2->max_concurrent_streams);
                 _http2_check_max_streams(conn);
                 break;
             default:
@@ -259,7 +265,7 @@ int _output_dnssim_https2_init(_output_dnssim_connection_t* conn)
     }
 
     lfatal_oom(conn->http2 = calloc(1, sizeof(_output_dnssim_http2_ctx_t)));
-    conn->http2->max_concurrent_streams = _self->h2_max_concurrent_streams;
+    conn->http2->max_concurrent_streams = OUTPUT_DNSSIM_HTTP_INITIAL_MAX_CONCURRENT_STREAMS;
 
     /* Set up HTTP/2 callbacks and client. */
     lassert(nghttp2_session_callbacks_new(&callbacks) == 0, "out of memory");

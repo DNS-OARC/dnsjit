@@ -150,11 +150,6 @@ end
 -- when
 -- .B true
 -- (default), query ID is always set to 0
---
--- .B max_concurrent_streams:
--- initial number of maximum concurrent HTTP/2 streams.
--- This can be overriden by the server's SETTINGS frame. Defaults to
--- .B 100
 function DnsSim:https2(http2_options, tls_priority)
     if tls_priority ~= nil then
         C.output_dnssim_tls_priority(self.obj, tls_priority)
@@ -162,7 +157,6 @@ function DnsSim:https2(http2_options, tls_priority)
 
     uri_path = "/dns-query"
     zero_out_msgid = true
-    max_concurrent_streams = 100
     method = "GET"
     if http2_options ~= nil and type(http2_options) == "table" then
         if http2_options["uri_path"] ~= nil then
@@ -170,9 +164,6 @@ function DnsSim:https2(http2_options, tls_priority)
         end
         if http2_options["zero_out_msgid"] ~= nil and http2_options["zero_out_msgid"] ~= true then
             zero_out_msgid = false
-        end
-        if http2_options["max_concurrent_streams"] ~= nil then
-            max_concurrent_streams = http2_options["max_concurrent_streams"]
         end
         if http2_options["method"] ~= nil then
             method = http2_options["method"]
@@ -183,7 +174,6 @@ function DnsSim:https2(http2_options, tls_priority)
     C.output_dnssim_h2_uri_path(self.obj, uri_path)
     C.output_dnssim_h2_method(self.obj, method)
     C.output_dnssim_h2_zero_out_msgid(self.obj, zero_out_msgid)
-    C.output_dnssim_h2_max_concurrent_streams(self.obj, max_concurrent_streams)
 end
 
 -- Set timeout for the individual requests in seconds (default 2s).

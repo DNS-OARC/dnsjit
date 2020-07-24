@@ -164,8 +164,11 @@ typedef struct _output_dnssim_http2_ctx {
     _output_dnssim_query_tcp_t* current_qry;
 
     /* Maximum number of concurrent and currently open streams. */
-    int32_t max_concurrent_streams;
-    int32_t open_streams;
+    uint32_t max_concurrent_streams;
+    uint32_t open_streams;
+
+    /* Flag indicating whether we received the peer's initial SETTINGS frame. */
+    bool remote_settings_received;
 } _output_dnssim_http2_ctx_t;
 
 struct _output_dnssim_connection {
@@ -266,7 +269,6 @@ struct _output_dnssim {
 
     char                      h2_uri_authority[_MAX_URI_LEN];
     char                      h2_uri_path[_MAX_URI_LEN];
-    uint32_t                  h2_max_concurrent_streams;
     bool                      h2_zero_out_msgid;
     output_dnssim_h2_method_t h2_method;
 

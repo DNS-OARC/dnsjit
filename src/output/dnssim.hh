@@ -116,7 +116,6 @@ void output_dnssim_timeout_ms(output_dnssim_t* self, uint64_t timeout_ms);
 void output_dnssim_h2_uri_path(output_dnssim_t* self, const char* uri_path);
 void output_dnssim_h2_method(output_dnssim_t* self, const char* method);
 void output_dnssim_h2_zero_out_msgid(output_dnssim_t* self, bool zero_out_msgid);
-void output_dnssim_h2_max_concurrent_streams(output_dnssim_t* self, uint32_t max_concurrent_streams);
 void output_dnssim_stats_collect(output_dnssim_t* self, uint64_t interval_ms);
 void output_dnssim_stats_finish(output_dnssim_t* self);
 
