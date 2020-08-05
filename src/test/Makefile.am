@@ -21,7 +21,7 @@ CLEANFILES = test*.log test*.trs test*.out \
   *.pcap-dist
 
 TESTS = test1.sh test2.sh test3.sh test4.sh test5.sh test6.sh test-ipsplit.sh \
-  test-trie.sh
+  test-trie.sh test-base64url.sh
 
 test1.sh: dns.pcap-dist
 
@@ -43,5 +43,5 @@ test-trie.sh: pellets.pcap-dist dns.pcap-dist
 	cp "$<" "$@"
 
 EXTRA_DIST = $(TESTS) \
-  dns.pcap pellets.pcap test_ipsplit.lua test_trie.lua \
+  dns.pcap pellets.pcap test_ipsplit.lua test_trie.lua test_base64url.lua \
   test1.gold test2.gold test3.gold test4.gold
