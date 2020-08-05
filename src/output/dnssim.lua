@@ -19,11 +19,16 @@
 -- dnsjit.output.dnssim
 -- Simulate independent DNS clients over various transports
 --   output = require("dnsjit.output.dnssim").new()
+-- .SS Usage
 --   output:udp_only()
 --   output:target("::1", 53)
 --   recv, rctx = output:receive()
 --   -- pass in objects using recv(rctx, obj)
 --   -- repeatedly call output:run_nowait() until it returns 0
+-- .SS DNS-over-TLS example configuration
+--   output:tls("NORMAL:-VERS-ALL:+VERS-TLS1.3")  -- enforce TLS 1.3
+-- .SS DNS-over-HTTPS/2 example configuration
+--   output:https2({ method = "GET", uri_path = "/doh" })
 --
 -- Output module for simulating traffic from huge number of independent,
 -- individual DNS clients.
@@ -133,9 +138,8 @@ function DnsSim:tls(tls_priority)
 end
 
 -- Set the transport to HTTP/2 over TLS.
--- The following
 -- .B http2_options
--- can be set:
+-- is a lua table which supports the following keys:
 --
 -- .B method:
 -- .B GET
@@ -160,15 +164,20 @@ function DnsSim:https2(http2_options, tls_priority)
     uri_path = "/dns-query"
     zero_out_msgid = true
     method = "GET"
-    if http2_options ~= nil and type(http2_options) == "table" then
-        if http2_options["uri_path"] ~= nil then
-            uri_path = http2_options["uri_path"]
-        end
-        if http2_options["zero_out_msgid"] ~= nil and http2_options["zero_out_msgid"] ~= true then
-            zero_out_msgid = false
-        end
-        if http2_options["method"] ~= nil then
-            method = http2_options["method"]
+
+    if http2_options ~= nil then
+        if type(http2_options) ~= "table" then
+            self.obj._log:critical("http2_options must be a table, using defaults")
+        else
+            if http2_options["uri_path"] ~= nil then
+                uri_path = http2_options["uri_path"]
+            end
+            if http2_options["zero_out_msgid"] ~= nil and http2_options["zero_out_msgid"] ~= true then
+                zero_out_msgid = false
+            end
+            if http2_options["method"] ~= nil then
+                method = http2_options["method"]
+            end
         end
     end
 
