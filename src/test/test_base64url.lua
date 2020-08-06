@@ -1,10 +1,6 @@
 base64url = require("dnsjit.lib.base64url")
 ffi = require("ffi")
 
--- empty calls don't explode
-base64url.encode()
-base64url.decode()
-
 -- empty string works
 assert(base64url.decode(base64url.encode("")) == "")
 

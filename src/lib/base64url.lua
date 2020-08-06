@@ -46,16 +46,16 @@ function Base64Url.encode(data, data_len)
     data_len = tonumber(data_len)  -- in case of cdata length
     if type(data) == "cdata" then
         if type(data_len) ~= "number" then
-            module_log:critical("encode: data_len must be specified for cdata")
+            module_log:fatal("encode: data_len must be specified for cdata")
             return
         end
     elseif type(data) ~= "string" then
-        module_log:critical("encode: input must be string")
+        module_log:fatal("encode: input must be string")
         return
     end
 
     if data_len ~= nil and data_len < 0 then
-        module_log:critical("encode: data_len must be greater than 0")
+        module_log:fatal("encode: data_len must be greater than 0")
         return
     end
 
@@ -64,7 +64,7 @@ function Base64Url.encode(data, data_len)
     local buf = ffi.new("uint8_t[?]", buf_len)
     local out_len = ffi.C.base64url_encode(data, in_len, buf, buf_len)
     if out_len < 0 then
-        module_log:critical("encode: failed ("..log.errstr(-out_len)..")")
+        module_log:critical("encode: error ("..log.errstr(-out_len)..")")
         return
     end
     return ffi.string(buf, out_len)
@@ -74,7 +74,7 @@ end
 -- The output string may contain non-printable characters.
 function Base64Url.decode(data)
     if type(data) ~= "string" then
-        module_log:critical("decode: input must be string")
+        module_log:fatal("decode: input must be string")
         return
     end
 

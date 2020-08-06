@@ -82,11 +82,11 @@ end
 function DnsSim:target(ip, port)
     local nport = tonumber(port)
     if nport == nil then
-        self.obj._log:critical("invalid port: "..port)
+        self.obj._log:fatal("invalid port: "..port)
         return -1
     end
     if nport <= 0 or nport > 65535 then
-        self.obj._log:critical("invalid port number: "..nport)
+        self.obj._log:fatal("invalid port number: "..nport)
         return -1
     end
     return C.output_dnssim_target(self.obj, ip, nport)
@@ -167,7 +167,7 @@ function DnsSim:https2(http2_options, tls_priority)
 
     if http2_options ~= nil then
         if type(http2_options) ~= "table" then
-            self.obj._log:critical("http2_options must be a table, using defaults")
+            self.obj._log:fatal("http2_options must be a table")
         else
             if http2_options["uri_path"] ~= nil then
                 uri_path = http2_options["uri_path"]
@@ -262,7 +262,7 @@ end
 -- Configure statistics to be collected every N seconds.
 function DnsSim:stats_collect(seconds)
     if seconds == nil then
-        self.obj._log:critical("number of seconds must be set for stats_collect()")
+        self.obj._log:fatal("number of seconds must be set for stats_collect()")
     end
     interval_ms = math.floor(seconds * 1000)
     C.output_dnssim_stats_collect(self.obj, interval_ms)
@@ -277,7 +277,7 @@ end
 function DnsSim:export(filename)
     local file = io.open(filename, "w")
     if file == nil then
-        self.obj._log:critical("export failed: no filename")
+        self.obj._log:fatal("export failed: no filename")
         return
     end
 
