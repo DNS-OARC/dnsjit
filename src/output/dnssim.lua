@@ -78,7 +78,7 @@ end
 
 -- Set the target server where queries will be sent to, returns 0 on success.
 --
--- Only IPv6 target are supported for now.
+-- Only IPv6 targets are supported for now.
 function DnsSim:target(ip, port)
     local nport = tonumber(port)
     if nport == nil then
