@@ -77,9 +77,15 @@ void _output_dnssim_tls_process_input_data(_output_dnssim_connection_t* conn)
         int err = _tls_handshake(conn);
         mldebug("tls handshake returned: %s", gnutls_strerror(err));
         if (err == GNUTLS_E_SUCCESS) {
-            _output_dnssim_conn_activate(conn);
             if (gnutls_session_is_resumed(conn->tls->session))
                 conn->stats->conn_resumed++;
+            if (_self->transport == OUTPUT_DNSSIM_TRANSPORT_HTTPS2) {
+                if (_output_dnssim_https2_setup(conn) < 0) {
+                    _output_dnssim_conn_close(conn);
+                    return;
+                }
+            }
+            _output_dnssim_conn_activate(conn);
             break;
         } else if (err == GNUTLS_E_AGAIN) {
             return; /* Wait for more data */
@@ -103,7 +109,17 @@ void _output_dnssim_tls_process_input_data(_output_dnssim_connection_t* conn)
 
         ssize_t count = gnutls_record_recv(conn->tls->session, _self->wire_buf, WIRE_BUF_SIZE);
         if (count > 0) {
-            _output_dnssim_read_dns_stream(conn, count, _self->wire_buf);
+            switch (_self->transport) {
+            case OUTPUT_DNSSIM_TRANSPORT_TLS:
+                _output_dnssim_read_dns_stream(conn, count, _self->wire_buf);
+                break;
+            case OUTPUT_DNSSIM_TRANSPORT_HTTPS2:
+                _output_dnssim_https2_process_input_data(conn, count, _self->wire_buf);
+                break;
+            default:
+                lfatal("unsupported transport layer");
+                break;
+            }
         } else if (count == GNUTLS_E_AGAIN) {
             if (conn->tls->buf_pos == conn->tls->buf_len) {
                 /* See https://www.gnutls.org/manual/html_node/Asynchronous-operation.html */

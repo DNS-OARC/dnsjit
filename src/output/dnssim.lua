@@ -19,11 +19,16 @@
 -- dnsjit.output.dnssim
 -- Simulate independent DNS clients over various transports
 --   output = require("dnsjit.output.dnssim").new()
+-- .SS Usage
 --   output:udp_only()
 --   output:target("::1", 53)
 --   recv, rctx = output:receive()
 --   -- pass in objects using recv(rctx, obj)
 --   -- repeatedly call output:run_nowait() until it returns 0
+-- .SS DNS-over-TLS example configuration
+--   output:tls("NORMAL:-VERS-ALL:+VERS-TLS1.3")  -- enforce TLS 1.3
+-- .SS DNS-over-HTTPS/2 example configuration
+--   output:https2({ method = "GET", uri_path = "/doh" })
 --
 -- Output module for simulating traffic from huge number of independent,
 -- individual DNS clients.
@@ -73,15 +78,15 @@ end
 
 -- Set the target server where queries will be sent to, returns 0 on success.
 --
--- Only IPv6 target are supported for now.
+-- Only IPv6 targets are supported for now.
 function DnsSim:target(ip, port)
     local nport = tonumber(port)
     if nport == nil then
-        self.obj._log:critical("invalid port: "..port)
+        self.obj._log:fatal("invalid port: "..port)
         return -1
     end
     if nport <= 0 or nport > 65535 then
-        self.obj._log:critical("invalid port number: "..nport)
+        self.obj._log:fatal("invalid port number: "..nport)
         return -1
     end
     return C.output_dnssim_target(self.obj, ip, nport)
@@ -125,11 +130,61 @@ end
 --
 -- Refer to:
 -- .I https://gnutls.org/manual/html_node/Priority-Strings.html
-function DnsSim:tls(priority)
-    if priority ~= nil then
-        C.output_dnssim_tls_priority(self.obj, priority)
+function DnsSim:tls(tls_priority)
+    if tls_priority ~= nil then
+        C.output_dnssim_tls_priority(self.obj, tls_priority)
     end
     C.output_dnssim_set_transport(self.obj, C.OUTPUT_DNSSIM_TRANSPORT_TLS)
+end
+
+-- Set the transport to HTTP/2 over TLS.
+-- .B http2_options
+-- is a lua table which supports the following keys:
+--
+-- .B method:
+-- .B GET
+-- or
+-- .B POST
+-- (default)
+--
+-- .B uri_path:
+-- where queries will be sent.
+-- Defaults to
+-- .B /dns-query
+--
+-- .B zero_out_msgig:
+-- when
+-- .B true
+-- (default), query ID is always set to 0
+function DnsSim:https2(http2_options, tls_priority)
+    if tls_priority ~= nil then
+        C.output_dnssim_tls_priority(self.obj, tls_priority)
+    end
+
+    uri_path = "/dns-query"
+    zero_out_msgid = true
+    method = "GET"
+
+    if http2_options ~= nil then
+        if type(http2_options) ~= "table" then
+            self.obj._log:fatal("http2_options must be a table")
+        else
+            if http2_options["uri_path"] ~= nil then
+                uri_path = http2_options["uri_path"]
+            end
+            if http2_options["zero_out_msgid"] ~= nil and http2_options["zero_out_msgid"] ~= true then
+                zero_out_msgid = false
+            end
+            if http2_options["method"] ~= nil then
+                method = http2_options["method"]
+            end
+        end
+    end
+
+    C.output_dnssim_set_transport(self.obj, C.OUTPUT_DNSSIM_TRANSPORT_HTTPS2)
+    C.output_dnssim_h2_uri_path(self.obj, uri_path)
+    C.output_dnssim_h2_method(self.obj, method)
+    C.output_dnssim_h2_zero_out_msgid(self.obj, zero_out_msgid)
 end
 
 -- Set timeout for the individual requests in seconds (default 2s).
@@ -207,7 +262,7 @@ end
 -- Configure statistics to be collected every N seconds.
 function DnsSim:stats_collect(seconds)
     if seconds == nil then
-        self.obj._log:critical("number of seconds must be set for stats_collect()")
+        self.obj._log:fatal("number of seconds must be set for stats_collect()")
     end
     interval_ms = math.floor(seconds * 1000)
     C.output_dnssim_stats_collect(self.obj, interval_ms)
@@ -222,7 +277,7 @@ end
 function DnsSim:export(filename)
     local file = io.open(filename, "w")
     if file == nil then
-        self.obj._log:critical("export failed: no filename")
+        self.obj._log:fatal("export failed: no filename")
         return
     end
 
@@ -297,7 +352,8 @@ end
 
 -- Return the C function and context for receiving objects.
 -- Only
--- .IR dnsjit.filter.core.object.ip or
+-- .I dnsjit.filter.core.object.ip
+-- or
 -- .I dnsjit.filter.core.object.ip6
 -- objects are supported.
 -- The component expects a 32bit integer (in host order) ranging from 0

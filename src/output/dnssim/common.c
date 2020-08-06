@@ -78,6 +78,13 @@ void _output_dnssim_create_request(output_dnssim_t* self, _output_dnssim_client_
         lfatal(DNSSIM_MIN_GNUTLS_ERRORMSG);
 #endif
         break;
+    case OUTPUT_DNSSIM_TRANSPORT_HTTPS2:
+#if GNUTLS_VERSION_NUMBER >= DNSSIM_MIN_GNUTLS_VERSION
+        ret = _output_dnssim_create_query_https2(self, req);
+#else
+        lfatal(DNSSIM_MIN_GNUTLS_ERRORMSG);
+#endif
+        break;
     default:
         lfatal("unsupported dnssim transport");
         break;
@@ -121,7 +128,9 @@ int _output_dnssim_bind_before_connect(output_dnssim_t* self, uv_handle_t* handl
             break;
         }
         if (ret < 0) {
-            lwarning("failed to bind to address: %s", uv_strerror(ret));
+            /* This typically happens when we run out of file descriptors.
+             * Quit to prevent skewed results or unexpected behaviour. */
+            lfatal("failed to bind to address: %s", uv_strerror(ret));
             return ret;
         }
         _self->source = _self->source->next;
@@ -156,6 +165,13 @@ static void _close_query(_output_dnssim_query_t* qry)
     case OUTPUT_DNSSIM_TRANSPORT_TLS:
 #if GNUTLS_VERSION_NUMBER >= DNSSIM_MIN_GNUTLS_VERSION
         _output_dnssim_close_query_tls((_output_dnssim_query_tcp_t*)qry);
+#else
+        mlfatal(DNSSIM_MIN_GNUTLS_ERRORMSG);
+#endif
+        break;
+    case OUTPUT_DNSSIM_TRANSPORT_HTTPS2:
+#if GNUTLS_VERSION_NUMBER >= DNSSIM_MIN_GNUTLS_VERSION
+        _output_dnssim_close_query_https2((_output_dnssim_query_tcp_t*)qry);
 #else
         mlfatal(DNSSIM_MIN_GNUTLS_ERRORMSG);
 #endif

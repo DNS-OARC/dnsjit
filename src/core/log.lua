@@ -315,6 +315,11 @@ function Log:display_file_line(bool)
     end
 end
 
+-- Convert error number to its text representation.
+function Log.errstr(errno)
+    return ffi.string(C.core_log_errstr(errno))
+end
+
 -- Generate a debug message.
 function Log.debug(self, ...)
     local format

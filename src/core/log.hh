@@ -33,11 +33,12 @@ typedef struct core_log {
     const core_log_settings_t* module;
 } core_log_t;
 
-void core_log_debug(const core_log_t* l, const char* file, size_t line, const char* msg, ...);
-void core_log_info(const core_log_t* l, const char* file, size_t line, const char* msg, ...);
-void core_log_notice(const core_log_t* l, const char* file, size_t line, const char* msg, ...);
-void core_log_warning(const core_log_t* l, const char* file, size_t line, const char* msg, ...);
-void core_log_critical(const core_log_t* l, const char* file, size_t line, const char* msg, ...);
-void core_log_fatal(const core_log_t* l, const char* file, size_t line, const char* msg, ...);
+void        core_log_debug(const core_log_t* l, const char* file, size_t line, const char* msg, ...);
+void        core_log_info(const core_log_t* l, const char* file, size_t line, const char* msg, ...);
+void        core_log_notice(const core_log_t* l, const char* file, size_t line, const char* msg, ...);
+void        core_log_warning(const core_log_t* l, const char* file, size_t line, const char* msg, ...);
+void        core_log_critical(const core_log_t* l, const char* file, size_t line, const char* msg, ...);
+void        core_log_fatal(const core_log_t* l, const char* file, size_t line, const char* msg, ...);
+const char* core_log_errstr(int err);
 
 core_log_t* core_log_log();
