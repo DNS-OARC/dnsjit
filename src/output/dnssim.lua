@@ -352,7 +352,8 @@ end
 
 -- Return the C function and context for receiving objects.
 -- Only
--- .IR dnsjit.filter.core.object.ip or
+-- .IR dnsjit.filter.core.object.ip
+-- or
 -- .I dnsjit.filter.core.object.ip6
 -- objects are supported.
 -- The component expects a 32bit integer (in host order) ranging from 0
