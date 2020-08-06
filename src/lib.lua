@@ -20,6 +20,7 @@
 -- Various Lua libraries or C library bindings
 module(...,package.seeall)
 
+-- dnsjit.lib.base64url (3),
 -- dnsjit.lib.clock (3),
 -- dnsjit.lib.getopt (3),
 -- dnsjit.lib.ip (3),
