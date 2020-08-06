@@ -484,7 +484,7 @@ static int _http2_send_query_post(_output_dnssim_connection_t* conn, _output_dns
     }
 
     char content_length[6]; /* max dnslen "65535" */
-    int  content_length_len = sprintf(content_length, "%zd", content->len);
+    int  content_length_len = snprintf(content_length, 6, "%zd", content->len);
 
     nghttp2_nv hdrs[] = {
         OUTPUT_DNSSIM_MAKE_NV2(":method", "POST"),
