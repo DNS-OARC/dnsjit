@@ -64,8 +64,8 @@ output_dnssim_t* output_dnssim_new(size_t max_clients)
     self->idle_timeout_ms      = 10000;
     output_dnssim_timeout_ms(self, 2000);
 
-    _self->source    = NULL;
-    _self->transport = OUTPUT_DNSSIM_TRANSPORT_UDP_ONLY;
+    _self->source            = NULL;
+    _self->transport         = OUTPUT_DNSSIM_TRANSPORT_UDP_ONLY;
     _self->h2_zero_out_msgid = false;
 
     self->max_clients = max_clients;
@@ -214,8 +214,8 @@ static void _receive(output_dnssim_t* self, const core_object_t* obj)
             return;
         }
         uint8_t* data = (uint8_t*)payload->payload;
-        data[0] = 0x00;
-        data[1] = 0x00;
+        data[0]       = 0x00;
+        data[1]       = 0x00;
     }
 
     if (client >= self->max_clients) {

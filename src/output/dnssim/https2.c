@@ -31,17 +31,17 @@
 
 #if GNUTLS_VERSION_NUMBER >= DNSSIM_MIN_GNUTLS_VERSION
 
-#define OUTPUT_DNSSIM_MAKE_NV(NAME, VALUE, VALUELEN)                           \
-  {                                                                            \
-    (uint8_t* )NAME, (uint8_t* )VALUE, sizeof(NAME) - 1, VALUELEN,             \
-        NGHTTP2_NV_FLAG_NONE                                                   \
-  }
+#define OUTPUT_DNSSIM_MAKE_NV(NAME, VALUE, VALUELEN)                 \
+    {                                                                \
+        (uint8_t*)NAME, (uint8_t*)VALUE, sizeof(NAME) - 1, VALUELEN, \
+            NGHTTP2_NV_FLAG_NONE                                     \
+    }
 
-#define OUTPUT_DNSSIM_MAKE_NV2(NAME, VALUE)                                    \
-  {                                                                            \
-    (uint8_t* )NAME, (uint8_t* )VALUE, sizeof(NAME) - 1, sizeof(VALUE) - 1,    \
-        NGHTTP2_NV_FLAG_NONE                                                   \
-  }
+#define OUTPUT_DNSSIM_MAKE_NV2(NAME, VALUE)                                   \
+    {                                                                         \
+        (uint8_t*)NAME, (uint8_t*)VALUE, sizeof(NAME) - 1, sizeof(VALUE) - 1, \
+            NGHTTP2_NV_FLAG_NONE                                              \
+    }
 
 #define OUTPUT_DNSSIM_HTTP_GET_TEMPLATE "?dns="
 #define OUTPUT_DNSSIM_HTTP2_INITIAL_MAX_CONCURRENT_STREAMS 100
@@ -178,7 +178,7 @@ static void _http2_check_max_streams(_output_dnssim_connection_t* conn)
     }
 }
 
-static int _http2_on_stream_close(nghttp2_session *session, int32_t stream_id, uint32_t error_code, void *user_data)
+static int _http2_on_stream_close(nghttp2_session* session, int32_t stream_id, uint32_t error_code, void* user_data)
 {
     _output_dnssim_connection_t* conn = (_output_dnssim_connection_t*)user_data;
     mlassert(conn, "conn can't be null");
@@ -214,7 +214,7 @@ static int _http2_on_frame_recv(nghttp2_session* session, const nghttp2_frame* f
         if (!conn->http2->remote_settings_received) {
             /* On the first SETTINGS frame, set concurrent streams to unlimited, same as nghttp2. */
             conn->http2->remote_settings_received = true;
-            conn->http2->max_concurrent_streams = OUTPUT_DNSSIM_HTTP2_DEFAULT_MAX_CONCURRENT_STREAMS;
+            conn->http2->max_concurrent_streams   = OUTPUT_DNSSIM_HTTP2_DEFAULT_MAX_CONCURRENT_STREAMS;
             _http2_check_max_streams(conn);
         }
         nghttp2_settings* settings = (nghttp2_settings*)frame;
@@ -230,7 +230,7 @@ static int _http2_on_frame_recv(nghttp2_session* session, const nghttp2_frame* f
         }
         break;
     default:
-      break;
+        break;
     }
     return 0;
 }
@@ -243,10 +243,10 @@ int _output_dnssim_https2_init(_output_dnssim_connection_t* conn)
     mlassert(conn->client, "conn must be associated with a client");
     mlassert(conn->client->dnssim, "client must have dnssim");
 
-    int ret = -1;
+    int                        ret = -1;
     nghttp2_session_callbacks* callbacks;
-    nghttp2_option* option;
-    output_dnssim_t* self = conn->client->dnssim;
+    nghttp2_option*            option;
+    output_dnssim_t*           self = conn->client->dnssim;
 
     /* Initialize TLS session. */
     ret = _output_dnssim_tls_init(conn);
@@ -255,7 +255,7 @@ int _output_dnssim_https2_init(_output_dnssim_connection_t* conn)
 
     /* Configure ALPN to negotiate HTTP/2. */
     const gnutls_datum_t protos[] = {
-        {(unsigned char *)"h2", 2}
+        { (unsigned char*)"h2", 2 }
     };
     ret = gnutls_alpn_set_protocols(conn->tls->session, protos, 1, 0);
     if (ret < 0) {
@@ -315,9 +315,9 @@ int _output_dnssim_https2_setup(_output_dnssim_connection_t* conn)
     /* Submit SETTIGNS frame. */
     static const nghttp2_settings_entry iv[] = {
         { NGHTTP2_SETTINGS_MAX_FRAME_SIZE, MAX_DNSMSG_SIZE },
-        { NGHTTP2_SETTINGS_ENABLE_PUSH, 0 },  /* Only we can initiate streams. */
+        { NGHTTP2_SETTINGS_ENABLE_PUSH, 0 }, /* Only we can initiate streams. */
     };
-    ret = nghttp2_submit_settings(conn->http2->session, NGHTTP2_FLAG_NONE, iv, sizeof(iv)/sizeof(*iv) );
+    ret = nghttp2_submit_settings(conn->http2->session, NGHTTP2_FLAG_NONE, iv, sizeof(iv) / sizeof(*iv));
     if (ret < 0) {
         mlwarning("http2: failed to submit SETTINGS: %s", nghttp2_strerror(ret));
         return ret;
@@ -335,7 +335,7 @@ void _output_dnssim_https2_process_input_data(_output_dnssim_connection_t* conn,
 
     /* Process incoming frames. */
     ssize_t ret = 0;
-    ret = nghttp2_session_mem_recv(conn->http2->session, (uint8_t*)data, len);
+    ret         = nghttp2_session_mem_recv(conn->http2->session, (uint8_t*)data, len);
     if (ret < 0) {
         mlwarning("failed nghttp2_session_mem_recv: %s", nghttp2_strerror(ret));
         _output_dnssim_conn_close(conn);
@@ -413,12 +413,10 @@ static int _http2_send_query_get(_output_dnssim_connection_t* conn, _output_dnss
     mlassert(conn->client, "conn must be associated with client");
     mlassert(conn->client->dnssim, "client must have dnssim");
 
-    output_dnssim_t* self = conn->client->dnssim;
+    output_dnssim_t*       self    = conn->client->dnssim;
     core_object_payload_t* content = qry->qry.req->payload;
 
-    const size_t path_len = strlen(_self->h2_uri_path) +
-                            sizeof(OUTPUT_DNSSIM_HTTP_GET_TEMPLATE) +
-                            (content->len * 4) / 3 + 3;  /* upper limit of base64 encoding */
+    const size_t path_len = strlen(_self->h2_uri_path) + sizeof(OUTPUT_DNSSIM_HTTP_GET_TEMPLATE) + (content->len * 4) / 3 + 3; /* upper limit of base64 encoding */
     if (path_len >= _MAX_URI_LEN) {
         self->discarded++;
         linfo("http2: uri path with query too long, query discarded");
@@ -428,9 +426,9 @@ static int _http2_send_query_get(_output_dnssim_connection_t* conn, _output_dnss
     strncpy(path, _self->h2_uri_path, path_len);
     strncat(path, OUTPUT_DNSSIM_HTTP_GET_TEMPLATE, path_len);
 
-    size_t tmp_path_len = strlen(path);
-    int32_t ret = base64url_encode(content->payload, content->len,
-        (uint8_t *)(path + tmp_path_len), path_len - tmp_path_len - 1);
+    size_t  tmp_path_len = strlen(path);
+    int32_t ret          = base64url_encode(content->payload, content->len,
+        (uint8_t*)(path + tmp_path_len), path_len - tmp_path_len - 1);
     if (ret < 0) {
         self->discarded++;
         linfo("http2: base64url encode of query failed, query discarded");
@@ -480,12 +478,12 @@ static int _http2_send_query_post(_output_dnssim_connection_t* conn, _output_dns
 
     int window_size = nghttp2_session_get_remote_window_size(conn->http2->session);
     if (content->len > window_size) {
-           mldebug("http2 (%p): insufficient remote window size, deferring", conn->http2->session);
-           return 0;
+        mldebug("http2 (%p): insufficient remote window size, deferring", conn->http2->session);
+        return 0;
     }
 
-    char content_length[6];  /* max dnslen "65535" */
-    int content_length_len = sprintf(content_length, "%ld", content->len);
+    char content_length[6]; /* max dnslen "65535" */
+    int  content_length_len = sprintf(content_length, "%ld", content->len);
 
     nghttp2_nv hdrs[] = {
         OUTPUT_DNSSIM_MAKE_NV2(":method", "POST"),
@@ -503,7 +501,7 @@ static int _http2_send_query_post(_output_dnssim_connection_t* conn, _output_dns
     };
 
     nghttp2_data_provider data_provider = {
-        .source.ptr = &data,
+        .source.ptr    = &data,
         .read_callback = _http2_on_data_provider_read
     };
 
@@ -543,13 +541,13 @@ void _output_dnssim_https2_write_query(_output_dnssim_connection_t* conn, _outpu
     mlassert(conn->client->pending, "conn has no pending queries");
     mlassert(conn->client->dnssim, "client must have dnssim");
 
-    int ret;
+    int              ret;
     output_dnssim_t* self = conn->client->dnssim;
 
     if (!nghttp2_session_check_request_allowed(conn->http2->session)) {
-       mldebug("http2 (%p): request not allowed", conn->http2->session);
-       _output_dnssim_conn_close(conn);
-       return;
+        mldebug("http2 (%p): request not allowed", conn->http2->session);
+        _output_dnssim_conn_close(conn);
+        return;
     }
 
     switch (_self->h2_method) {

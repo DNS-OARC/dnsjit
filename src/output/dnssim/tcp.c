@@ -39,9 +39,9 @@ static void _move_queries_to_pending(_output_dnssim_query_tcp_t* qry)
         qry_tmp       = (_output_dnssim_query_tcp_t*)qry->qry.next;
         qry->qry.next = NULL;
         _ll_append(qry->conn->client->pending, &qry->qry);
-        qry->conn      = NULL;
-        qry->qry.state = _OUTPUT_DNSSIM_QUERY_ORPHANED;
-        qry->stream_id = -1;
+        qry->conn         = NULL;
+        qry->qry.state    = _OUTPUT_DNSSIM_QUERY_ORPHANED;
+        qry->stream_id    = -1;
         qry->recv_buf_len = 0;
         if (qry->recv_buf != NULL) {
             free(qry->recv_buf);

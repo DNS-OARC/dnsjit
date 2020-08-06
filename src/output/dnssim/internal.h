@@ -283,7 +283,7 @@ struct _output_dnssim {
 /* Provides data for HTTP/2 data frames. */
 typedef struct {
     const uint8_t* buf;
-    size_t len;
+    size_t         len;
 } _output_dnssim_https2_data_provider_t;
 
 /*
@@ -319,10 +319,10 @@ void _output_dnssim_tls_process_input_data(_output_dnssim_connection_t* conn);
 void _output_dnssim_tls_close(_output_dnssim_connection_t* conn);
 void _output_dnssim_tls_write_query(_output_dnssim_connection_t* conn, _output_dnssim_query_tcp_t* qry);
 
-int _output_dnssim_create_query_https2(output_dnssim_t* self, _output_dnssim_request_t* req);
+int  _output_dnssim_create_query_https2(output_dnssim_t* self, _output_dnssim_request_t* req);
 void _output_dnssim_close_query_https2(_output_dnssim_query_tcp_t* qry);
-int _output_dnssim_https2_init(_output_dnssim_connection_t* conn);
-int _output_dnssim_https2_setup(_output_dnssim_connection_t* conn);
+int  _output_dnssim_https2_init(_output_dnssim_connection_t* conn);
+int  _output_dnssim_https2_setup(_output_dnssim_connection_t* conn);
 void _output_dnssim_https2_process_input_data(_output_dnssim_connection_t* conn, size_t len, const char* data);
 void _output_dnssim_https2_close(_output_dnssim_connection_t* conn);
 void _output_dnssim_https2_write_query(_output_dnssim_connection_t* conn, _output_dnssim_query_tcp_t* qry);

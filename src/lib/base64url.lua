@@ -41,7 +41,8 @@ Base64Url = {}
 -- The input string may contain non-printable characters.
 --
 -- .B data_len
--- is length of the input data. Optional for lua strings, required for C byte arrays.
+-- is length of the input data (optional for lua strings, required for
+-- C byte arrays).
 function Base64Url.encode(data, data_len)
     data_len = tonumber(data_len)  -- in case of cdata length
     if type(data) == "cdata" then

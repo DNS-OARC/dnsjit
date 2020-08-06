@@ -83,7 +83,7 @@ void _output_dnssim_tls_process_input_data(_output_dnssim_connection_t* conn)
                 if (_output_dnssim_https2_setup(conn) < 0) {
                     _output_dnssim_conn_close(conn);
                     return;
-                 }
+                }
             }
             _output_dnssim_conn_activate(conn);
             break;

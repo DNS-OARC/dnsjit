@@ -32,10 +32,10 @@
  * \retval >=0		length of output string.
  * \retval KNOT_E*	if error.
  */
-int32_t base64url_encode(const uint8_t  *in,
-                         const uint32_t in_len,
-                         uint8_t        *out,
-                         const uint32_t out_len);
+int32_t base64url_encode(const uint8_t* in,
+    const uint32_t                      in_len,
+    uint8_t*                            out,
+    const uint32_t                      out_len);
 
 /*!
  * \brief Encodes binary data using Base64 and output stores to own buffer.
@@ -52,9 +52,9 @@ int32_t base64url_encode(const uint8_t  *in,
  * \retval >=0		length of output string.
  * \retval KNOT_E*	if error.
  */
-int32_t base64url_encode_alloc(const uint8_t  *in,
-                               const uint32_t in_len,
-                               uint8_t        **out);
+int32_t base64url_encode_alloc(const uint8_t* in,
+    const uint32_t                            in_len,
+    uint8_t**                                 out);
 
 /*!
  * \brief Decodes text data using Base64.
@@ -71,10 +71,10 @@ int32_t base64url_encode_alloc(const uint8_t  *in,
  * \retval >=0		length of output data.
  * \retval KNOT_E*	if error.
  */
-int32_t base64url_decode(const uint8_t  *in,
-                         const uint32_t in_len,
-                         uint8_t        *out,
-                         const uint32_t out_len);
+int32_t base64url_decode(const uint8_t* in,
+    const uint32_t                      in_len,
+    uint8_t*                            out,
+    const uint32_t                      out_len);
 
 /*!
  * \brief Decodes text data using Base64 and output stores to own buffer.
@@ -92,8 +92,8 @@ int32_t base64url_decode(const uint8_t  *in,
  * \retval >=0		length of output data.
  * \retval KNOT_E*	if error.
  */
-int32_t base64url_decode_alloc(const uint8_t  *in,
-                               const uint32_t in_len,
-                               uint8_t        **out);
+int32_t base64url_decode_alloc(const uint8_t* in,
+    const uint32_t                            in_len,
+    uint8_t**                                 out);
 
 /*! @} */

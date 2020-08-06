@@ -352,7 +352,7 @@ end
 
 -- Return the C function and context for receiving objects.
 -- Only
--- .IR dnsjit.filter.core.object.ip
+-- .I dnsjit.filter.core.object.ip
 -- or
 -- .I dnsjit.filter.core.object.ip6
 -- objects are supported.

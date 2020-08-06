@@ -436,7 +436,7 @@ void _output_dnssim_read_dnsmsg(_output_dnssim_connection_t* conn, size_t len, c
     /* Read dnsmsg of given length from input data. */
     conn->dnsbuf_len = len;
     conn->read_state = _OUTPUT_DNSSIM_READ_STATE_DNSMSG;
-    int nread = _read_dns_stream_chunk(conn, len, data);
+    int nread        = _read_dns_stream_chunk(conn, len, data);
 
     if (nread != len) {
         mlwarning("failed to read received dnsmsg");
@@ -445,8 +445,8 @@ void _output_dnssim_read_dnsmsg(_output_dnssim_connection_t* conn, size_t len, c
     }
 
     /* Clean state afterwards. */
-    conn->read_state = _OUTPUT_DNSSIM_READ_STATE_DNSLEN;
-    conn->dnsbuf_len = 2;
-    conn->dnsbuf_pos = 0;
+    conn->read_state            = _OUTPUT_DNSSIM_READ_STATE_DNSLEN;
+    conn->dnsbuf_len            = 2;
+    conn->dnsbuf_pos            = 0;
     conn->dnsbuf_free_after_use = false;
 }

@@ -39,16 +39,17 @@ architectures because of LuaJIT.
 - [libck](https://github.com/concurrencykit/ck)
 - [libgnutls](https://www.gnutls.org/)
 - [libuv](http://libuv.org/)
+- [libnghttp2](https://www.nghttp2.org/)
 - [luajit](http://luajit.org/) (for building)
 - automake/autoconf/libtool/pkg-config (for building)
 
-Debian/Ubuntu: `apt-get install libluajit-5.1-dev libpcap-dev luajit liblmdb-dev libck-dev libgnutls28-dev libuv1-dev`
+Debian/Ubuntu: `apt-get install libluajit-5.1-dev libpcap-dev luajit liblmdb-dev libck-dev libgnutls28-dev libuv1-dev libnghttp2-dev`
 
-CentOS: `yum install luajit-devel libpcap-devel lmdb-devel ck-devel gnutls-devel libuv-devel`
+CentOS: `yum install luajit-devel libpcap-devel lmdb-devel ck-devel gnutls-devel libuv-devel libnghttp2-devel`
 
-FreeBSD: `pkg install luajit libpcap lmdb gnutls concurrencykit libuv`
+FreeBSD: `pkg install luajit libpcap lmdb gnutls concurrencykit libuv libnghttp2`
 
-OpenBSD: `pkg_add luajit gnutls libuv` + manual install of libpcap, liblmdb and libck
+OpenBSD: `pkg_add luajit gnutls libuv nghttp2` + manual install of libpcap, liblmdb and libck
 
 On some version of SUSE Linux Enterprise moonjit is used as an compatible
 alternative to luajit.
