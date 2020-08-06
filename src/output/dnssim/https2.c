@@ -218,7 +218,8 @@ static int _http2_on_frame_recv(nghttp2_session* session, const nghttp2_frame* f
             _http2_check_max_streams(conn);
         }
         nghttp2_settings* settings = (nghttp2_settings*)frame;
-        for (int i = 0; i < settings->niv; i++) {
+        int               i;
+        for (i = 0; i < settings->niv; i++) {
             switch (settings->iv[i].settings_id) {
             case NGHTTP2_SETTINGS_MAX_CONCURRENT_STREAMS:
                 conn->http2->max_concurrent_streams = settings->iv[i].value;
@@ -483,7 +484,7 @@ static int _http2_send_query_post(_output_dnssim_connection_t* conn, _output_dns
     }
 
     char content_length[6]; /* max dnslen "65535" */
-    int  content_length_len = sprintf(content_length, "%ld", content->len);
+    int  content_length_len = sprintf(content_length, "%zd", content->len);
 
     nghttp2_nv hdrs[] = {
         OUTPUT_DNSSIM_MAKE_NV2(":method", "POST"),
@@ -541,7 +542,7 @@ void _output_dnssim_https2_write_query(_output_dnssim_connection_t* conn, _outpu
     mlassert(conn->client->pending, "conn has no pending queries");
     mlassert(conn->client->dnssim, "client must have dnssim");
 
-    int              ret;
+    int              ret  = 0;
     output_dnssim_t* self = conn->client->dnssim;
 
     if (!nghttp2_session_check_request_allowed(conn->http2->session)) {
