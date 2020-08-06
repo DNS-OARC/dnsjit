@@ -102,6 +102,4 @@
     if (!(expression))          \
     core_log_fatal(0, __FILE__, __LINE__, "out of memory")
 
-const char* core_log_errstr(int err);
-
 #endif
