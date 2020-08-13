@@ -48,6 +48,15 @@ AC_ARG_WITH([extra-ldflags], [AS_HELP_STRING([--with-extra-ldflags=CFLAGS], [Add
   AS_VAR_APPEND(LDFLAGS, [" $withval"])
 ])
 
+# Check --enable-gcov
+AC_ARG_ENABLE([gcov], [AS_HELP_STRING([--enable-gcov], [Enable coverage testing])], [
+  coverage_cflags="--coverage" # ld fails with: -g -O0 -fno-inline -fno-inline-small-functions -fno-default-inline
+  AC_MSG_NOTICE([enabling coverage testing... $coverage_cflags])
+  AS_VAR_APPEND(CFLAGS, [" $coverage_cflags"])
+])
+AM_CONDITIONAL([ENABLE_GCOV], [test "x$enable_gcov" != "xno"])
+AM_EXTRA_RECURSIVE_TARGETS([gcov])
+
 # Checks for support.
 AC_ARG_ENABLE([cpuext], [AS_HELP_STRING([--enable-cpuext], [check for and enable all available CPU extensions])], [
 case "${enableval}" in
