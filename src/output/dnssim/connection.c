@@ -293,20 +293,30 @@ int _process_dnsmsg(_output_dnssim_connection_t* conn)
         lassert(conn->http2->current_qry->qry.req, "current_qry has no req");
         lassert(conn->http2->current_qry->qry.req->dns_q, "req has no dns_q");
 
-        uint16_t req_id = conn->http2->current_qry->qry.req->dns_q->id;
-        if (req_id != dns_a.id)
-            lwarning("https2 QID mismatch: request=0x%04x, response=0x%04x", req_id, dns_a.id);
-        else {
-            /* NOTE: QNAME, QTYPE and QCLASS checking (RFC 7766, Section 7) is omitted. */
+        ret = _output_dnssim_answers_request(conn->http2->current_qry->qry.req, &dns_a);
+        switch (ret) {
+        case 0:
             _output_dnssim_request_answered(conn->http2->current_qry->qry.req, &dns_a);
+            break;
+        case _ERR_MSGID:
+            lwarning("https2 QID mismatch: request=0x%04x, response=0x%04x",
+                conn->http2->current_qry->qry.req->dns_q->id, dns_a.id);
+            break;
+        case _ERR_QUESTION:
+        default:
+            lwarning("https2 response question mismatch");
+            break;
         }
     } else {
         qry = conn->sent;
         while (qry != NULL) {
             if (qry->req->dns_q->id == dns_a.id) {
-                /* NOTE: QNAME, QTYPE and QCLASS checking (RFC 7766, Section 7) is
-                 * omitted, since the MSGID is unique per connection. */
-                _output_dnssim_request_answered(qry->req, &dns_a);
+                ret = _output_dnssim_answers_request(qry->req, &dns_a);
+                if (ret != 0) {
+                    lwarning("response question mismatch");
+                } else {
+                    _output_dnssim_request_answered(qry->req, &dns_a);
+                }
                 break;
             }
             qry = qry->next;
