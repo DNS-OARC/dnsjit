@@ -34,6 +34,7 @@
 #define _ERR_MALFORMED -2
 #define _ERR_MSGID -3
 #define _ERR_TC -4
+#define _ERR_QUESTION -5
 
 #define _MAX_URI_LEN 65536
 #define MAX_DNSMSG_SIZE 65535
@@ -114,6 +115,8 @@ struct _output_dnssim_request {
     /* The DNS question to be resolved. */
     core_object_payload_t* payload;
     core_object_dns_t*     dns_q;
+    const uint8_t*         question;
+    ssize_t                question_len;
 
     /* Timestamps for latency calculation. */
     uint64_t created_at;
@@ -295,6 +298,7 @@ int  _output_dnssim_create_query_udp(output_dnssim_t* self, _output_dnssim_reque
 int  _output_dnssim_create_query_tcp(output_dnssim_t* self, _output_dnssim_request_t* req);
 void _output_dnssim_close_query_udp(_output_dnssim_query_udp_t* qry);
 void _output_dnssim_close_query_tcp(_output_dnssim_query_tcp_t* qry);
+int _output_dnssim_answers_request(_output_dnssim_request_t *req, core_object_dns_t *response);
 void _output_dnssim_request_answered(_output_dnssim_request_t* req, core_object_dns_t* msg);
 void _output_dnssim_maybe_free_request(_output_dnssim_request_t* req);
 void _output_dnssim_on_uv_alloc(uv_handle_t* handle, size_t suggested_size, uv_buf_t* buf);

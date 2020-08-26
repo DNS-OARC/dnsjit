@@ -54,6 +54,11 @@ static int _process_udp_response(uv_udp_t* handle, ssize_t nread, const uv_buf_t
         mldebug("udp response has TC=1");
         return _ERR_TC;
     }
+    ret = _output_dnssim_answers_request(req, &dns_a);
+    if (ret != 0) {
+        mlwarning("udp reponse question mismatch");
+        return _ERR_QUESTION;
+    }
 
     _output_dnssim_request_answered(req, &dns_a);
     return 0;
