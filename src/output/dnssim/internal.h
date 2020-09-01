@@ -204,6 +204,7 @@ struct _output_dnssim_connection {
         _OUTPUT_DNSSIM_CONN_TLS_HANDSHAKE = 20,
         _OUTPUT_DNSSIM_CONN_ACTIVE        = 30,
         _OUTPUT_DNSSIM_CONN_CONGESTED     = 35,
+        _OUTPUT_DNSSIM_CONN_CLOSE_REQUESTED = 38,
         _OUTPUT_DNSSIM_CONN_CLOSING       = 40,
         _OUTPUT_DNSSIM_CONN_CLOSED        = 50
     } state;
@@ -229,6 +230,11 @@ struct _output_dnssim_connection {
 
     /* HTTP/2-related data. */
     _output_dnssim_http2_ctx_t* http2;
+
+    /* Prevents immediate closure of connection. Instead, connection is moved
+     * to CLOSE_REQUESTED state and setter of this flag is responsible for
+     * closing the connection when clearing this flag. */
+    bool prevent_close;
 };
 
 /*
