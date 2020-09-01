@@ -195,7 +195,9 @@ struct _output_dnssim_connection {
     /* Client this connection belongs to. */
     _output_dnssim_client_t* client;
 
-    /* State of the connection. */
+    /* State of the connection.
+     * Numeric ordering of constants is significant and follows the typical connection lifecycle.
+     * Ensure new states are added to a proper place. */
     enum {
         _OUTPUT_DNSSIM_CONN_INITIALIZED   = 0,
         _OUTPUT_DNSSIM_CONN_TCP_HANDSHAKE = 10,
