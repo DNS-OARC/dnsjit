@@ -104,7 +104,7 @@ void _output_dnssim_tls_process_input_data(_output_dnssim_connection_t* conn)
     /* See https://gnutls.org/manual/html_node/Data-transfer-and-termination.html#Data-transfer-and-termination */
     while (true) {
         /* Connection might have been closed due to an error, don't try to use it. */
-        if (conn->state != _OUTPUT_DNSSIM_CONN_ACTIVE)
+        if (conn->state < _OUTPUT_DNSSIM_CONN_ACTIVE || conn->state >= _OUTPUT_DNSSIM_CONN_CLOSING)
             return;
 
         ssize_t count = gnutls_record_recv(conn->tls->session, _self->wire_buf, WIRE_BUF_SIZE);

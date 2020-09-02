@@ -61,7 +61,6 @@ static ssize_t _http2_send(nghttp2_session* session, const uint8_t* data, size_t
     ssize_t len = 0;
     if ((len = gnutls_record_send(conn->tls->session, data, length)) < 0) {
         mlwarning("gnutls_record_send failed: %s", gnutls_strerror(len));
-        _output_dnssim_conn_close(conn);
         len = NGHTTP2_ERR_CALLBACK_FAILURE;
     }
 
@@ -336,9 +335,14 @@ void _output_dnssim_https2_process_input_data(_output_dnssim_connection_t* conn,
 
     /* Process incoming frames. */
     ssize_t ret = 0;
+    conn->prevent_close = true;
     ret         = nghttp2_session_mem_recv(conn->http2->session, (uint8_t*)data, len);
+    conn->prevent_close = false;
     if (ret < 0) {
         mlwarning("failed nghttp2_session_mem_recv: %s", nghttp2_strerror(ret));
+        _output_dnssim_conn_close(conn);
+        return;
+    } else if (conn->state == _OUTPUT_DNSSIM_CONN_CLOSE_REQUESTED) {
         _output_dnssim_conn_close(conn);
         return;
     }

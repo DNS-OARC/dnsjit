@@ -92,10 +92,19 @@ void _output_dnssim_conn_close(_output_dnssim_connection_t* conn)
         self->stats_sum->conn_handshakes_failed++;
         break;
     case _OUTPUT_DNSSIM_CONN_ACTIVE:
+    case _OUTPUT_DNSSIM_CONN_CONGESTED:
         self->stats_current->conn_active--;
         break;
-    default:
+    case _OUTPUT_DNSSIM_CONN_INITIALIZED:
+    case _OUTPUT_DNSSIM_CONN_CLOSE_REQUESTED:
         break;
+    default:
+        lfatal("unknown conn state: %d", conn->state);
+    }
+    if (conn->prevent_close) {
+        lassert(conn->state <= _OUTPUT_DNSSIM_CONN_CLOSE_REQUESTED, "conn already closing");
+        conn->state = _OUTPUT_DNSSIM_CONN_CLOSE_REQUESTED;
+        return;
     }
     conn->state = _OUTPUT_DNSSIM_CONN_CLOSING;
 
