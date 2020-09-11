@@ -43,7 +43,7 @@
 -- This also applies for state-full transports.
 -- The complete set-up is quite complex and requires other components.
 -- See DNS Shotgun
--- .RI ( https://gitlab.labs.nic.cz/knot/shotgun )
+-- .RI ( https://gitlab.nic.cz/knot/shotgun )
 -- for dnsjit scripts ready for use for high-performance
 -- benchmarking.
 module(...,package.seeall)
@@ -375,5 +375,5 @@ end
 -- dnsjit.filter.ipsplit (3),
 -- dnsjit.filter.core.object.ip (3),
 -- dnsjit.filter.core.object.ip6 (3),
--- https://gitlab.labs.nic.cz/knot/shotgun
+-- https://gitlab.nic.cz/knot/shotgun
 return DnsSim
