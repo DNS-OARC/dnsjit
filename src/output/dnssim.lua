@@ -20,7 +20,7 @@
 -- Simulate independent DNS clients over various transports
 --   output = require("dnsjit.output.dnssim").new()
 -- .SS Usage
---   output:udp_only()
+--   output:udp()
 --   output:target("::1", 53)
 --   recv, rctx = output:receive()
 --   -- pass in objects using recv(rctx, obj)
@@ -99,16 +99,9 @@ function DnsSim:bind(ip)
     return C.output_dnssim_bind(self.obj, ip)
 end
 
--- Set the transport to UDP (without any TCP fallback).
-function DnsSim:udp_only()
-    C.output_dnssim_set_transport(self.obj, C.OUTPUT_DNSSIM_TRANSPORT_UDP_ONLY)
-end
-
--- Set the preferred transport to UDP.
--- This transport falls back to TCP for individual queries if TC bit is set
--- in received answer.
+-- Set the preferred transport to UDP (without any TCP fallback).
 function DnsSim:udp()
-    C.output_dnssim_set_transport(self.obj, C.OUTPUT_DNSSIM_TRANSPORT_UDP)
+    C.output_dnssim_set_transport(self.obj, C.OUTPUT_DNSSIM_TRANSPORT_UDP_ONLY)
 end
 
 -- Set the transport to TCP.

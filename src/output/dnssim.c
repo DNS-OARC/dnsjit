@@ -261,7 +261,7 @@ void output_dnssim_set_transport(output_dnssim_t* self, output_dnssim_transport_
 #endif
         break;
     case OUTPUT_DNSSIM_TRANSPORT_UDP:
-        lfatal("UDP tranport with TCP fallback not supported yet. Please use udp_only() instead.");
+        lfatal("UDP tranport with TCP fallback not supported yet.");
         break;
     default:
         lfatal("unknown or unsupported transport");
