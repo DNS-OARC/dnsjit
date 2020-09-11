@@ -28,7 +28,7 @@
 -- .SS DNS-over-TLS example configuration
 --   output:tls("NORMAL:-VERS-ALL:+VERS-TLS1.3")  -- enforce TLS 1.3
 -- .SS DNS-over-HTTPS/2 example configuration
---   output:https2({ method = "GET", uri_path = "/doh" })
+--   output:https2({ method = "POST", uri_path = "/doh" })
 --
 -- Output module for simulating traffic from huge number of independent,
 -- individual DNS clients.
@@ -143,16 +143,16 @@ end
 --
 -- .B method:
 -- .B GET
+-- (default)
 -- or
 -- .B POST
--- (default)
 --
 -- .B uri_path:
 -- where queries will be sent.
 -- Defaults to
 -- .B /dns-query
 --
--- .B zero_out_msgig:
+-- .B zero_out_msgid:
 -- when
 -- .B true
 -- (default), query ID is always set to 0
@@ -191,7 +191,7 @@ end
 --
 -- .BR Beware :
 -- increasing this value while the target resolver isn't very responsive
--- (cold cache, heavy load) may degrade shotgun's performance and skew
+-- (cold cache, heavy load) may degrade dnssim's performance and skew
 -- the results.
 function DnsSim:timeout(seconds)
     if seconds == nil then
