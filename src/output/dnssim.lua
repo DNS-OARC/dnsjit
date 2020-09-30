@@ -28,22 +28,22 @@
 -- .SS DNS-over-TLS example configuration
 --   output:tls("NORMAL:-VERS-ALL:+VERS-TLS1.3")  -- enforce TLS 1.3
 -- .SS DNS-over-HTTPS/2 example configuration
---   output:https2({ method = "GET", uri_path = "/doh" })
+--   output:https2({ method = "POST", uri_path = "/doh" })
 --
 -- Output module for simulating traffic from huge number of independent,
 -- individual DNS clients.
 -- Uses libuv for asynchronous communication.
--- There may only be a single dnssim in a thread.
+-- There may only be a single DnsSim in a thread.
 -- Use
 -- .I dnsjit.core.thread
--- to have multiple dnssim instances.
+-- to have multiple DnsSim instances.
 -- .P
 -- With proper use of this component, it is possible to simulate hundreds of
 -- thousands of clients when using a high-performance server.
 -- This also applies for state-full transports.
 -- The complete set-up is quite complex and requires other components.
 -- See DNS Shotgun
--- .RI ( https://gitlab.labs.nic.cz/knot/shotgun )
+-- .RI ( https://gitlab.nic.cz/knot/shotgun )
 -- for dnsjit scripts ready for use for high-performance
 -- benchmarking.
 module(...,package.seeall)
@@ -94,7 +94,7 @@ end
 
 -- Specify source address for sending queries.
 -- Can be set multiple times.
--- Adresses are selected round-robin when sending.
+-- Addresses are selected round-robin when sending.
 function DnsSim:bind(ip)
     return C.output_dnssim_bind(self.obj, ip)
 end
@@ -118,8 +118,9 @@ end
 
 -- Set the transport to TLS.
 --
--- The optional arguments is a GnuTLS priority string, whih can be used to
--- select TLS versions, cipher suites etc.
+-- The optional argument
+-- .B tls_priority
+-- is a GnuTLS priority string, which can be used to select TLS versions, cipher suites etc.
 -- For example:
 --
 -- .RB "- """ NORMAL:%NO_TICKETS """"
@@ -138,24 +139,29 @@ function DnsSim:tls(tls_priority)
 end
 
 -- Set the transport to HTTP/2 over TLS.
+--
 -- .B http2_options
 -- is a lua table which supports the following keys:
 --
 -- .B method:
 -- .B GET
+-- (default)
 -- or
 -- .B POST
--- (default)
 --
 -- .B uri_path:
 -- where queries will be sent.
 -- Defaults to
 -- .B /dns-query
 --
--- .B zero_out_msgig:
+-- .B zero_out_msgid:
 -- when
 -- .B true
 -- (default), query ID is always set to 0
+--
+-- See tls() method for
+-- .B tls_priority
+-- documentation.
 function DnsSim:https2(http2_options, tls_priority)
     if tls_priority ~= nil then
         C.output_dnssim_tls_priority(self.obj, tls_priority)
@@ -191,7 +197,7 @@ end
 --
 -- .BR Beware :
 -- increasing this value while the target resolver isn't very responsive
--- (cold cache, heavy load) may degrade shotgun's performance and skew
+-- (cold cache, heavy load) may degrade DnsSim's performance and skew
 -- the results.
 function DnsSim:timeout(seconds)
     if seconds == nil then
@@ -230,7 +236,7 @@ function DnsSim:run_nowait()
     return C.output_dnssim_run_nowait(self.obj)
 end
 
--- Set this to true if dnssim should free the memory of passed-in objects
+-- Set this to true if DnsSim should free the memory of passed-in objects
 -- (useful when using
 -- .I dnsjit.filter.copy
 -- to pass objects from different thread).
@@ -273,7 +279,7 @@ function DnsSim:stats_finish()
     C.output_dnssim_stats_finish(self.obj)
 end
 
--- Export the results to a JSON file
+-- Export the results to a JSON file.
 function DnsSim:export(filename)
     local file = io.open(filename, "w")
     if file == nil then
@@ -369,5 +375,5 @@ end
 -- dnsjit.filter.ipsplit (3),
 -- dnsjit.filter.core.object.ip (3),
 -- dnsjit.filter.core.object.ip6 (3),
--- https://gitlab.labs.nic.cz/knot/shotgun
+-- https://gitlab.nic.cz/knot/shotgun
 return DnsSim

@@ -90,5 +90,5 @@ function Respdiff:commit(start_time, end_time)
     C.output_respdiff_commit(self.obj, self.origname, self.recvname, start_time, end_time)
 end
 
--- respdiff " https://gitlab.labs.nic.cz/knot/respdiff"
+-- respdiff " https://gitlab.nic.cz/knot/respdiff"
 return Respdiff
