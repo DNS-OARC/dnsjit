@@ -23,6 +23,15 @@ The following Lua module categories exists:
 
 See each category's man-page for more information.
 
+More information may be found here:
+- https://www.dns-oarc.net/tools/dnsjit
+
+Issues should be reported here:
+- https://github.com/DNS-OARC/dnsjit/issues
+
+General support and discussion:
+- Mattermost: https://chat.dns-oarc.net/community/channels/oarc-software
+
 ## Packages
 
 https://dev.dns-oarc.net/packages
