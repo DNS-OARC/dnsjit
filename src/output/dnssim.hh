@@ -107,6 +107,7 @@ core_log_t* output_dnssim_log();
 output_dnssim_t* output_dnssim_new(size_t max_clients);
 void             output_dnssim_free(output_dnssim_t* self);
 
+void output_dnssim_log_name(output_dnssim_t* self, const char* name);
 void output_dnssim_set_transport(output_dnssim_t* self, output_dnssim_transport_t tr);
 int  output_dnssim_target(output_dnssim_t* self, const char* ip, uint16_t port);
 int  output_dnssim_bind(output_dnssim_t* self, const char* ip);
