@@ -140,8 +140,11 @@ void output_dnssim_free(output_dnssim_t* self)
 
 void output_dnssim_log_name(output_dnssim_t* self, const char* name)
 {
-    memcpy(self->_log.name, name, sizeof(self->_log.name));
-    self->_log.name[sizeof(self->_log.name) - 1] = '\0';
+    mlassert_self();
+    lassert(name, "name is nil");
+
+    strncpy(self->_log.name, name, sizeof(self->_log.name) - 1);
+    self->_log.name[sizeof(self->_log.name) - 1] = 0;
     self->_log.is_obj = false;
 }
 
