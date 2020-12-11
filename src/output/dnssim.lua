@@ -69,9 +69,14 @@ function DnsSim.new(max_clients)
 end
 
 -- Return the Log object to control logging of this instance or module.
-function DnsSim:log()
+-- Optionally, set the instance's log name.
+-- Unique name should be used for each instance.
+function DnsSim:log(name)
     if self == nil then
         return C.output_dnssim_log()
+    end
+    if name ~= nil then
+        C.output_dnssim_log_name(self.obj, name)
     end
     return self.obj._log
 end
