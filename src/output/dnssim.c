@@ -30,7 +30,7 @@
 #include <gnutls/gnutls.h>
 #include <string.h>
 
-static core_log_t _log = LOG_T_INIT("output.dnssim");
+static core_log_t      _log      = LOG_T_INIT("output.dnssim");
 static output_dnssim_t _defaults = { LOG_T_INIT_OBJ("output.dnssim") };
 
 static uint64_t _now_ms()
@@ -61,7 +61,7 @@ output_dnssim_t* output_dnssim_new(size_t max_clients)
     int              ret, i;
 
     mlfatal_oom(self = calloc(1, sizeof(_output_dnssim_t)));
-    *self = _defaults;
+    *self                      = _defaults;
     self->handshake_timeout_ms = 5000;
     self->idle_timeout_ms      = 10000;
     output_dnssim_timeout_ms(self, 2000);
@@ -145,7 +145,7 @@ void output_dnssim_log_name(output_dnssim_t* self, const char* name)
 
     strncpy(self->_log.name, name, sizeof(self->_log.name) - 1);
     self->_log.name[sizeof(self->_log.name) - 1] = 0;
-    self->_log.is_obj = false;
+    self->_log.is_obj                            = false;
 }
 
 static uint32_t _extract_client(const core_object_t* obj)
@@ -266,7 +266,7 @@ void output_dnssim_set_transport(output_dnssim_t* self, output_dnssim_transport_
     case OUTPUT_DNSSIM_TRANSPORT_HTTPS2:
 #if GNUTLS_VERSION_NUMBER >= DNSSIM_MIN_GNUTLS_VERSION
         lnotice("transport set to HTTP/2 over TLS");
-        if (strlen(_self->h2_uri_authority) > 0)
+        if (&_self->h2_uri_authority[0])
             lnotice("set uri authority to: %s", _self->h2_uri_authority);
 #else
         lfatal(DNSSIM_MIN_GNUTLS_ERRORMSG);
