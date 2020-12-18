@@ -38,13 +38,13 @@ static void _on_request_timeout(uv_timer_t* handle)
     _close_request((_output_dnssim_request_t*)handle->data);
 }
 
-static ssize_t parse_qsection(core_object_dns_t *dns)
+static ssize_t parse_qsection(core_object_dns_t* dns)
 {
-    core_object_dns_q_t q;
+    core_object_dns_q_t            q;
     static core_object_dns_label_t labels[MAX_LABELS];
-    const uint8_t *start;
-    int i;
-    int ret;
+    const uint8_t*                 start;
+    int                            i;
+    int                            ret;
 
     if (!dns || !dns->have_qdcount)
         return -1;
@@ -60,10 +60,10 @@ static ssize_t parse_qsection(core_object_dns_t *dns)
     return (dns->at - start);
 }
 
-int _output_dnssim_answers_request(_output_dnssim_request_t *req, core_object_dns_t *response)
+int _output_dnssim_answers_request(_output_dnssim_request_t* req, core_object_dns_t* response)
 {
-    const uint8_t *question;
-    ssize_t len;
+    const uint8_t* question;
+    ssize_t        len;
 
     if (!response->have_id || !response->have_qdcount)
         return _ERR_MALFORMED;
@@ -75,7 +75,7 @@ int _output_dnssim_answers_request(_output_dnssim_request_t *req, core_object_dn
         return _ERR_QUESTION;
 
     question = response->at;
-    len = parse_qsection(response);
+    len      = parse_qsection(response);
 
     if (req->question_len != len)
         return _ERR_QUESTION;
@@ -110,7 +110,7 @@ void _output_dnssim_create_request(output_dnssim_t* self, _output_dnssim_client_
         goto failure;
     }
 
-    req->question = req->dns_q->at;
+    req->question     = req->dns_q->at;
     req->question_len = parse_qsection(req->dns_q);
     if (req->question_len < 0) {
         ldebug("discarded malformed dns query: invalid question");

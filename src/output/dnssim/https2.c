@@ -334,9 +334,9 @@ void _output_dnssim_https2_process_input_data(_output_dnssim_connection_t* conn,
     mlassert(conn->http2->session, "conn must have http2 session");
 
     /* Process incoming frames. */
-    ssize_t ret = 0;
+    ssize_t ret         = 0;
     conn->prevent_close = true;
-    ret         = nghttp2_session_mem_recv(conn->http2->session, (uint8_t*)data, len);
+    ret                 = nghttp2_session_mem_recv(conn->http2->session, (uint8_t*)data, len);
     conn->prevent_close = false;
     if (ret < 0) {
         mlwarning("failed nghttp2_session_mem_recv: %s", nghttp2_strerror(ret));
@@ -421,19 +421,22 @@ static int _http2_send_query_get(_output_dnssim_connection_t* conn, _output_dnss
     output_dnssim_t*       self    = conn->client->dnssim;
     core_object_payload_t* content = qry->qry.req->payload;
 
-    const size_t path_len = strlen(_self->h2_uri_path) + sizeof(OUTPUT_DNSSIM_HTTP_GET_TEMPLATE) + (content->len * 4) / 3 + 3; /* upper limit of base64 encoding */
+    const size_t uri_path_len = strlen(_self->h2_uri_path);
+    const size_t path_len     = uri_path_len
+                            + sizeof(OUTPUT_DNSSIM_HTTP_GET_TEMPLATE) - 1
+                            + (content->len * 4) / 3 + 3; /* upper limit of base64 encoding */
     if (path_len >= _MAX_URI_LEN) {
         self->discarded++;
         linfo("http2: uri path with query too long, query discarded");
         return 0;
     }
     char path[path_len];
-    strncpy(path, _self->h2_uri_path, path_len);
-    strncat(path, OUTPUT_DNSSIM_HTTP_GET_TEMPLATE, path_len);
+    memcpy(path, _self->h2_uri_path, uri_path_len);
+    memcpy(&path[uri_path_len], OUTPUT_DNSSIM_HTTP_GET_TEMPLATE, sizeof(OUTPUT_DNSSIM_HTTP_GET_TEMPLATE) - 1);
 
-    size_t  tmp_path_len = strlen(path);
-    int32_t ret          = base64url_encode(content->payload, content->len,
-        (uint8_t*)(path + tmp_path_len), path_len - tmp_path_len - 1);
+    int32_t ret = base64url_encode(content->payload, content->len,
+        (uint8_t*)&path[uri_path_len + sizeof(OUTPUT_DNSSIM_HTTP_GET_TEMPLATE) - 1],
+        sizeof(path) - uri_path_len - sizeof(OUTPUT_DNSSIM_HTTP_GET_TEMPLATE) - 1);
     if (ret < 0) {
         self->discarded++;
         linfo("http2: base64url encode of query failed, query discarded");
@@ -444,7 +447,7 @@ static int _http2_send_query_get(_output_dnssim_connection_t* conn, _output_dnss
         OUTPUT_DNSSIM_MAKE_NV2(":method", "GET"),
         OUTPUT_DNSSIM_MAKE_NV2(":scheme", "https"),
         OUTPUT_DNSSIM_MAKE_NV(":authority", _self->h2_uri_authority, strlen(_self->h2_uri_authority)),
-        OUTPUT_DNSSIM_MAKE_NV(":path", path, tmp_path_len + ret),
+        OUTPUT_DNSSIM_MAKE_NV(":path", path, uri_path_len + sizeof(OUTPUT_DNSSIM_HTTP_GET_TEMPLATE) - 1 + ret),
         OUTPUT_DNSSIM_MAKE_NV2("accept", "application/dns-message"),
     };
 

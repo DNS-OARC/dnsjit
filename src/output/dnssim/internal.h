@@ -199,14 +199,14 @@ struct _output_dnssim_connection {
      * Numeric ordering of constants is significant and follows the typical connection lifecycle.
      * Ensure new states are added to a proper place. */
     enum {
-        _OUTPUT_DNSSIM_CONN_INITIALIZED   = 0,
-        _OUTPUT_DNSSIM_CONN_TCP_HANDSHAKE = 10,
-        _OUTPUT_DNSSIM_CONN_TLS_HANDSHAKE = 20,
-        _OUTPUT_DNSSIM_CONN_ACTIVE        = 30,
-        _OUTPUT_DNSSIM_CONN_CONGESTED     = 35,
+        _OUTPUT_DNSSIM_CONN_INITIALIZED     = 0,
+        _OUTPUT_DNSSIM_CONN_TCP_HANDSHAKE   = 10,
+        _OUTPUT_DNSSIM_CONN_TLS_HANDSHAKE   = 20,
+        _OUTPUT_DNSSIM_CONN_ACTIVE          = 30,
+        _OUTPUT_DNSSIM_CONN_CONGESTED       = 35,
         _OUTPUT_DNSSIM_CONN_CLOSE_REQUESTED = 38,
-        _OUTPUT_DNSSIM_CONN_CLOSING       = 40,
-        _OUTPUT_DNSSIM_CONN_CLOSED        = 50
+        _OUTPUT_DNSSIM_CONN_CLOSING         = 40,
+        _OUTPUT_DNSSIM_CONN_CLOSED          = 50
     } state;
 
     /* State of the data stream read. */
@@ -306,7 +306,7 @@ int  _output_dnssim_create_query_udp(output_dnssim_t* self, _output_dnssim_reque
 int  _output_dnssim_create_query_tcp(output_dnssim_t* self, _output_dnssim_request_t* req);
 void _output_dnssim_close_query_udp(_output_dnssim_query_udp_t* qry);
 void _output_dnssim_close_query_tcp(_output_dnssim_query_tcp_t* qry);
-int _output_dnssim_answers_request(_output_dnssim_request_t *req, core_object_dns_t *response);
+int  _output_dnssim_answers_request(_output_dnssim_request_t* req, core_object_dns_t* response);
 void _output_dnssim_request_answered(_output_dnssim_request_t* req, core_object_dns_t* msg);
 void _output_dnssim_maybe_free_request(_output_dnssim_request_t* req);
 void _output_dnssim_on_uv_alloc(uv_handle_t* handle, size_t suggested_size, uv_buf_t* buf);
