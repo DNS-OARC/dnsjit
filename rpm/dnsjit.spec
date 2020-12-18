@@ -12,16 +12,7 @@ Source0:        https://github.com/DNS-OARC/dnsjit/archive/v%{version}.tar.gz?/%
 
 BuildRequires:  libpcap-devel
 %if 0%{?suse_version} || 0%{?sle_version}
-%if 0%{?suse_version} > 1500
-BuildRequires:  luajit-devel >= 2.0.0
-%elif 0%{?sle_version} >= 120000 && !0%{?is_opensuse}
 BuildRequires:  moonjit-devel >= 2.0.0
-%else
-BuildRequires:  lua51-luajit >= 2.1.0~beta2
-%if 0%{?sle_version} >= 150000 && 0%{?is_opensuse}
-BuildRequires:  lua51-luajit-devel >= 2.0.0
-%endif
-%endif
 %else
 BuildRequires:  luajit-devel >= 2.0.0
 %endif
