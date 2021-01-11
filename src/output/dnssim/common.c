@@ -185,13 +185,13 @@ int _output_dnssim_bind_before_connect(output_dnssim_t* self, uv_handle_t* handl
             ret = uv_tcp_bind((uv_tcp_t*)handle, addr, 0);
             break;
         default:
-            lfatal("bind before connect: unsupported handle type");
+            lfatal("failed to bind: unsupported handle type");
             break;
         }
         if (ret < 0) {
             /* This typically happens when we run out of file descriptors.
              * Quit to prevent skewed results or unexpected behaviour. */
-            lfatal("failed to bind to address: %s", uv_strerror(ret));
+            lfatal("failed to bind: %s", uv_strerror(ret));
             return ret;
         }
         _self->source = _self->source->next;
