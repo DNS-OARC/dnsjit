@@ -172,7 +172,11 @@ int _output_dnssim_bind_before_connect(output_dnssim_t* self, uv_handle_t* handl
 
     if (_self->source != NULL) {
         struct sockaddr* addr = (struct sockaddr*)&_self->source->addr;
+        struct sockaddr* dest = (struct sockaddr*)&_self->target;
         int              ret  = -1;
+        if (addr->sa_family != dest->sa_family) {
+            lfatal("failed to bind: source/desitnation address family mismatch");
+        }
         switch (handle->type) {
         case UV_UDP:
             ret = uv_udp_bind((uv_udp_t*)handle, addr, 0);

@@ -292,17 +292,16 @@ int output_dnssim_target(output_dnssim_t* self, const char* ip, uint16_t port)
 
     ret = uv_ip6_addr(ip, port, (struct sockaddr_in6*)&_self->target);
     if (ret != 0) {
-        lcritical("failed to parse IPv6 from \"%s\"", ip);
-        return -1;
-        // TODO IPv4 support
-        //ret = uv_ip4_addr(ip, port, (struct sockaddr_in*)&_self->target);
-        //if (ret != 0) {
-        //    lcritical("failed to parse IP/IP6 from \"%s\"", ip);
-        //    return -1;
-        //}
+        ret = uv_ip4_addr(ip, port, (struct sockaddr_in*)&_self->target);
+        if (ret != 0) {
+            lfatal("failed to parse IPv4 or IPv6 from \"%s\"", ip);
+        } else {
+            ret = snprintf(_self->h2_uri_authority, _MAX_URI_LEN, "%s:%d", ip, port);
+        }
+    } else {
+        ret = snprintf(_self->h2_uri_authority, _MAX_URI_LEN, "[%s]:%d", ip, port);
     }
 
-    ret = snprintf(_self->h2_uri_authority, _MAX_URI_LEN, "[%s]:%d", ip, port);
     if (ret > 0) {
         if (_self->transport == OUTPUT_DNSSIM_TRANSPORT_HTTPS2)
             lnotice("set uri authority to: %s", _self->h2_uri_authority);
@@ -327,9 +326,10 @@ int output_dnssim_bind(output_dnssim_t* self, const char* ip)
 
     ret = uv_ip6_addr(ip, 0, (struct sockaddr_in6*)&source->addr);
     if (ret != 0) {
-        lfatal("failed to parse IPv6 from \"%s\"", ip);
-        return -1;
-        // TODO IPv4 support
+        ret = uv_ip4_addr(ip, 0, (struct sockaddr_in*)&source->addr);
+        if (ret != 0) {
+            lfatal("failed to parse IPv4 or IPv6 from \"%s\"", ip);
+        }
     }
 
     if (_self->source == NULL) {
