@@ -30,7 +30,7 @@ local ffi = require("ffi")
 
 Ip = {}
 
--- Return a IPv6 or IPv6 address as a string.
+-- Return an IPv4 or IPv6 address as a string.
 -- If it's an IPv6 address the optional argument
 -- .I pretty
 -- is true then return an easier to read IPv6 address.

@@ -81,9 +81,7 @@ function DnsSim:log(name)
     return self.obj._log
 end
 
--- Set the target server where queries will be sent to, returns 0 on success.
---
--- Only IPv6 targets are supported for now.
+-- Set the target IPv4/IPv6 address where queries will be sent to.
 function DnsSim:target(ip, port)
     local nport = tonumber(port)
     if nport == nil then
@@ -97,7 +95,7 @@ function DnsSim:target(ip, port)
     return C.output_dnssim_target(self.obj, ip, nport)
 end
 
--- Specify source address for sending queries.
+-- Specify source IPv4/IPv6 address for sending queries.
 -- Can be set multiple times.
 -- Addresses are selected round-robin when sending.
 function DnsSim:bind(ip)

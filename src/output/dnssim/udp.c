@@ -141,12 +141,6 @@ int _output_dnssim_create_query_udp(output_dnssim_t* self, _output_dnssim_reques
         return ret;
     }
 
-    // TODO IPv4
-    struct sockaddr_in6 src;
-    int                 addr_len = sizeof(src);
-    uv_udp_getsockname(qry->handle, (struct sockaddr*)&src, &addr_len);
-    ldebug("sent udp from port: %d", ntohs(src.sin6_port));
-
     // listen for reply
     ret = uv_udp_recv_start(qry->handle, _output_dnssim_on_uv_alloc, _on_udp_query_recv);
     if (ret < 0) {
