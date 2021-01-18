@@ -25,6 +25,7 @@
 #include "core/object/pcap.h"
 
 #include <stdio.h>
+#include <string.h>
 #ifdef HAVE_ENDIAN_H
 #include <endian.h>
 #else
@@ -96,7 +97,9 @@ int input_fpcap_open(input_fpcap_t* self, const char* file)
         lfatal("already opened");
     }
 
-    if (!(self->file = fopen(file, "rb"))) {
+    if (!strcmp("-", file)) {
+	    self->file = stdin;
+    } else if (!(self->file = fopen(file, "rb"))) {
         lcritical("fopen(%s) error: %s", file, core_log_errstr(errno));
         return -1;
     }

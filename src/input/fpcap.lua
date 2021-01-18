@@ -101,6 +101,7 @@ function Fpcap:produce()
 end
 
 -- Open a PCAP file for processing and read the PCAP header.
+-- File name "-" uses standard input.
 -- Returns 0 on success.
 function Fpcap:open(file)
     return C.input_fpcap_open(self.obj, file)
