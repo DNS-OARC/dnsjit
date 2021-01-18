@@ -80,6 +80,9 @@ function Pcap:activate()
 end
 
 -- Open a PCAP file for processing.
+-- File name is passed to
+-- .BR pcap_open_offline (3pcap)
+-- and thus file name "-" reads from the standard input.
 -- Returns 0 on success.
 function Pcap:open_offline(file)
     return C.input_pcap_open_offline(self.obj, file)
