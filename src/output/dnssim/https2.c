@@ -44,6 +44,7 @@
     }
 
 #define OUTPUT_DNSSIM_HTTP_GET_TEMPLATE "?dns="
+#define OUTPUT_DNSSIM_HTTP_GET_TEMPLATE_LEN (sizeof(OUTPUT_DNSSIM_HTTP_GET_TEMPLATE) - 1)
 #define OUTPUT_DNSSIM_HTTP2_INITIAL_MAX_CONCURRENT_STREAMS 100
 #define OUTPUT_DNSSIM_HTTP2_DEFAULT_MAX_CONCURRENT_STREAMS 0xffffffffu
 
@@ -423,8 +424,9 @@ static int _http2_send_query_get(_output_dnssim_connection_t* conn, _output_dnss
 
     const size_t uri_path_len = strlen(_self->h2_uri_path);
     const size_t path_len     = uri_path_len
-                            + sizeof(OUTPUT_DNSSIM_HTTP_GET_TEMPLATE) - 1
-                            + (content->len * 4) / 3 + 3; /* upper limit of base64 encoding */
+                            + OUTPUT_DNSSIM_HTTP_GET_TEMPLATE_LEN
+                            + (content->len * 4) / 3 + 3  /* upper limit of base64 encoding */
+                            + 1;  /* terminating null byte */
     if (path_len >= _MAX_URI_LEN) {
         self->discarded++;
         linfo("http2: uri path with query too long, query discarded");
@@ -432,11 +434,11 @@ static int _http2_send_query_get(_output_dnssim_connection_t* conn, _output_dnss
     }
     char path[path_len];
     memcpy(path, _self->h2_uri_path, uri_path_len);
-    memcpy(&path[uri_path_len], OUTPUT_DNSSIM_HTTP_GET_TEMPLATE, sizeof(OUTPUT_DNSSIM_HTTP_GET_TEMPLATE) - 1);
+    memcpy(&path[uri_path_len], OUTPUT_DNSSIM_HTTP_GET_TEMPLATE, OUTPUT_DNSSIM_HTTP_GET_TEMPLATE_LEN);
 
     int32_t ret = base64url_encode(content->payload, content->len,
-        (uint8_t*)&path[uri_path_len + sizeof(OUTPUT_DNSSIM_HTTP_GET_TEMPLATE) - 1],
-        sizeof(path) - uri_path_len - sizeof(OUTPUT_DNSSIM_HTTP_GET_TEMPLATE) - 1);
+        (uint8_t*)&path[uri_path_len + OUTPUT_DNSSIM_HTTP_GET_TEMPLATE_LEN],
+        sizeof(path) - uri_path_len - OUTPUT_DNSSIM_HTTP_GET_TEMPLATE_LEN - 1);
     if (ret < 0) {
         self->discarded++;
         linfo("http2: base64url encode of query failed, query discarded");
