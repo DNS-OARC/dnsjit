@@ -82,7 +82,7 @@ void input_fpcap_destroy(input_fpcap_t* self)
 {
     mlassert_self();
 
-    if (self->file) {
+    if (self->file && self->file != stdin) {
         fclose(self->file);
     }
     free(self->buf);
