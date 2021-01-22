@@ -124,21 +124,17 @@ void filter_ipsplit_add(filter_ipsplit_t* self, core_receiver_t recv, void* ctx,
 /*
  * Use portable pseudo-random number generator.
  */
-static uint32_t _rand_next = 1;
+static uint32_t _rand_val = 1;
 
-static uint32_t _rand(uint32_t mod)
+static uint32_t _rand()
 {
-    mlassert(mod >= 1, "modulus must be positive integer");
-    _rand_next   = _rand_next * 1103515245 + 12345;
-    uint32_t ret = (uint32_t)(_rand_next / 65536) % mod;
-    mldebug("rand: %d", ret);
-    return ret;
+    _rand_val = ((_rand_val * 1103515245) + 12345) & 0x7fffffff;
+    return _rand_val;
 }
 
 void filter_ipsplit_srand(uint32_t seed)
 {
-    _rand_next = seed;
-    mldebug("rand seed %d", seed);
+    _rand_val = seed;
 }
 
 static void _assign_client_to_receiver(filter_ipsplit_t* self, _client_t* client)
@@ -157,7 +153,7 @@ static void _assign_client_to_receiver(filter_ipsplit_t* self, _client_t* client
     case IPSPLIT_MODE_RANDOM: {
         /* Get random number from [1, weight_total], then iterate through
          * receivers until their weights add up to at least this value. */
-        int32_t random = (int32_t)_rand(_self->weight_total) + 1;
+        int32_t random = (int32_t)(_rand() % _self->weight_total) + 1;
         while (random > 0) {
             random -= self->recv->weight;
             if (random > 0)

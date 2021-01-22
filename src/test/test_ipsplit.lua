@@ -217,8 +217,8 @@ out1:close()
 out2:close()
 
 assert(ipsplit:discarded() == 0, "some valid packets have been discarded")
-assert(out1:size() == 73, "out1: some IPv6 packets lost by filter")
-assert(out2:size() == 18, "out2: some IPv6 packets lost by filter")
+assert(out1:size() == 81, "out1: some IPv6 packets lost by filter")
+assert(out2:size() == 10, "out2: some IPv6 packets lost by filter")
 
 -- out1: test individual packets
 local i = 0
@@ -226,12 +226,11 @@ while true do
     local obj = out1:get()
     if obj == nil then break end
     i = i + 1
-    if i == 1 then assert(dns_msgid(obj) == 0x0a31, "pkt 1: client 1, pkt 1 -> out1") end
-    if i == 2 then assert(dns_msgid(obj) == 0xe6bd, "pkt 2: client 2, pkt 1 -> out1") end
-    if i == 3 then assert(dns_msgid(obj) == 0xb3e8, "pkt 3: client 3, pkt 1 -> out1") end
-    if i == 4 then assert(dns_msgid(obj) == 0xb3e9, "pkt 4: client 3, pkt 2 -> out1") end
-    if i == 15 then assert(dns_msgid(obj) == 0x4a05, "pkt 16: client 8, pkt 1 -> out1") end
-    if i == 16 then assert(dns_msgid(obj) == 0x4a06, "pkt 17: client 8, pkt 2 -> out1") end
+    if i == 1 then assert(dns_msgid(obj) == 0xe6bd, "pkt 1: client 2, pkt 1 -> out1") end
+    if i == 2 then assert(dns_msgid(obj) == 0xb3e8, "pkt 2: client 3, pkt 1 -> out1") end
+    if i == 3 then assert(dns_msgid(obj) == 0xb3e9, "pkt 3: client 3, pkt 2 -> out1") end
+    if i == 5 then assert(dns_msgid(obj) == 0xaea6, "pkt 4: client 5, pkt 1 -> out1") end
+    if i == 29 then assert(dns_msgid(obj) == 0xaeaf, "pkt 29: client 5, pkt 10 -> out1") end
 end
 
 -- out2: test individual packets
@@ -240,9 +239,9 @@ while true do
     local obj = out2:get()
     if obj == nil then break end
     i = i + 1
-    if i == 1 then assert(dns_msgid(obj) == 0x0a6f, "pkt 9: client 6, pkt 1 -> out2") end
-    if i == 2 then assert(dns_msgid(obj) == 0xabfe, "pkt 18: client 9, pkt 1 -> out2") end
-    if i == 3 then assert(dns_msgid(obj) == 0xabff, "pkt 21: client 9, pkt 2 -> out2") end
+    if i == 1 then assert(dns_msgid(obj) == 0x0a31, "pkt 1: client 1, pkt 1 -> out2") end
+    if i == 2 then assert(dns_msgid(obj) == 0x0a6f, "pkt 2: client 6, pkt 1 -> out2") end
+    if i == 10 then assert(dns_msgid(obj) == 0x0a70, "pkt 10: client 6, pkt 2 -> out2") end
 end
 
 -----------------------------------------------------
