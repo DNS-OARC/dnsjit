@@ -95,6 +95,7 @@ void input_mmpcap_destroy(input_mmpcap_t* self)
 int input_mmpcap_open(input_mmpcap_t* self, const char* file)
 {
     struct stat sb;
+    int         ret;
     mlassert_self();
     lassert(file, "file is nil");
 
@@ -104,23 +105,27 @@ int input_mmpcap_open(input_mmpcap_t* self, const char* file)
 
     if ((self->fd = open(file, O_RDONLY)) < 0) {
         lcritical("open(%s) error %s", file, core_log_errstr(errno));
-        return -1;
+        ret = -1;
+        goto failure;
     }
 
     if (fstat(self->fd, &sb)) {
         lcritical("stat(%s) error %s", file, core_log_errstr(errno));
-        return -1;
+        ret = -1;
+        goto failure;
     }
     self->len = sb.st_size;
 
     if ((self->buf = mmap(0, self->len, PROT_READ, MAP_PRIVATE, self->fd, 0)) == MAP_FAILED) {
         lcritical("mmap(%s) error %s", file, core_log_errstr(errno));
-        return -1;
+        ret = -1;
+        goto failure;
     }
 
     if (self->len < 24) {
         lcritical("could not read full PCAP header");
-        return -2;
+        ret = -2;
+        goto failure;
     }
     memcpy(&self->magic_number, self->buf, 4);
     memcpy(&self->version_major, self->buf + 4, 2);
@@ -147,12 +152,14 @@ int input_mmpcap_open(input_mmpcap_t* self, const char* file)
         break;
     default:
         lcritical("invalid PCAP header");
-        return -2;
+        ret = -2;
+        goto failure;
     }
 
     if (self->version_major != 2 || self->version_minor != 4) {
         lcritical("unsupported PCAP version v%u.%u", self->version_major, self->version_minor);
-        return -2;
+        ret = -2;
+        goto failure;
     }
 
     /*
@@ -198,7 +205,18 @@ int input_mmpcap_open(input_mmpcap_t* self, const char* file)
 
     ldebug("pcap v%u.%u snaplen:%lu %s", self->version_major, self->version_minor, self->snaplen, self->is_swapped ? " swapped" : "");
 
-    return 0;
+    ret = 0;
+    return ret;
+failure:
+    if (self->buf != MAP_FAILED) {
+        munmap(self->buf, self->len);
+        self->buf = MAP_FAILED;
+    }
+    if (self->fd > -1) {
+        close(self->fd);
+        self->fd = -1;
+    }
+    return ret;
 }
 
 int input_mmpcap_run(input_mmpcap_t* self)

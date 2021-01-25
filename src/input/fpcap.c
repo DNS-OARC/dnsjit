@@ -89,6 +89,7 @@ void input_fpcap_destroy(input_fpcap_t* self)
 
 int input_fpcap_open(input_fpcap_t* self, const char* file)
 {
+    int ret;
     mlassert_self();
     lassert(file, "file is nil");
 
@@ -98,7 +99,8 @@ int input_fpcap_open(input_fpcap_t* self, const char* file)
 
     if (!(self->file = fopen(file, "rb"))) {
         lcritical("fopen(%s) error: %s", file, core_log_errstr(errno));
-        return -1;
+        ret = -1;
+        goto failure;
     }
 
     if (fread(&self->magic_number, 1, 4, self->file) != 4
@@ -109,7 +111,8 @@ int input_fpcap_open(input_fpcap_t* self, const char* file)
         || fread(&self->snaplen, 1, 4, self->file) != 4
         || fread(&self->network, 1, 4, self->file) != 4) {
         lcritical("could not read full PCAP header");
-        return -2;
+        ret = -2;
+        goto failure;
     }
     switch (self->magic_number) {
     case 0x4d3cb2a1:
@@ -128,17 +131,20 @@ int input_fpcap_open(input_fpcap_t* self, const char* file)
         break;
     default:
         lcritical("invalid PCAP header");
-        return -2;
+        ret = -2;
+        goto failure;
     }
 
     if (self->snaplen > MAX_SNAPLEN) {
         lcritical("too large snaplen (%u)", self->snaplen);
-        return -2;
+        ret = -2;
+        goto failure;
     }
 
     if (self->version_major != 2 || self->version_minor != 4) {
         lcritical("unsupported PCAP version v%u.%u", self->version_major, self->version_minor);
-        return -2;
+        ret = -2;
+        goto failure;
     }
 
     /*
@@ -186,7 +192,14 @@ int input_fpcap_open(input_fpcap_t* self, const char* file)
 
     ldebug("pcap v%u.%u snaplen:%lu %s", self->version_major, self->version_minor, self->snaplen, self->is_swapped ? " swapped" : "");
 
-    return 0;
+    ret = 0;
+    return ret;
+failure:
+    if (self->file) {
+        fclose(self->file);
+        self->file = NULL;
+    }
+    return ret;
 }
 
 int input_fpcap_run(input_fpcap_t* self)
