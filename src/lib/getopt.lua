@@ -243,11 +243,7 @@ function Getopt:parse(args, startn)
     local stop = false
     local name
     for n = startn or 2, table.maxn(args) do
-        if stop or args[n] == "-" then
-            table.insert(left, args[n])
-        elseif args[n] == "--" then
-            stop = true
-        elseif need_arg then
+        if need_arg then
             if opt.multiple then
                 if opt.value == nil then
                     opt.value = {}
@@ -265,6 +261,10 @@ function Getopt:parse(args, startn)
                 end
             end
             need_arg = false
+        elseif stop or args[n] == "-" then
+            table.insert(left, args[n])
+        elseif args[n] == "--" then
+            stop = true
         elseif args[n]:sub(1, 1) == "-" then
             if args[n]:sub(1, 2) == "--" then
                 name = args[n]:sub(3)

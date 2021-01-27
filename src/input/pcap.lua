@@ -79,7 +79,9 @@ function Pcap:activate()
     return C.input_pcap_activate(self.obj)
 end
 
--- Open a PCAP file for processing.
+-- Open a PCAP file for processing, see
+-- .BR pcap_open_offline (3pcap)
+-- for more information.
 -- Returns 0 on success.
 function Pcap:open_offline(file)
     return C.input_pcap_open_offline(self.obj, file)
