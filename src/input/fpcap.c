@@ -25,7 +25,6 @@
 #include "core/object/pcap.h"
 
 #include <stdio.h>
-#include <string.h>
 #ifdef HAVE_ENDIAN_H
 #include <endian.h>
 #else
@@ -61,7 +60,7 @@ static input_fpcap_t _defaults = {
     0, 0,
     0, 0, 0,
     CORE_OBJECT_PCAP_INIT(0),
-    0, 0, 0, 0,
+    0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0,
     0
 };
@@ -82,27 +81,15 @@ void input_fpcap_destroy(input_fpcap_t* self)
 {
     mlassert_self();
 
-    if (self->file && self->file != stdin) {
+    if (!self->extern_file && self->file) {
         fclose(self->file);
     }
     free(self->buf);
 }
 
-int input_fpcap_open(input_fpcap_t* self, const char* file)
+static int _open(input_fpcap_t* self)
 {
     mlassert_self();
-    lassert(file, "file is nil");
-
-    if (self->file) {
-        lfatal("already opened");
-    }
-
-    if (!strcmp("-", file)) {
-	    self->file = stdin;
-    } else if (!(self->file = fopen(file, "rb"))) {
-        lcritical("fopen(%s) error: %s", file, core_log_errstr(errno));
-        return -1;
-    }
 
     if (fread(&self->magic_number, 1, 4, self->file) != 4
         || fread(&self->version_major, 1, 2, self->file) != 2
@@ -190,6 +177,37 @@ int input_fpcap_open(input_fpcap_t* self, const char* file)
     ldebug("pcap v%u.%u snaplen:%lu %s", self->version_major, self->version_minor, self->snaplen, self->is_swapped ? " swapped" : "");
 
     return 0;
+}
+
+int input_fpcap_open(input_fpcap_t* self, const char* file)
+{
+    mlassert_self();
+    lassert(file, "file is nil");
+
+    if (self->file) {
+        lfatal("already opened");
+    }
+
+    if (!(self->file = fopen(file, "rb"))) {
+        lcritical("fopen(%s) error: %s", file, core_log_errstr(errno));
+        return -1;
+    }
+
+    return _open(self);
+}
+
+int input_fpcap_openfp(input_fpcap_t* self, void* fp)
+{
+    mlassert_self();
+
+    if (self->file) {
+        lfatal("already opened");
+    }
+
+    self->file        = fp;
+    self->extern_file = 1;
+
+    return _open(self);
 }
 
 int input_fpcap_run(input_fpcap_t* self)

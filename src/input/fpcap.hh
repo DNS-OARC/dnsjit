@@ -35,6 +35,7 @@ typedef struct input_fpcap {
     core_object_pcap_t prod_pkt;
 
     void*    file;
+    int      extern_file;
     size_t   pkts;
     uint8_t* buf;
     size_t   buf_size;
@@ -55,6 +56,7 @@ core_log_t* input_fpcap_log();
 void input_fpcap_init(input_fpcap_t* self);
 void input_fpcap_destroy(input_fpcap_t* self);
 int  input_fpcap_open(input_fpcap_t* self, const char* file);
+int  input_fpcap_openfp(input_fpcap_t* self, void* fp);
 int  input_fpcap_run(input_fpcap_t* self);
 
 core_producer_t input_fpcap_producer(input_fpcap_t* self);
