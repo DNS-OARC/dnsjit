@@ -1,4 +1,4 @@
--- Copyright (c) 2018-2019, CZ.NIC, z.s.p.o.
+-- Copyright (c) 2018-2021, CZ.NIC, z.s.p.o.
 -- All rights reserved.
 --
 -- This file is part of dnsjit.
@@ -56,6 +56,7 @@ local C = ffi.C
 
 local DnsSim = {}
 
+local _DNSSIM_VERSION = 20210129
 local _DNSSIM_JSON_VERSION = 20200527
 
 -- Create a new DnsSim output for up to max_clients.
@@ -66,6 +67,45 @@ function DnsSim.new(max_clients)
     }
     ffi.gc(self.obj, C.output_dnssim_free)
     return setmetatable(self, { __index = DnsSim })
+end
+
+local function _check_version(version, req_version)
+    if req_version == nil then
+        return version
+    end
+    local min_version = tonumber(req_version)
+    if min_version == nil then
+        C.output_dnssim_log():fatal("invalid version number: "..req_version)
+        return nil
+    end
+    if version >= min_version then
+        return version
+    end
+    return nil
+end
+
+-- Check that version of dnssim is at minimum the one passed as
+-- .B req_version
+-- and return the actual version number.
+-- Return nil if the condition is not met.
+--
+-- If no
+-- .B req_version
+-- is specified no check is done and only the version number is returned.
+function DnsSim.check_version(req_version)
+    return _check_version(_DNSSIM_VERSION, req_version)
+end
+
+-- Check that version of dnssim's JSON data format is at minimum the one passed as
+-- .B req_version
+-- and return the actual version number.
+-- Return nil if the condition is not met.
+--
+-- If no
+-- .B req_version
+-- is specified no check is done and only the version number is returned.
+function DnsSim.check_json_version(req_version)
+    return _check_version(_DNSSIM_JSON_VERSION, req_version)
 end
 
 -- Return the Log object to control logging of this instance or module.
