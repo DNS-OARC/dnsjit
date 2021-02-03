@@ -39,10 +39,14 @@ void _output_dnssim_conn_maybe_free(_output_dnssim_connection_t* conn)
     mlassert(conn, "conn can't be nil");
     mlassert(conn->client, "conn must belong to a client");
     if (conn->handle == NULL && conn->handshake_timer == NULL && conn->idle_timer == NULL) {
-        _ll_remove(conn->client->conn, conn);
+        _ll_try_remove(conn->client->conn, conn);
         if (conn->tls != NULL) {
             free(conn->tls);
             conn->tls = NULL;
+        }
+        if (conn->http2 != NULL) {
+            free(conn->http2);
+            conn->http2 = NULL;
         }
         free(conn);
     }
@@ -88,10 +92,19 @@ void _output_dnssim_conn_close(_output_dnssim_connection_t* conn)
         self->stats_sum->conn_handshakes_failed++;
         break;
     case _OUTPUT_DNSSIM_CONN_ACTIVE:
+    case _OUTPUT_DNSSIM_CONN_CONGESTED:
         self->stats_current->conn_active--;
         break;
-    default:
+    case _OUTPUT_DNSSIM_CONN_INITIALIZED:
+    case _OUTPUT_DNSSIM_CONN_CLOSE_REQUESTED:
         break;
+    default:
+        lfatal("unknown conn state: %d", conn->state);
+    }
+    if (conn->prevent_close) {
+        lassert(conn->state <= _OUTPUT_DNSSIM_CONN_CLOSE_REQUESTED, "conn already closing");
+        conn->state = _OUTPUT_DNSSIM_CONN_CLOSE_REQUESTED;
+        return;
     }
     conn->state = _OUTPUT_DNSSIM_CONN_CLOSING;
 
@@ -112,6 +125,13 @@ void _output_dnssim_conn_close(_output_dnssim_connection_t* conn)
     case OUTPUT_DNSSIM_TRANSPORT_TLS:
 #if GNUTLS_VERSION_NUMBER >= DNSSIM_MIN_GNUTLS_VERSION
         _output_dnssim_tls_close(conn);
+#else
+        lfatal(DNSSIM_MIN_GNUTLS_ERRORMSG);
+#endif
+        break;
+    case OUTPUT_DNSSIM_TRANSPORT_HTTPS2:
+#if GNUTLS_VERSION_NUMBER >= DNSSIM_MIN_GNUTLS_VERSION
+        _output_dnssim_https2_close(conn);
 #else
         lfatal(DNSSIM_MIN_GNUTLS_ERRORMSG);
 #endif
@@ -154,6 +174,13 @@ static void _send_pending_queries(_output_dnssim_connection_t* conn)
             case OUTPUT_DNSSIM_TRANSPORT_TLS:
 #if GNUTLS_VERSION_NUMBER >= DNSSIM_MIN_GNUTLS_VERSION
                 _output_dnssim_tls_write_query(conn, qry);
+#else
+                mlfatal(DNSSIM_MIN_GNUTLS_ERRORMSG);
+#endif
+                break;
+            case OUTPUT_DNSSIM_TRANSPORT_HTTPS2:
+#if GNUTLS_VERSION_NUMBER >= DNSSIM_MIN_GNUTLS_VERSION
+                _output_dnssim_https2_write_query(conn, qry);
 #else
                 mlfatal(DNSSIM_MIN_GNUTLS_ERRORMSG);
 #endif
@@ -206,6 +233,16 @@ int _output_dnssim_handle_pending_queries(_output_dnssim_client_t* client)
 #else
             lfatal(DNSSIM_MIN_GNUTLS_ERRORMSG);
 #endif
+        } else if (_self->transport == OUTPUT_DNSSIM_TRANSPORT_HTTPS2) {
+#if GNUTLS_VERSION_NUMBER >= DNSSIM_MIN_GNUTLS_VERSION
+            ret = _output_dnssim_https2_init(conn);
+            if (ret < 0) {
+                free(conn);
+                return ret;
+            }
+#else
+            lfatal(DNSSIM_MIN_GNUTLS_ERRORMSG);
+#endif
         }
         ret = _output_dnssim_tcp_connect(self, conn);
         if (ret < 0)
@@ -238,6 +275,10 @@ void _output_dnssim_conn_activate(_output_dnssim_connection_t* conn)
 int _process_dnsmsg(_output_dnssim_connection_t* conn)
 {
     mlassert(conn, "conn can't be nil");
+    mlassert(conn->client, "conn must have client");
+    mlassert(conn->client->dnssim, "client must have dnssim");
+
+    output_dnssim_t* self = conn->client->dnssim;
 
     core_object_payload_t payload = CORE_OBJECT_PAYLOAD_INIT(NULL);
     core_object_dns_t     dns_a   = CORE_OBJECT_DNS_INIT(&payload);
@@ -248,20 +289,47 @@ int _process_dnsmsg(_output_dnssim_connection_t* conn)
     dns_a.obj_prev = (core_object_t*)&payload;
     int ret        = core_object_dns_parse_header(&dns_a);
     if (ret != 0) {
-        mlwarning("tcp response malformed");
+        lwarning("tcp response malformed");
         return _ERR_MALFORMED;
     }
-    mldebug("tcp recv dnsmsg id: %04x", dns_a.id);
+    ldebug("tcp recv dnsmsg id: %04x", dns_a.id);
 
-    _output_dnssim_query_t* qry = conn->sent;
-    while (qry != NULL) {
-        if (qry->req->dns_q->id == dns_a.id) {
-            /* NOTE: QNAME, QTYPE and QCLASS checking (RFC 7766, Section 7) is
-             * omitted, since the MSGID is unique per connection. */
-            _output_dnssim_request_answered(qry->req, &dns_a);
+    _output_dnssim_query_t* qry;
+
+    if (_self->transport == OUTPUT_DNSSIM_TRANSPORT_HTTPS2) {
+        lassert(conn->http2, "conn must have http2 ctx");
+        lassert(conn->http2->current_qry, "http2 has no current_qry");
+        lassert(conn->http2->current_qry->qry.req, "current_qry has no req");
+        lassert(conn->http2->current_qry->qry.req->dns_q, "req has no dns_q");
+
+        ret = _output_dnssim_answers_request(conn->http2->current_qry->qry.req, &dns_a);
+        switch (ret) {
+        case 0:
+            _output_dnssim_request_answered(conn->http2->current_qry->qry.req, &dns_a);
+            break;
+        case _ERR_MSGID:
+            lwarning("https2 QID mismatch: request=0x%04x, response=0x%04x",
+                conn->http2->current_qry->qry.req->dns_q->id, dns_a.id);
+            break;
+        case _ERR_QUESTION:
+        default:
+            lwarning("https2 response question mismatch");
             break;
         }
-        qry = qry->next;
+    } else {
+        qry = conn->sent;
+        while (qry != NULL) {
+            if (qry->req->dns_q->id == dns_a.id) {
+                ret = _output_dnssim_answers_request(qry->req, &dns_a);
+                if (ret != 0) {
+                    lwarning("response question mismatch");
+                } else {
+                    _output_dnssim_request_answered(qry->req, &dns_a);
+                }
+                break;
+            }
+            qry = qry->next;
+        }
     }
 
     return 0;
@@ -374,4 +442,30 @@ void _output_dnssim_read_dns_stream(_output_dnssim_connection_t* conn, size_t le
         }
     }
     mlassert((pos == len) || (chunk < 0), "dns stream read invalid, pos != len");
+}
+
+void _output_dnssim_read_dnsmsg(_output_dnssim_connection_t* conn, size_t len, const char* data)
+{
+    mlassert(conn, "conn is nil");
+    mlassert(len > 0, "len is zero");
+    mlassert(data, "no data");
+    mlassert(conn->dnsbuf_pos == 0, "dnsbuf not empty");
+    mlassert(conn->dnsbuf_free_after_use == false, "dnsbuf read in progress");
+
+    /* Read dnsmsg of given length from input data. */
+    conn->dnsbuf_len = len;
+    conn->read_state = _OUTPUT_DNSSIM_READ_STATE_DNSMSG;
+    int nread        = _read_dns_stream_chunk(conn, len, data);
+
+    if (nread != len) {
+        mlwarning("failed to read received dnsmsg");
+        if (conn->dnsbuf_free_after_use)
+            free(conn->dnsbuf_data);
+    }
+
+    /* Clean state afterwards. */
+    conn->read_state            = _OUTPUT_DNSSIM_READ_STATE_DNSLEN;
+    conn->dnsbuf_len            = 2;
+    conn->dnsbuf_pos            = 0;
+    conn->dnsbuf_free_after_use = false;
 }

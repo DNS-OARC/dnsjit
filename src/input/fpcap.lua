@@ -1,4 +1,4 @@
--- Copyright (c) 2018-2020, OARC, Inc.
+-- Copyright (c) 2018-2021, OARC, Inc.
 -- All rights reserved.
 --
 -- This file is part of dnsjit.
@@ -104,6 +104,17 @@ end
 -- Returns 0 on success.
 function Fpcap:open(file)
     return C.input_fpcap_open(self.obj, file)
+end
+
+-- Open a PCAP file for processing and read the PCAP header using a
+-- file descriptor, for example
+-- .B io.stdin
+-- or with
+-- .BR io.open() .
+-- Will not take ownership of the file descriptor.
+-- Returns 0 on success.
+function Fpcap:openfp(fp)
+    return C.input_fpcap_openfp(self.obj, fp)
 end
 
 -- Start processing packets and send each packet read to the receiver.

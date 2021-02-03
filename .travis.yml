@@ -10,6 +10,7 @@ addons:
     - libck-dev
     - libgnutls28-dev
     - libuv1-dev
+    - libnghttp2-dev
 language: c
 compiler:
   - clang
@@ -25,3 +26,4 @@ script:
   - ../configure --enable-warn-all
   - make
   - make test
+  - cat src/test/test*.sh.log

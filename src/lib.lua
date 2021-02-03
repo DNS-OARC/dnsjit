@@ -1,4 +1,4 @@
--- Copyright (c) 2018-2020, OARC, Inc.
+-- Copyright (c) 2018-2021, OARC, Inc.
 -- All rights reserved.
 --
 -- This file is part of dnsjit.
@@ -20,6 +20,7 @@
 -- Various Lua libraries or C library bindings
 module(...,package.seeall)
 
+-- dnsjit.lib.base64url (3),
 -- dnsjit.lib.clock (3),
 -- dnsjit.lib.getopt (3),
 -- dnsjit.lib.ip (3),

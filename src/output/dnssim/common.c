@@ -27,6 +27,8 @@
 
 #include <string.h>
 
+#define MAX_LABELS 127
+
 static core_log_t _log = LOG_T_INIT("output.dnssim");
 
 static void _close_request(_output_dnssim_request_t* req);
@@ -34,6 +36,54 @@ static void _close_request(_output_dnssim_request_t* req);
 static void _on_request_timeout(uv_timer_t* handle)
 {
     _close_request((_output_dnssim_request_t*)handle->data);
+}
+
+static ssize_t parse_qsection(core_object_dns_t* dns)
+{
+    core_object_dns_q_t            q;
+    static core_object_dns_label_t labels[MAX_LABELS];
+    const uint8_t*                 start;
+    int                            i;
+    int                            ret;
+
+    if (!dns || !dns->have_qdcount)
+        return -1;
+
+    start = dns->at;
+
+    for (i = 0; i < dns->qdcount; i++) {
+        ret = core_object_dns_parse_q(dns, &q, labels, MAX_LABELS);
+        if (ret < 0)
+            return -1;
+    }
+
+    return (dns->at - start);
+}
+
+int _output_dnssim_answers_request(_output_dnssim_request_t* req, core_object_dns_t* response)
+{
+    const uint8_t* question;
+    ssize_t        len;
+
+    if (!response->have_id || !response->have_qdcount)
+        return _ERR_MALFORMED;
+
+    if (req->dns_q->id != response->id)
+        return _ERR_MSGID;
+
+    if (req->dns_q->qdcount != response->qdcount)
+        return _ERR_QUESTION;
+
+    question = response->at;
+    len      = parse_qsection(response);
+
+    if (req->question_len != len)
+        return _ERR_QUESTION;
+
+    if (memcmp(req->question, question, len) != 0)
+        return _ERR_QUESTION;
+
+    return 0;
 }
 
 void _output_dnssim_create_request(output_dnssim_t* self, _output_dnssim_client_t* client, core_object_payload_t* payload)
@@ -60,6 +110,13 @@ void _output_dnssim_create_request(output_dnssim_t* self, _output_dnssim_client_
         goto failure;
     }
 
+    req->question     = req->dns_q->at;
+    req->question_len = parse_qsection(req->dns_q);
+    if (req->question_len < 0) {
+        ldebug("discarded malformed dns query: invalid question");
+        goto failure;
+    }
+
     req->dnssim->stats_sum->requests++;
     req->stats->requests++;
 
@@ -74,6 +131,13 @@ void _output_dnssim_create_request(output_dnssim_t* self, _output_dnssim_client_
     case OUTPUT_DNSSIM_TRANSPORT_TLS:
 #if GNUTLS_VERSION_NUMBER >= DNSSIM_MIN_GNUTLS_VERSION
         ret = _output_dnssim_create_query_tls(self, req);
+#else
+        lfatal(DNSSIM_MIN_GNUTLS_ERRORMSG);
+#endif
+        break;
+    case OUTPUT_DNSSIM_TRANSPORT_HTTPS2:
+#if GNUTLS_VERSION_NUMBER >= DNSSIM_MIN_GNUTLS_VERSION
+        ret = _output_dnssim_create_query_https2(self, req);
 #else
         lfatal(DNSSIM_MIN_GNUTLS_ERRORMSG);
 #endif
@@ -108,7 +172,11 @@ int _output_dnssim_bind_before_connect(output_dnssim_t* self, uv_handle_t* handl
 
     if (_self->source != NULL) {
         struct sockaddr* addr = (struct sockaddr*)&_self->source->addr;
+        struct sockaddr* dest = (struct sockaddr*)&_self->target;
         int              ret  = -1;
+        if (addr->sa_family != dest->sa_family) {
+            lfatal("failed to bind: source/desitnation address family mismatch");
+        }
         switch (handle->type) {
         case UV_UDP:
             ret = uv_udp_bind((uv_udp_t*)handle, addr, 0);
@@ -117,11 +185,13 @@ int _output_dnssim_bind_before_connect(output_dnssim_t* self, uv_handle_t* handl
             ret = uv_tcp_bind((uv_tcp_t*)handle, addr, 0);
             break;
         default:
-            lfatal("bind before connect: unsupported handle type");
+            lfatal("failed to bind: unsupported handle type");
             break;
         }
         if (ret < 0) {
-            lwarning("failed to bind to address: %s", uv_strerror(ret));
+            /* This typically happens when we run out of file descriptors.
+             * Quit to prevent skewed results or unexpected behaviour. */
+            lfatal("failed to bind: %s", uv_strerror(ret));
             return ret;
         }
         _self->source = _self->source->next;
@@ -156,6 +226,13 @@ static void _close_query(_output_dnssim_query_t* qry)
     case OUTPUT_DNSSIM_TRANSPORT_TLS:
 #if GNUTLS_VERSION_NUMBER >= DNSSIM_MIN_GNUTLS_VERSION
         _output_dnssim_close_query_tls((_output_dnssim_query_tcp_t*)qry);
+#else
+        mlfatal(DNSSIM_MIN_GNUTLS_ERRORMSG);
+#endif
+        break;
+    case OUTPUT_DNSSIM_TRANSPORT_HTTPS2:
+#if GNUTLS_VERSION_NUMBER >= DNSSIM_MIN_GNUTLS_VERSION
+        _output_dnssim_close_query_https2((_output_dnssim_query_tcp_t*)qry);
 #else
         mlfatal(DNSSIM_MIN_GNUTLS_ERRORMSG);
 #endif

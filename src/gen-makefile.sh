@@ -1,6 +1,6 @@
 #!/bin/sh
 
-echo '# Copyright (c) 2018-2020, OARC, Inc.
+echo '# Copyright (c) 2018-2021, OARC, Inc.
 # All rights reserved.
 #
 # This file is part of dnsjit.
@@ -19,7 +19,7 @@ echo '# Copyright (c) 2018-2020, OARC, Inc.
 # along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
 
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
-CLEANFILES =
+CLEANFILES = *.gcda *.gcno *.gcov
 
 SUBDIRS = test
 
@@ -29,7 +29,8 @@ AM_CFLAGS = -Werror=attributes \
   $(SIMD_FLAGS) $(CPUEXT_FLAGS) \
   $(PTHREAD_CFLAGS) \
   $(luajit_CFLAGS) \
-  $(libuv_CFLAGS)
+  $(libuv_CFLAGS) \
+  $(libnghttp2_CFLAGS)
 
 EXTRA_DIST = gen-manpage.lua gen-compat.lua gen-errno.sh dnsjit.1in
 
@@ -42,7 +43,7 @@ dist_dnsjit_SOURCES = core.lua lib.lua input.lua filter.lua globals.h \
   output.lua
 lua_hobjects = core/compat.luaho
 lua_objects = core.luao lib.luao input.luao filter.luao output.luao
-dnsjit_LDADD = $(PTHREAD_LIBS) $(luajit_LIBS) $(libuv_LIBS)
+dnsjit_LDADD = $(PTHREAD_LIBS) $(luajit_LIBS) $(libuv_LIBS) $(libnghttp2_LIBS)
 
 # C source and headers';
 
@@ -99,6 +100,13 @@ echo 'CLEANFILES += *.3in $(man3_MANS)
   -e '"'"'s,[@]PACKAGE_URL[@],$(PACKAGE_URL),g'"'"' \
   -e '"'"'s,[@]PACKAGE_BUGREPORT[@],$(PACKAGE_BUGREPORT),g'"'"' \
   < "$<" > "$@"
+
+if ENABLE_GCOV
+gcov-local:
+	for src in $(dnsjit_SOURCES); do \
+	  gcov -x -l -r -s "$(srcdir)" "$$src"; \
+	done
+endif
 
 core/compat.hh: gen-compat.lua
 	$(LUAJIT) "$(srcdir)/gen-compat.lua" > "$@"

@@ -30,7 +30,8 @@
 #include <gnutls/gnutls.h>
 #include <string.h>
 
-static core_log_t _log = LOG_T_INIT("output.dnssim");
+static core_log_t      _log      = LOG_T_INIT("output.dnssim");
+static output_dnssim_t _defaults = { LOG_T_INIT_OBJ("output.dnssim") };
 
 static uint64_t _now_ms()
 {
@@ -60,12 +61,14 @@ output_dnssim_t* output_dnssim_new(size_t max_clients)
     int              ret, i;
 
     mlfatal_oom(self = calloc(1, sizeof(_output_dnssim_t)));
+    *self                      = _defaults;
     self->handshake_timeout_ms = 5000;
     self->idle_timeout_ms      = 10000;
     output_dnssim_timeout_ms(self, 2000);
 
-    _self->source    = NULL;
-    _self->transport = OUTPUT_DNSSIM_TRANSPORT_UDP_ONLY;
+    _self->source            = NULL;
+    _self->transport         = OUTPUT_DNSSIM_TRANSPORT_UDP_ONLY;
+    _self->h2_zero_out_msgid = false;
 
     self->max_clients = max_clients;
     lfatal_oom(_self->client_arr = calloc(max_clients, sizeof(_output_dnssim_client_t)));
@@ -133,6 +136,16 @@ void output_dnssim_free(output_dnssim_t* self)
     }
 
     free(self);
+}
+
+void output_dnssim_log_name(output_dnssim_t* self, const char* name)
+{
+    mlassert_self();
+    lassert(name, "name is nil");
+
+    strncpy(self->_log.name, name, sizeof(self->_log.name) - 1);
+    self->_log.name[sizeof(self->_log.name) - 1] = 0;
+    self->_log.is_obj                            = false;
 }
 
 static uint32_t _extract_client(const core_object_t* obj)
@@ -205,6 +218,18 @@ static void _receive(output_dnssim_t* self, const core_object_t* obj)
         }
     }
 
+    if (_self->h2_zero_out_msgid) {
+        lassert(_self->transport == OUTPUT_DNSSIM_TRANSPORT_HTTPS2, "must use HTTP/2 to zero-out msgid");
+        if (payload->len < 2) {
+            self->discarded++;
+            lwarning("packet discarded (payload len < 2)");
+            return;
+        }
+        uint8_t* data = (uint8_t*)payload->payload;
+        data[0]       = 0x00;
+        data[1]       = 0x00;
+    }
+
     if (client >= self->max_clients) {
         self->discarded++;
         lwarning("packet discarded (client exceeded max_clients)");
@@ -238,7 +263,18 @@ void output_dnssim_set_transport(output_dnssim_t* self, output_dnssim_transport_
         lfatal(DNSSIM_MIN_GNUTLS_ERRORMSG);
 #endif
         break;
+    case OUTPUT_DNSSIM_TRANSPORT_HTTPS2:
+#if GNUTLS_VERSION_NUMBER >= DNSSIM_MIN_GNUTLS_VERSION
+        lnotice("transport set to HTTP/2 over TLS");
+        if (&_self->h2_uri_authority[0])
+            lnotice("set uri authority to: %s", _self->h2_uri_authority);
+#else
+        lfatal(DNSSIM_MIN_GNUTLS_ERRORMSG);
+#endif
+        break;
     case OUTPUT_DNSSIM_TRANSPORT_UDP:
+        lfatal("UDP transport with TCP fallback is not supported yet.");
+        break;
     default:
         lfatal("unknown or unsupported transport");
         break;
@@ -256,14 +292,23 @@ int output_dnssim_target(output_dnssim_t* self, const char* ip, uint16_t port)
 
     ret = uv_ip6_addr(ip, port, (struct sockaddr_in6*)&_self->target);
     if (ret != 0) {
-        lcritical("failed to parse IPv6 from \"%s\"", ip);
-        return -1;
-        // TODO IPv4 support
-        //ret = uv_ip4_addr(ip, port, (struct sockaddr_in*)&_self->target);
-        //if (ret != 0) {
-        //    lcritical("failed to parse IP/IP6 from \"%s\"", ip);
-        //    return -1;
-        //}
+        ret = uv_ip4_addr(ip, port, (struct sockaddr_in*)&_self->target);
+        if (ret != 0) {
+            lfatal("failed to parse IPv4 or IPv6 from \"%s\"", ip);
+        } else {
+            ret = snprintf(_self->h2_uri_authority, _MAX_URI_LEN, "%s:%d", ip, port);
+        }
+    } else {
+        ret = snprintf(_self->h2_uri_authority, _MAX_URI_LEN, "[%s]:%d", ip, port);
+    }
+
+    if (ret > 0) {
+        if (_self->transport == OUTPUT_DNSSIM_TRANSPORT_HTTPS2)
+            lnotice("set uri authority to: %s", _self->h2_uri_authority);
+    } else {
+        _self->h2_uri_authority[0] = '\0';
+        if (_self->transport == OUTPUT_DNSSIM_TRANSPORT_HTTPS2)
+            lfatal("failed to set authority");
     }
 
     lnotice("set target to %s port %d", ip, port);
@@ -281,9 +326,10 @@ int output_dnssim_bind(output_dnssim_t* self, const char* ip)
 
     ret = uv_ip6_addr(ip, 0, (struct sockaddr_in6*)&source->addr);
     if (ret != 0) {
-        lfatal("failed to parse IPv6 from \"%s\"", ip);
-        return -1;
-        // TODO IPv4 support
+        ret = uv_ip4_addr(ip, 0, (struct sockaddr_in*)&source->addr);
+        if (ret != 0) {
+            lfatal("failed to parse IPv4 or IPv6 from \"%s\"", ip);
+        }
     }
 
     if (_self->source == NULL) {
@@ -355,6 +401,43 @@ void output_dnssim_timeout_ms(output_dnssim_t* self, uint64_t timeout_ms)
     lfatal_oom(self->stats_current->latency = calloc(self->timeout_ms + 1, sizeof(uint64_t)));
 
     self->stats_first = self->stats_current;
+}
+
+void output_dnssim_h2_uri_path(output_dnssim_t* self, const char* uri_path)
+{
+    mlassert_self();
+    lassert(uri_path, "uri_path is nil");
+    lassert(strlen(uri_path) < _MAX_URI_LEN, "uri_path too long");
+
+    strncpy(_self->h2_uri_path, uri_path, _MAX_URI_LEN - 1);
+    _self->h2_uri_path[_MAX_URI_LEN - 1] = 0;
+    lnotice("http2: set uri path to: %s", _self->h2_uri_path);
+}
+
+void output_dnssim_h2_method(output_dnssim_t* self, const char* method)
+{
+    mlassert_self();
+    lassert(method, "method is nil");
+
+    if (strcmp("GET", method) == 0) {
+        _self->h2_method = OUTPUT_DNSSIM_H2_GET;
+    } else if (strcmp("POST", method) == 0) {
+        _self->h2_method = OUTPUT_DNSSIM_H2_POST;
+    } else {
+        lfatal("http2: unsupported method: \"%s\"", method);
+    }
+
+    lnotice("http2: set method to %s", method);
+}
+
+void output_dnssim_h2_zero_out_msgid(output_dnssim_t* self, bool zero_out_msgid)
+{
+    mlassert_self();
+
+    if (zero_out_msgid) {
+        lassert(_self->transport == OUTPUT_DNSSIM_TRANSPORT_HTTPS2, "transport must be set to HTTP/2 to set zero_out_msgid");
+        _self->h2_zero_out_msgid = zero_out_msgid;
+    }
 }
 
 static void _on_stats_timer_tick(uv_timer_t* handle)

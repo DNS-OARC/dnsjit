@@ -54,6 +54,11 @@ static int _process_udp_response(uv_udp_t* handle, ssize_t nread, const uv_buf_t
         mldebug("udp response has TC=1");
         return _ERR_TC;
     }
+    ret = _output_dnssim_answers_request(req, &dns_a);
+    if (ret != 0) {
+        mlwarning("udp reponse question mismatch");
+        return _ERR_QUESTION;
+    }
 
     _output_dnssim_request_answered(req, &dns_a);
     return 0;
@@ -135,12 +140,6 @@ int _output_dnssim_create_query_udp(output_dnssim_t* self, _output_dnssim_reques
         lwarning("failed to send udp packet: %s", uv_strerror(ret));
         return ret;
     }
-
-    // TODO IPv4
-    struct sockaddr_in6 src;
-    int                 addr_len = sizeof(src);
-    uv_udp_getsockname(qry->handle, (struct sockaddr*)&src, &addr_len);
-    ldebug("sent udp from port: %d", ntohs(src.sin6_port));
 
     // listen for reply
     ret = uv_udp_recv_start(qry->handle, _output_dnssim_on_uv_alloc, _on_udp_query_recv);

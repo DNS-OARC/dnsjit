@@ -25,8 +25,14 @@ typedef enum output_dnssim_transport {
     OUTPUT_DNSSIM_TRANSPORT_UDP_ONLY,
     OUTPUT_DNSSIM_TRANSPORT_UDP,
     OUTPUT_DNSSIM_TRANSPORT_TCP,
-    OUTPUT_DNSSIM_TRANSPORT_TLS
+    OUTPUT_DNSSIM_TRANSPORT_TLS,
+    OUTPUT_DNSSIM_TRANSPORT_HTTPS2
 } output_dnssim_transport_t;
+
+typedef enum output_dnssim_h2_method {
+    OUTPUT_DNSSIM_H2_GET,
+    OUTPUT_DNSSIM_H2_POST
+} output_dnssim_h2_method_t;
 
 typedef struct output_dnssim_stats output_dnssim_stats_t;
 struct output_dnssim_stats {
@@ -101,12 +107,16 @@ core_log_t* output_dnssim_log();
 output_dnssim_t* output_dnssim_new(size_t max_clients);
 void             output_dnssim_free(output_dnssim_t* self);
 
+void output_dnssim_log_name(output_dnssim_t* self, const char* name);
 void output_dnssim_set_transport(output_dnssim_t* self, output_dnssim_transport_t tr);
 int  output_dnssim_target(output_dnssim_t* self, const char* ip, uint16_t port);
 int  output_dnssim_bind(output_dnssim_t* self, const char* ip);
 int  output_dnssim_tls_priority(output_dnssim_t* self, const char* priority);
 int  output_dnssim_run_nowait(output_dnssim_t* self);
 void output_dnssim_timeout_ms(output_dnssim_t* self, uint64_t timeout_ms);
+void output_dnssim_h2_uri_path(output_dnssim_t* self, const char* uri_path);
+void output_dnssim_h2_method(output_dnssim_t* self, const char* method);
+void output_dnssim_h2_zero_out_msgid(output_dnssim_t* self, bool zero_out_msgid);
 void output_dnssim_stats_collect(output_dnssim_t* self, uint64_t interval_ms);
 void output_dnssim_stats_finish(output_dnssim_t* self);
 

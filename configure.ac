@@ -1,4 +1,4 @@
-# Copyright (c) 2018-2020, OARC, Inc.
+# Copyright (c) 2018-2021, OARC, Inc.
 # All rights reserved.
 #
 # This file is part of dnsjit.
@@ -17,9 +17,9 @@
 # along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
 
 AC_PREREQ(2.64)
-AC_INIT([dnsjit], [1.0.0], [admin@dns-oarc.net], [dnsjit], [https://github.com/DNS-OARC/dnsjit/issues])
+AC_INIT([dnsjit], [1.1.0], [admin@dns-oarc.net], [dnsjit], [https://github.com/DNS-OARC/dnsjit/issues])
 AC_DEFINE([PACKAGE_MAJOR_VERSION], [1], [Define to the major version of this package.])
-AC_DEFINE([PACKAGE_MINOR_VERSION], [0], [Define to the minor version of this package.])
+AC_DEFINE([PACKAGE_MINOR_VERSION], [1], [Define to the minor version of this package.])
 AC_DEFINE([PACKAGE_PATCH_VERSION], [0], [Define to the patch version of this package.])
 AM_INIT_AUTOMAKE([-Wall -Werror foreign subdir-objects])
 AC_CONFIG_SRCDIR([src/dnsjit.c])
@@ -43,10 +43,19 @@ AC_ARG_WITH([extra-cflags], [AS_HELP_STRING([--with-extra-cflags=CFLAGS], [Add e
 ])
 
 # Check --with-extra-ldflags
-AC_ARG_WITH([extra-ldflags], [AS_HELP_STRING([--with-extra-ldflags=CFLAGS], [Add extra LDFLAGS])], [
+AC_ARG_WITH([extra-ldflags], [AS_HELP_STRING([--with-extra-ldflags=LDFLAGS], [Add extra LDFLAGS])], [
   AC_MSG_NOTICE([appending extra LDFLAGS... $withval])
   AS_VAR_APPEND(LDFLAGS, [" $withval"])
 ])
+
+# Check --enable-gcov
+AC_ARG_ENABLE([gcov], [AS_HELP_STRING([--enable-gcov], [Enable coverage testing])], [
+  coverage_cflags="--coverage" # ld fails with: -g -O0 -fno-inline -fno-inline-small-functions -fno-default-inline
+  AC_MSG_NOTICE([enabling coverage testing... $coverage_cflags])
+  AS_VAR_APPEND(CFLAGS, [" $coverage_cflags"])
+])
+AM_CONDITIONAL([ENABLE_GCOV], [test "x$enable_gcov" != "xno"])
+AM_EXTRA_RECURSIVE_TARGETS([gcov])
 
 # Checks for support.
 AC_ARG_ENABLE([cpuext], [AS_HELP_STRING([--enable-cpuext], [check for and enable all available CPU extensions])], [
@@ -75,6 +84,7 @@ fi
 AC_CHECK_HEADERS([lmdb.h])
 AC_CHECK_LIB([lmdb], [mdb_env_create])
 PKG_CHECK_MODULES([libuv], [libuv])
+PKG_CHECK_MODULES([libnghttp2], [libnghttp2])
 PKG_CHECK_MODULES([ck], [ck >= 0], [
   AS_VAR_APPEND([CFLAGS], [" $ck_CFLAGS"])
   AS_VAR_APPEND([LIBS], [" $ck_LIBS"])

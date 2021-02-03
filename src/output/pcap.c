@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2020, OARC, Inc.
+ * Copyright (c) 2018-2021, OARC, Inc.
  * All rights reserved.
  *
  * This file is part of dnsjit.
@@ -60,7 +60,7 @@ int output_pcap_open(output_pcap_t* self, const char* file, int linktype, int sn
     }
 
     if (!(self->dumper = pcap_dump_open(self->pcap, file))) {
-        lcritical("pcap_dump_open() failed");
+        lcritical("pcap_dump_open() error: %s", pcap_geterr(self->pcap));
         pcap_close(self->pcap);
         self->pcap = 0;
         return -1;

@@ -1,4 +1,4 @@
--- Copyright (c) 2018-2020, OARC, Inc.
+-- Copyright (c) 2018-2021, OARC, Inc.
 -- All rights reserved.
 --
 -- This file is part of dnsjit.
@@ -313,6 +313,11 @@ function Log:display_file_line(bool)
     else
         self.settings.display_file_line = 0
     end
+end
+
+-- Convert error number to its text representation.
+function Log.errstr(errno)
+    return ffi.string(C.core_log_errstr(errno))
 end
 
 -- Generate a debug message.

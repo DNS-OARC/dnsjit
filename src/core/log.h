@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2020, OARC, Inc.
+ * Copyright (c) 2018-2021, OARC, Inc.
  * All rights reserved.
  *
  * This file is part of dnsjit.
@@ -101,7 +101,5 @@
 #define glfatal_oom(expression) \
     if (!(expression))          \
     core_log_fatal(0, __FILE__, __LINE__, "out of memory")
-
-const char* core_log_errstr(int err);
 
 #endif

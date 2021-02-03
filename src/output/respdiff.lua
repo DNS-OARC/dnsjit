@@ -1,4 +1,4 @@
--- Copyright (c) 2018-2020, OARC, Inc.
+-- Copyright (c) 2018-2021, OARC, Inc.
 -- All rights reserved.
 --
 -- This file is part of dnsjit.
@@ -90,5 +90,5 @@ function Respdiff:commit(start_time, end_time)
     C.output_respdiff_commit(self.obj, self.origname, self.recvname, start_time, end_time)
 end
 
--- respdiff " https://gitlab.labs.nic.cz/knot/respdiff"
+-- respdiff " https://gitlab.nic.cz/knot/respdiff"
 return Respdiff
