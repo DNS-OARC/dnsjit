@@ -30,6 +30,7 @@ typedef struct output_pcap {
     core_log_t     _log;
     pcap_t*        pcap;
     pcap_dumper_t* dumper;
+    void*          fp;
 } output_pcap_t;
 
 core_log_t* output_pcap_log();

@@ -59,10 +59,20 @@ int output_pcap_open(output_pcap_t* self, const char* file, int linktype, int sn
         return -1;
     }
 
-    if (!(self->dumper = pcap_dump_open(self->pcap, file))) {
+    if (file[0] == '-' && file[1] == '\0') {
+        self->fp = stdout;
+    } else if (!(self->fp = fopen(file, "wb"))) {
+        lcritical("fopen() failed");
+        return -1;
+    }
+
+    if (!(self->dumper = pcap_dump_fopen(self->pcap, self->fp))) {
         lcritical("pcap_dump_open() error: %s", pcap_geterr(self->pcap));
         pcap_close(self->pcap);
         self->pcap = 0;
+        if (self->fp != stdout)
+            fclose(self->fp);
+        self->fp = 0;
         return -1;
     }
 
@@ -73,8 +83,17 @@ void output_pcap_close(output_pcap_t* self)
 {
     mlassert_self();
     if (self->dumper) {
-        pcap_dump_close(self->dumper);
+        if (ferror(self->fp)) {
+            lfatal("error while writting to output PCAP");
+        } else if (fflush(self->fp)) {
+            /* detect errors on buffered data before closing file
+             * - we do not have access to return code from fclose() */
+            lfatal("error while flushing output PCAP (errno %d)", errno);
+        }
+        if (self->fp != stdout)
+            pcap_dump_close(self->dumper);  /* calls fclose() implicitly */
         self->dumper = 0;
+        self->fp = 0;
     }
     if (self->pcap) {
         pcap_close(self->pcap);
