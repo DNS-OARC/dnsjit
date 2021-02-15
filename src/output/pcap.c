@@ -114,6 +114,8 @@ static void _receive(output_pcap_t* self, const core_object_t* obj)
             hdr.len        = ((const core_object_pcap_t*)obj)->len;
 
             pcap_dump((void*)self->dumper, &hdr, ((const core_object_pcap_t*)obj)->bytes);
+            if (ferror(self->fp))
+                lfatal("error while dumping to PCAP file");
             return;
         }
         obj = obj->obj_prev;
