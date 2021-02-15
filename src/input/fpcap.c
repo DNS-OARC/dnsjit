@@ -24,6 +24,7 @@
 #include "core/assert.h"
 #include "core/object/pcap.h"
 
+#include <fcntl.h>
 #include <stdio.h>
 #ifdef HAVE_ENDIAN_H
 #include <endian.h>
@@ -90,6 +91,9 @@ void input_fpcap_destroy(input_fpcap_t* self)
 static int _open(input_fpcap_t* self)
 {
     mlassert_self();
+    int fd = fileno(self->file);
+    if (fd != -1)
+        (void)posix_fadvise(fd, 0, 0, POSIX_FADV_SEQUENTIAL);
 
     if (fread(&self->magic_number, 1, 4, self->file) != 4
         || fread(&self->version_major, 1, 2, self->file) != 2
