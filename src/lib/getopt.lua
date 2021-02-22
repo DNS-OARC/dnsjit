@@ -117,13 +117,13 @@ function Getopt:add(short, long, default, help, extensions)
     local counter = false
     local name = long or short
 
-    if short and (type(short) ~= "string" or #short ~= 1) then
-        error("short needs to be a string of length 1 or nil")
-    end
     if type(name) ~= "string" then
         error("long|short) need to be a string")
     elseif name == "" then
         error("name (long|short) needs to be set")
+    end
+    if short and (type(short) ~= "string" or #short ~= 1) then
+        error("short needs to be a string of length 1")
     end
 
     if self._opt[name] then
