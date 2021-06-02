@@ -1,6 +1,6 @@
 # Engine for capturing, parsing and replaying DNS
 
-[![Build Status](https://travis-ci.com/DNS-OARC/dnsjit.svg?branch=develop)](https://travis-ci.com/DNS-OARC/dnsjit) [![Total alerts](https://img.shields.io/lgtm/alerts/g/DNS-OARC/dnsjit.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/DNS-OARC/dnsjit/alerts/) [![Bugs](https://sonarcloud.io/api/project_badges/measure?project=dns-oarc%3Adnsjit&metric=bugs)](https://sonarcloud.io/dashboard?id=dns-oarc%3Adnsjit) [![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=dns-oarc%3Adnsjit&metric=security_rating)](https://sonarcloud.io/dashboard?id=dns-oarc%3Adnsjit)
+[![Total alerts](https://img.shields.io/lgtm/alerts/g/DNS-OARC/dnsjit.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/DNS-OARC/dnsjit/alerts/) [![Bugs](https://sonarcloud.io/api/project_badges/measure?project=dns-oarc%3Adnsjit&metric=bugs)](https://sonarcloud.io/dashboard?id=dns-oarc%3Adnsjit) [![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=dns-oarc%3Adnsjit&metric=security_rating)](https://sonarcloud.io/dashboard?id=dns-oarc%3Adnsjit)
 
 **dnsjit** is a combination of parts taken from **dsc**, **dnscap**, **drool**,
 and put together around Lua to create a script-based engine for easy
