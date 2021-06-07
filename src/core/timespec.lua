@@ -19,14 +19,36 @@
 -- dnsjit.core.receiver
 -- Non-system depended time specification structure definition
 --   typedef struct core_timespec {
---       uint64_t sec;
---       uint64_t nsec;
+--       int64_t sec;
+--       int64_t nsec;
 --   } core_timespec_t;
 -- .SS C
 --   #include "core/timespec.h"
 -- .SS Lua
 --   require("dnsjit.core.timespec_h")
+-- .SS Lua functions
+--   local ts = require("dnsjit.core.timespec"):max_init()
 --
 -- Mainly used in C modules for a system independent time specification
 -- structure that can be passed to Lua.
 module(...,package.seeall)
+
+require("dnsjit.core.timespec_h")
+
+local ffi = require("ffi")
+
+local Timespec = {}
+
+-- Return a new structure with both
+-- .I sec
+-- and
+-- .I nsec
+-- set to 2LL ^ 62, the maximum positive values according to Lua.
+function Timespec:max_init()
+    local ts = ffi.new("core_timespec_t")
+    ts.sec = 2LL ^ 62
+    ts.nsec = 2LL ^ 62
+    return ts
+end
+
+return Timespec
