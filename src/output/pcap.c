@@ -82,6 +82,15 @@ void output_pcap_close(output_pcap_t* self)
     }
 }
 
+int output_pcap_have_errors(output_pcap_t* self)
+{
+    mlassert_self();
+    if (self->dumper) {
+        return ferror(pcap_dump_file(self->dumper));
+    }
+    return 0;
+}
+
 static void _receive(output_pcap_t* self, const core_object_t* obj)
 {
     struct pcap_pkthdr hdr;
