@@ -35,7 +35,7 @@ typedef struct input_fpcap {
     core_object_pcap_t prod_pkt;
 
     void*    file;
-    int      extern_file;
+    int      extern_file, use_fadvise;
     size_t   pkts;
     uint8_t* buf;
     size_t   buf_size;

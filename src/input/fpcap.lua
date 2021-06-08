@@ -100,6 +100,15 @@ function Fpcap:produce()
     return C.input_fpcap_producer(self.obj), self.obj
 end
 
+-- Use
+-- .B posix_fadvise()
+-- to indicate sequential reading (if supported), may increase performance.
+-- MUST be called before
+-- .BR open() .
+function Fpcap:fadvise_sequential()
+    self.obj.use_fadvise = 1
+end
+
 -- Open a PCAP file for processing and read the PCAP header.
 -- Returns 0 on success.
 function Fpcap:open(file)

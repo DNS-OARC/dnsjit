@@ -117,7 +117,6 @@ int input_mmpcap_open(input_mmpcap_t* self, const char* file)
         lcritical("mmap(%s) error %s", file, core_log_errstr(errno));
         return -1;
     }
-    (void)posix_madvise(self->buf, self->len, POSIX_MADV_SEQUENTIAL);
 
     if (self->len < 24) {
         lcritical("could not read full PCAP header");
