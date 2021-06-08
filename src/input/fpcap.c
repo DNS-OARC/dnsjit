@@ -24,6 +24,7 @@
 #include "core/assert.h"
 #include "core/object/pcap.h"
 
+#include <fcntl.h>
 #include <stdio.h>
 #ifdef HAVE_ENDIAN_H
 #include <endian.h>
@@ -60,7 +61,7 @@ static input_fpcap_t _defaults = {
     0, 0,
     0, 0, 0,
     CORE_OBJECT_PCAP_INIT(0),
-    0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0,
     0
 };
@@ -90,6 +91,16 @@ void input_fpcap_destroy(input_fpcap_t* self)
 static int _open(input_fpcap_t* self)
 {
     mlassert_self();
+
+#if _POSIX_C_SOURCE >= 200112L || defined(__FreeBSD__)
+    if (self->use_fadvise) {
+        int err = posix_fadvise(fileno((FILE*)self->file), 0, 0, POSIX_FADV_SEQUENTIAL);
+        if (err) {
+            lcritical("posix_fadvise() failed: %s", core_log_errstr(err));
+            return -2;
+        }
+    }
+#endif
 
     if (fread(&self->magic_number, 1, 4, self->file) != 4
         || fread(&self->version_major, 1, 2, self->file) != 2
