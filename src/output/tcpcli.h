@@ -18,15 +18,15 @@
  * along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "core/log.h"
-#include "core/receiver.h"
-#include "core/producer.h"
-#include "core/object/payload.h"
-#include "core/timespec.h"
+#include <dnsjit/core/log.h>
+#include <dnsjit/core/receiver.h>
+#include <dnsjit/core/producer.h>
+#include <dnsjit/core/object/payload.h>
+#include <dnsjit/core/timespec.h>
 
 #ifndef __dnsjit_output_tcpcli_h
 #define __dnsjit_output_tcpcli_h
 
-#include "output/tcpcli.hh"
+#include <dnsjit/output/tcpcli.hh>
 
 #endif

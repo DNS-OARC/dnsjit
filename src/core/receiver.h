@@ -18,11 +18,11 @@
  * along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "core/object.h"
+#include <dnsjit/core/object.h>
 
 #ifndef __dnsjit_core_receiver_h
 #define __dnsjit_core_receiver_h
 
-#include "core/receiver.hh"
+#include <dnsjit/core/receiver.hh>
 
 #endif

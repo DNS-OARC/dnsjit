@@ -18,8 +18,8 @@
  * along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "core/log.h"
-#include "core/object.h"
+#include <dnsjit/core/log.h>
+#include <dnsjit/core/object.h>
 
 #ifndef __dnsjit_core_object_dns_h
 #define __dnsjit_core_object_dns_h
@@ -27,7 +27,7 @@
 #include <netinet/in.h>
 #include <sys/types.h>
 
-#include "core/object/dns.hh"
+#include <dnsjit/core/object/dns.hh>
 
 #define CORE_OBJECT_DNS_INIT(prev)                          \
     {                                                       \

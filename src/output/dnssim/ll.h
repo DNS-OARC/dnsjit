@@ -21,7 +21,7 @@
 #ifndef __dnsjit_output_dnssim_ll_h
 #define __dnsjit_output_dnssim_ll_h
 
-#include "core/assert.h"
+#include <dnsjit/core/assert.h>
 
 /* Utility macros for linked list structures.
  *

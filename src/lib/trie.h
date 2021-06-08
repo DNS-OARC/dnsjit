@@ -22,7 +22,7 @@
 #ifndef __dnsjit_contrib_trie_h
 #define __dnsjit_contrib_trie_h
 
-#include "lib/trie.hh"
+#include <dnsjit/lib/trie.hh>
 
 #ifndef likely
 /*! \brief Optimize for x to be true value. */

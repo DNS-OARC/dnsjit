@@ -17,7 +17,8 @@
 # You should have received a copy of the GNU General Public License
 # along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
 
-../dnsjit "$srcdir/../../examples/test_throughput.lua" -vvvvv -t -s 1000000
+# TODO: install input-example?
+# ../dnsjit "$srcdir/../../examples/test_throughput.lua" -vvvvv -t -s 1000000
 ../dnsjit "$srcdir/../../examples/test_pcap_read.lua" -vvvvv dns.pcap-dist
 ../dnsjit "$srcdir/../../examples/test_pcap_read.lua" -l -vvvvv dns.pcap-dist
 ../dnsjit "$srcdir/../../examples/test_pcap_read.lua" -p -vvvvv dns.pcap-dist

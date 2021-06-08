@@ -18,11 +18,11 @@
  * along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "core/object.h"
+#include <dnsjit/core/object.h>
 
 #ifndef __dnsjit_core_producer_h
 #define __dnsjit_core_producer_h
 
-#include "core/producer.hh"
+#include <dnsjit/core/producer.hh>
 
 #endif

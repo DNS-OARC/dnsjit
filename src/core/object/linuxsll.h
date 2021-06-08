@@ -18,15 +18,15 @@
  * along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "core/object.h"
-#include "core/timespec.h"
+#include <dnsjit/core/object.h>
+#include <dnsjit/core/timespec.h>
 
 #ifndef __dnsjit_core_object_linuxsll_h
 #define __dnsjit_core_object_linuxsll_h
 
 #include <stddef.h>
 
-#include "core/object/linuxsll.hh"
+#include <dnsjit/core/object/linuxsll.hh>
 
 #define CORE_OBJECT_LINUXSLL_INIT(prev)              \
     {                                                \

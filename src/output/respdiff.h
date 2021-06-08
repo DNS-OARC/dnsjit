@@ -18,14 +18,14 @@
  * along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "core/log.h"
-#include "core/receiver.h"
+#include <dnsjit/core/log.h>
+#include <dnsjit/core/receiver.h>
 
 #ifndef __dnsjit_output_respdiff_h
 #define __dnsjit_output_respdiff_h
 
 #include <stdint.h>
 
-#include "output/respdiff.hh"
+#include <dnsjit/output/respdiff.hh>
 
 #endif
