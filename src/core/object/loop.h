@@ -18,15 +18,15 @@
  * along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "core/object.h"
-#include "core/timespec.h"
+#include <dnsjit/core/object.h>
+#include <dnsjit/core/timespec.h>
 
 #ifndef __dnsjit_core_object_loop_h
 #define __dnsjit_core_object_loop_h
 
 #include <stddef.h>
 
-#include "core/object/loop.hh"
+#include <dnsjit/core/object/loop.hh>
 
 #define CORE_OBJECT_LOOP_INIT(prev)              \
     {                                            \

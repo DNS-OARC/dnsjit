@@ -18,8 +18,8 @@
  * along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "core/log.h"
-#include "core/receiver.h"
+#include <dnsjit/core/log.h>
+#include <dnsjit/core/receiver.h>
 
 #ifndef __dnsjit_core_channel_h
 #define __dnsjit_core_channel_h
@@ -36,6 +36,6 @@
 #include <ck_pr.h>
 #include <stdbool.h>
 
-#include "core/channel.hh"
+#include <dnsjit/core/channel.hh>
 
 #endif

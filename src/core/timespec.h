@@ -23,7 +23,7 @@
 
 #include <stdint.h>
 
-#include "core/timespec.hh"
+#include <dnsjit/core/timespec.hh>
 
 #define CORE_TIMESPEC_INIT \
     {                      \

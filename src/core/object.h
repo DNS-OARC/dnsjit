@@ -44,7 +44,7 @@
 #define CORE_OBJECT_DNS 50
 
 #include <stdint.h>
-#include "core/object.hh"
+#include <dnsjit/core/object.hh>
 
 #define CORE_OBJECT_INIT(type, prev) (core_object_t*)prev, type
 

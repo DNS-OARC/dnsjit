@@ -38,7 +38,7 @@
         name, 1, LOG_SETTINGS_T_INIT, &_log.settings \
     }
 
-#include "core/log.hh"
+#include <dnsjit/core/log.hh>
 
 #ifdef DNSJIT_NO_LOGGING
 #define ldebug(msg...)

@@ -18,27 +18,27 @@
  * along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "core/log.h"
-#include "core/receiver.h"
-#include "core/producer.h"
-#include "core/object/pcap.h"
-#include "core/object/null.h"
-#include "core/object/ether.h"
-#include "core/object/loop.h"
-#include "core/object/linuxsll.h"
-#include "core/object/ieee802.h"
-#include "core/object/ip.h"
-#include "core/object/ip6.h"
-#include "core/object/gre.h"
-#include "core/object/icmp.h"
-#include "core/object/icmp6.h"
-#include "core/object/udp.h"
-#include "core/object/tcp.h"
-#include "core/object/payload.h"
+#include <dnsjit/core/log.h>
+#include <dnsjit/core/receiver.h>
+#include <dnsjit/core/producer.h>
+#include <dnsjit/core/object/pcap.h>
+#include <dnsjit/core/object/null.h>
+#include <dnsjit/core/object/ether.h>
+#include <dnsjit/core/object/loop.h>
+#include <dnsjit/core/object/linuxsll.h>
+#include <dnsjit/core/object/ieee802.h>
+#include <dnsjit/core/object/ip.h>
+#include <dnsjit/core/object/ip6.h>
+#include <dnsjit/core/object/gre.h>
+#include <dnsjit/core/object/icmp.h>
+#include <dnsjit/core/object/icmp6.h>
+#include <dnsjit/core/object/udp.h>
+#include <dnsjit/core/object/tcp.h>
+#include <dnsjit/core/object/payload.h>
 
 #ifndef __dnsjit_filter_layer_h
 #define __dnsjit_filter_layer_h
 
-#include "filter/layer.hh"
+#include <dnsjit/filter/layer.hh>
 
 #endif

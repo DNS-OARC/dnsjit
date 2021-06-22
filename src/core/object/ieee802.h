@@ -18,15 +18,15 @@
  * along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "core/object.h"
-#include "core/timespec.h"
+#include <dnsjit/core/object.h>
+#include <dnsjit/core/timespec.h>
 
 #ifndef __dnsjit_core_object_ieee802_h
 #define __dnsjit_core_object_ieee802_h
 
 #include <stddef.h>
 
-#include "core/object/ieee802.hh"
+#include <dnsjit/core/object/ieee802.hh>
 
 #define CORE_OBJECT_IEEE802_INIT(prev)              \
     {                                               \

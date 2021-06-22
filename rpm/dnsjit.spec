@@ -32,6 +32,29 @@ capturing, parsing and statistics gathering of DNS message while also
 providing facilities for replaying DNS traffic.
 
 
+%package devel
+Summary:    Engine for capturing, parsing and replaying DNS - development files
+Group:      Development/Libraries/C and C++
+Requires:   libpcap-devel
+%if 0%{?suse_version} || 0%{?sle_version}
+Requires:   moonjit-devel >= 2.0.0
+%else
+Requires:   luajit-devel >= 2.0.0
+%endif
+Requires:   ck-devel
+Requires:   gnutls-devel
+Requires:   libuv-devel
+Requires:   libnghttp2-devel
+
+%description devel
+dnsjit is a combination of parts taken from dsc, dnscap, drool,
+and put together around Lua to create a script-based engine for easy
+capturing, parsing and statistics gathering of DNS message while also
+providing facilities for replaying DNS traffic.
+
+This package includes development files needed to create dnsjit modules.
+
+
 %prep
 %setup -q -n %{name}_%{version}
 
@@ -56,11 +79,15 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %files
-%defattr(-,root,root)
+%defattr(-,root,root,-)
 %{_bindir}/*
 %{_datadir}/doc/*
 %{_mandir}/man1/*
 %{_mandir}/man3/*
+
+%files devel
+%defattr(-,root,root,-)
+%{_includedir}/*
 
 
 %changelog

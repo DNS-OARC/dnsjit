@@ -18,12 +18,12 @@
  * along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "core/log.h"
-#include "core/receiver.h"
+#include <dnsjit/core/log.h>
+#include <dnsjit/core/receiver.h>
 
 #ifndef __dnsjit_filter_ipsplit_h
 #define __dnsjit_filter_ipsplit_h
 
-#include "filter/ipsplit.hh"
+#include <dnsjit/filter/ipsplit.hh>
 
 #endif

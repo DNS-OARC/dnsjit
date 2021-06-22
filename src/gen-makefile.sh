@@ -26,6 +26,7 @@ SUBDIRS = test
 AM_CFLAGS = -Werror=attributes \
   -I$(srcdir) \
   -I$(top_srcdir) \
+  -I$(top_srcdir)/include \
   $(SIMD_FLAGS) $(CPUEXT_FLAGS) \
   $(PTHREAD_CFLAGS) \
   $(luajit_CFLAGS) \
@@ -39,8 +40,9 @@ BUILT_SOURCES = core/compat.hh core/log_errstr.c
 bin_PROGRAMS = dnsjit
 
 dnsjit_SOURCES = dnsjit.c globals.c
-dist_dnsjit_SOURCES = core.lua lib.lua input.lua filter.lua globals.h \
-  output.lua
+dist_dnsjit_SOURCES = core.lua lib.lua input.lua filter.lua output.lua
+dnsjitincludedir = $(includedir)/dnsjit
+nobase_dnsjitinclude_HEADERS = globals.h version.h
 lua_hobjects = core/compat.luaho
 lua_objects = core.luao lib.luao input.luao filter.luao output.luao
 dnsjit_LDADD = $(PTHREAD_LIBS) $(luajit_LIBS) $(libuv_LIBS) $(libnghttp2_LIBS)
@@ -48,11 +50,11 @@ dnsjit_LDADD = $(PTHREAD_LIBS) $(luajit_LIBS) $(libuv_LIBS) $(libnghttp2_LIBS)
 # C source and headers';
 
 echo "dnsjit_SOURCES +=`find core lib input filter output -type f -name '*.c' | sort | while read line; do echo -n " $line"; done`"
-echo "dist_dnsjit_SOURCES +=`find core lib input filter output -type f -name '*.h' | sort | while read line; do echo -n " $line"; done`"
+echo "nobase_dnsjitinclude_HEADERS +=`find core lib input filter output -type f -name '*.h' | sort | while read line; do echo -n " $line"; done`"
 
 echo '
 # Lua headers'
-echo "dist_dnsjit_SOURCES +=`find core lib input filter output -type f -name '*.hh' | sort | while read line; do echo -n " $line"; done`"
+echo "nobase_dnsjitinclude_HEADERS +=`find core lib input filter output -type f -name '*.hh' | sort | while read line; do echo -n " $line"; done`"
 echo "lua_hobjects +=`find core lib input filter output -type f -name '*.hh' | sed -e 's%.hh%.luaho%g' | sort | while read line; do echo -n " $line"; done`"
 
 echo '

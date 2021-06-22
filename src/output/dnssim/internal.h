@@ -24,8 +24,8 @@
 #include <gnutls/gnutls.h>
 #include <nghttp2/nghttp2.h>
 #include <uv.h>
-#include "core/object/dns.h"
-#include "core/object/payload.h"
+#include <dnsjit/core/object/dns.h>
+#include <dnsjit/core/object/payload.h>
 
 #define DNSSIM_MIN_GNUTLS_VERSION 0x030603
 #define DNSSIM_MIN_GNUTLS_ERRORMSG "dnssim tls/https2 transport requires GnuTLS >= 3.6.3"

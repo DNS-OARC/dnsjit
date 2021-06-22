@@ -18,15 +18,4 @@
  * along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "core/log.h"
-#include "core/receiver.h"
-#include "core/producer.h"
-
-#ifndef __dnsjit_input_zero_h
-#define __dnsjit_input_zero_h
-
-#include <stdint.h>
-
-#include "input/zero.hh"
-
-#endif
+int core_file_exists(const char*);

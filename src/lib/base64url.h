@@ -23,6 +23,6 @@
 #ifndef __dnsjit_lib_base64url_h
 #define __dnsjit_lib_base64url_h
 
-#include "lib/base64url.hh"
+#include <dnsjit/lib/base64url.hh>
 
 #endif

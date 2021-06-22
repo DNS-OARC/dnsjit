@@ -18,20 +18,9 @@
  * along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-//lua:require("dnsjit.core.log")
-//lua:require("dnsjit.core.receiver_h")
-//lua:require("dnsjit.core.producer_h")
+#ifndef __dnsjit_core_file_h
+#define __dnsjit_core_file_h
 
-typedef struct input_zero {
-    core_log_t      _log;
-    core_receiver_t recv;
-    void*           ctx;
-} input_zero_t;
+#include <dnsjit/core/file.hh>
 
-core_log_t* input_zero_log();
-
-void input_zero_init(input_zero_t* self);
-void input_zero_destroy(input_zero_t* self);
-void input_zero_run(input_zero_t* self, uint64_t num);
-
-core_producer_t input_zero_producer();
+#endif

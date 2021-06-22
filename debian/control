@@ -20,3 +20,15 @@ Description: Engine for capturing, parsing and replaying DNS
  and put together around Lua to create a script-based engine for easy
  capturing, parsing and statistics gathering of DNS message while also
  providing facilities for replaying DNS traffic.
+
+Package: dnsjit-dev
+Architecture: any
+Depends: libluajit-5.1-dev (>= 2.0.0), libpcap-dev, libgnutls28-dev,
+ libnghttp2-dev, libuv1-dev, libck-dev
+Description: Engine for capturing, parsing and replaying DNS - development files
+ dnsjit is a combination of parts taken from dsc, dnscap, drool,
+ and put together around Lua to create a script-based engine for easy
+ capturing, parsing and statistics gathering of DNS message while also
+ providing facilities for replaying DNS traffic.
+ .
+ This package includes development files needed to create dnsjit modules.

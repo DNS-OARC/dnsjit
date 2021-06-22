@@ -18,7 +18,7 @@
  * along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "core/log.h"
+#include <dnsjit/core/log.h>
 
 #ifndef __dnsjit_core_thread_h
 #define __dnsjit_core_thread_h
@@ -26,6 +26,6 @@
 #include <pthread.h>
 #include <unistd.h>
 
-#include "core/thread.hh"
+#include <dnsjit/core/thread.hh>
 
 #endif
