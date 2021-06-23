@@ -21,6 +21,6 @@ clang-format \
     -style=file \
     -i \
     src/*.c \
-    `find src/core src/input src/filter src/output src/lib -name '*.c'` \
+    `find src/core src/input src/filter src/output src/lib examples/modules -name '*.c'` \
     `find src/core src/input src/filter src/output src/lib -name '*.h'` \
     `find src/core src/input src/filter src/output src/lib -name '*.hh'`
