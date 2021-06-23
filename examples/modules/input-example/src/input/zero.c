@@ -12,9 +12,9 @@ typedef struct input_zero {
     void*           ctx;
 } input_zero_t;
 
-static core_log_t   _log      = LOG_T_INIT("input.zero");
+static core_log_t   _log      = LOG_T_INIT("example.input.zero");
 static input_zero_t _defaults = {
-    LOG_T_INIT_OBJ("input.zero"),
+    LOG_T_INIT_OBJ("example.input.zero"),
     0,
     0,
 };
