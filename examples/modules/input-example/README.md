@@ -1,24 +1,32 @@
+# Example dnsjit module
+
+This module is an example how to create your own modules for dnsjit.
+
+`zero` is a simple module that produces empty `dnsjit.core.object`'s.
+
+# Dependencies
+
+To build it will need dnsjit's development files and if you want to run the
+test then `dnsjit` itself also.
+
 ```
-export CFLAGS="-I$PWD/../../../include"
+add-apt-repository ppa:dns-oarc/dnsjit-pr
+apt-get install dnsjit dnsjit-dev
+```
+
+## Build
+
+```
 sh autogen.sh
 mkdir -p build
 cd build
-../configure --prefix=$PWD/root
+../configure
 make
 make install
-dnsjit test.lua
 ```
 
-test.lua:
+## Test
+
 ```
-package.cpath = package.cpath .. ";./root/lib/?.so"
-
-local zero = require("example.input.zero").new()
-print(zero)
-
-local p, c = zero:produce()
-print(p, c)
-
-local o = p(c)
-print(o)
+make test
 ```
