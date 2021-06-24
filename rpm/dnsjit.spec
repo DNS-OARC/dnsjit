@@ -19,8 +19,6 @@ BuildRequires:  luajit-devel >= 2.0.0
 BuildRequires:  lmdb-devel
 BuildRequires:  ck-devel
 BuildRequires:  gnutls-devel
-BuildRequires:  libuv-devel
-BuildRequires:  libnghttp2-devel
 BuildRequires:  autoconf >= 2.64
 BuildRequires:  automake
 BuildRequires:  libtool
@@ -43,8 +41,6 @@ Requires:   luajit-devel >= 2.0.0
 %endif
 Requires:   ck-devel
 Requires:   gnutls-devel
-Requires:   libuv-devel
-Requires:   libnghttp2-devel
 
 %description devel
 dnsjit is a combination of parts taken from dsc, dnscap, drool,
