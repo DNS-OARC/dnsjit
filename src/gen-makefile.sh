@@ -29,9 +29,7 @@ AM_CFLAGS = -Werror=attributes \
   -I$(top_srcdir)/include \
   $(SIMD_FLAGS) $(CPUEXT_FLAGS) \
   $(PTHREAD_CFLAGS) \
-  $(luajit_CFLAGS) \
-  $(libuv_CFLAGS) \
-  $(libnghttp2_CFLAGS)
+  $(luajit_CFLAGS)
 
 EXTRA_DIST = gen-manpage.lua gen-compat.lua gen-errno.sh dnsjit.1in
 
@@ -45,7 +43,7 @@ dnsjitincludedir = $(includedir)/dnsjit
 nobase_dnsjitinclude_HEADERS = globals.h version.h
 lua_hobjects = core/compat.luaho
 lua_objects = core.luao lib.luao input.luao filter.luao output.luao
-dnsjit_LDADD = $(PTHREAD_LIBS) $(luajit_LIBS) $(libuv_LIBS) $(libnghttp2_LIBS)
+dnsjit_LDADD = $(PTHREAD_LIBS) $(luajit_LIBS)
 
 # C source and headers';
 
