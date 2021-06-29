@@ -19,3 +19,13 @@
 
 ../dnsjit "$srcdir/../../examples/dumpdns.lua" dns.pcap-dist >test1.out
 diff "$srcdir/test1.gold" test1.out
+
+support=`../dnsjit "$srcdir/test_compressupport.lua"`
+if echo "$support"|grep -q lz4; then
+    ../dnsjit "$srcdir/../../examples/dumpdns.lua" dns.pcap.lz4-dist lz4 >test1.out
+    diff "$srcdir/test1.gold" test1.out
+fi
+if echo "$support"|grep -q zstd; then
+    ../dnsjit "$srcdir/../../examples/dumpdns.lua" dns.pcap.zst-dist zstd >test1.out
+    diff "$srcdir/test1.gold" test1.out
+fi

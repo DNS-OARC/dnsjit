@@ -13,6 +13,8 @@ extraction:
         - liblmdb-dev
         - libck-dev
         - libgnutls28-dev
+        - liblz4-dev
+        - libzstd-dev
     configure:
       command:
         - ./autogen.sh

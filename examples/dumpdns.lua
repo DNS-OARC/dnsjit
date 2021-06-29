@@ -1,18 +1,30 @@
 #!/usr/bin/env dnsjit
 local pcap = arg[2]
+local compression = arg[3]
 
 if pcap == nil then
-    print("usage: "..arg[1].." <pcap>")
+    print("usage: "..arg[1].." <pcap> [compression]")
     return
 end
 
 local object = require("dnsjit.core.objects")
 local input = require("dnsjit.input.pcap").new()
+local zinput = require("dnsjit.input.zpcap").new()
 local layer = require("dnsjit.filter.layer").new()
 local dns = require("dnsjit.core.object.dns").new()
 
-input:open_offline(pcap)
-layer:producer(input)
+if string.lower(string.sub(pcap, -4)) == ".zst" or compression == "zstd" then
+    zinput:zstd()
+    zinput:open(pcap)
+    layer:producer(zinput)
+elseif string.lower(string.sub(pcap, -4)) == ".lz4" or compression == "lz4" then
+    zinput:lz4()
+    zinput:open(pcap)
+    layer:producer(zinput)
+else
+    input:open_offline(pcap)
+    layer:producer(input)
+end
 local producer, ctx = layer:produce()
 
 while true do

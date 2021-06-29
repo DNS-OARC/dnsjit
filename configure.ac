@@ -91,6 +91,8 @@ PKG_CHECK_MODULES([ck], [ck >= 0], [
   AC_CHECK_LIB([ck], [ck_array_init],, [AC_MSG_ERROR([libck not found])])
 ])
 AC_CHECK_LIB([gnutls], [gnutls_init],, [AC_MSG_ERROR([libgnutls not found])])
+PKG_CHECK_MODULES([liblz4], [liblz4 >= 1.8.0], [AC_DEFINE([HAVE_LZ4], [], [Use liblz4])],:)
+PKG_CHECK_MODULES([libzstd], [libzstd >= 1.3.0], [AC_DEFINE([HAVE_ZSTD], [], [Use libzstd])],:)
 
 # Checks for sizes
 AC_CHECK_SIZEOF([void*])
