@@ -47,16 +47,18 @@ architectures because of LuaJIT.
 - [liblmdb](https://github.com/LMDB/lmdb)
 - [libck](https://github.com/concurrencykit/ck)
 - [libgnutls](https://www.gnutls.org/)
+- [liblz4](http://www.lz4.org/)
+- [libzstd](http://www.zstd.net/)
 - [luajit](http://luajit.org/) (for building)
 - automake/autoconf/libtool/pkg-config (for building)
 
-Debian/Ubuntu: `apt-get install libluajit-5.1-dev libpcap-dev luajit liblmdb-dev libck-dev libgnutls28-dev`
+Debian/Ubuntu: `apt-get install libluajit-5.1-dev libpcap-dev luajit liblmdb-dev libck-dev libgnutls28-dev liblz4-dev libzstd-dev`
 
-CentOS: `yum install luajit-devel libpcap-devel lmdb-devel ck-devel gnutls-devel`
+CentOS: `yum install luajit-devel libpcap-devel lmdb-devel ck-devel gnutls-devel lz4-devel libzstd-devel`
 
-FreeBSD: `pkg install luajit libpcap lmdb gnutls concurrencykit`
+FreeBSD: `pkg install luajit libpcap lmdb gnutls concurrencykit zstd liblz4`
 
-OpenBSD: `pkg_add luajit gnutls` + manual install of libpcap, liblmdb and libck
+OpenBSD: `pkg_add luajit gnutls lz4 zstd` + manual install of libpcap, liblmdb and libck
 
 On some version of SUSE Linux Enterprise moonjit is used as an compatible
 alternative to luajit.
