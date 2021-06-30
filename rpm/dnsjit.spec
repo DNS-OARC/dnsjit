@@ -19,8 +19,8 @@ BuildRequires:  luajit-devel >= 2.0.0
 BuildRequires:  lmdb-devel
 BuildRequires:  ck-devel
 BuildRequires:  gnutls-devel
-BuildRequires:  lz4-devel
-BuildRequires:  libzstd-devel
+BuildRequires:  lz4-devel >= 1.8.0
+BuildRequires:  libzstd-devel >= 1.3.0
 BuildRequires:  autoconf >= 2.64
 BuildRequires:  automake
 BuildRequires:  libtool
