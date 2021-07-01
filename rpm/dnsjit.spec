@@ -13,14 +13,15 @@ Source0:        https://github.com/DNS-OARC/dnsjit/archive/v%{version}.tar.gz?/%
 BuildRequires:  libpcap-devel
 %if 0%{?suse_version} || 0%{?sle_version}
 BuildRequires:  moonjit-devel >= 2.0.0
+BuildRequires:  liblz4-devel
 %else
 BuildRequires:  luajit-devel >= 2.0.0
+BuildRequires:  lz4-devel
 %endif
 BuildRequires:  lmdb-devel
 BuildRequires:  ck-devel
 BuildRequires:  gnutls-devel
-BuildRequires:  lz4-devel >= 1.8.0
-BuildRequires:  libzstd-devel >= 1.3.0
+BuildRequires:  libzstd-devel
 BuildRequires:  autoconf >= 2.64
 BuildRequires:  automake
 BuildRequires:  libtool
