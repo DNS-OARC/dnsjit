@@ -53,6 +53,7 @@ architectures because of LuaJIT.
 - automake/autoconf/libtool/pkg-config (for building)
 
 Debian/Ubuntu: `apt-get install libluajit-5.1-dev libpcap-dev luajit liblmdb-dev libck-dev libgnutls28-dev liblz4-dev libzstd-dev`
+- Note: On Xenial you'll need to install `libzstd1-dev`
 
 CentOS: `yum install luajit-devel libpcap-devel lmdb-devel ck-devel gnutls-devel lz4-devel libzstd-devel`
 
