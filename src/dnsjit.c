@@ -52,17 +52,6 @@ int main(int argc, char* argv[])
     sigset_t   set;
     pthread_t  sighthr;
 
-#ifdef PACKAGE_NAME
-    fprintf(stderr, "<< " PACKAGE_NAME
-#ifdef PACKAGE_VERSION
-                    " v" PACKAGE_VERSION
-#endif
-#ifdef PACKAGE_URL
-                    " " PACKAGE_URL
-#endif
-                    " >>\n");
-#endif
-
     if (argc < 2) {
         fprintf(stderr, "usage: %s <file.lua> ...\n", argv[0]);
         exit(1);

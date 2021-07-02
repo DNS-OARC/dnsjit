@@ -5,4 +5,6 @@ SUBDIRS = src
 
 dist_doc_DATA = README.md
 
-EXTRA_DIST = dnsjit_version.lua
+EXTRA_DIST = dnsjit_version.lua dnsjit_modules.lua
+
+test: check
