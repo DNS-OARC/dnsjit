@@ -18,3 +18,29 @@ What's not covered here is if you install these tools using `--prefix` in a
 custom location that is not known by Lua. Then you need to set `PATH`,
 `LUA_PATH` and `LUA_CPATH`, see `src/test` for example and the Lua manual
 how these paths work.
+
+# Dependencies
+
+To build this you will need `dnsjit` installed.
+
+```
+add-apt-repository ppa:dns-oarc/dnsjit-pr
+apt-get install dnsjit
+```
+
+## Build
+
+```
+sh autogen.sh
+mkdir -p build
+cd build
+../configure
+make
+make install
+```
+
+## Test
+
+```
+make test
+```
