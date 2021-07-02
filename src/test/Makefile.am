@@ -20,7 +20,7 @@ MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 CLEANFILES = test*.log test*.trs test*.out \
   *.pcap-dist *.lz4-dist *.zst-dist
 
-TESTS = test1.sh test2.sh test3.sh test4.sh test5.sh test6.sh test-ipsplit.sh \
+TESTS = test1.sh test2.sh test3.sh test4.sh test6.sh test-ipsplit.sh \
   test-trie.sh test-base64url.sh
 
 test1.sh: dns.pcap-dist dns.pcap.lz4-dist dns.pcap.zst-dist
@@ -30,8 +30,6 @@ test2.sh: dns.pcap-dist
 test3.sh: dns.pcap-dist
 
 test4.sh: dns.pcap-dist
-
-test5.sh: dns.pcap-dist
 
 test6.sh: dns.pcap-dist
 
