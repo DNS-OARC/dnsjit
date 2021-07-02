@@ -6,8 +6,8 @@ This module is an example how to create your own modules for dnsjit.
 
 # Dependencies
 
-To build it will need dnsjit's development files and if you want to run the
-test then `dnsjit` itself also.
+To build it you will need dnsjit's development files and if you want to run
+the test then `dnsjit` itself also.
 
 ```
 add-apt-repository ppa:dns-oarc/dnsjit-pr

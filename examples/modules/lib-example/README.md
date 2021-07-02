@@ -2,16 +2,16 @@
 
 This module is an example how to create your own modules for dnsjit.
 
-`null` is a simple module that does nothing with the objects it receives.
+`duration` is a simple Lua module that tells you the duration between
+two `core.timespec`.
 
 # Dependencies
 
-To build it you will need dnsjit's development files and if you want to run
-the test then `dnsjit` itself also.
+To build this you will need `dnsjit` installed.
 
 ```
 add-apt-repository ppa:dns-oarc/dnsjit-pr
-apt-get install dnsjit dnsjit-dev
+apt-get install dnsjit
 ```
 
 ## Build
