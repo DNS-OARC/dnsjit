@@ -1,3 +1,95 @@
+dnsjit (1.2.0-1~unstable+1) unstable; urgency=low
+
+  * Release 1.2.0
+
+    This release adds development files and autotool examples for C/Lua
+    modules or stand-alone tools for dnsjit.
+
+    In `examples/` you'll now also find:
+
+    - `modules/input-example`
+      This input example is based on `dnsjit.input.zero` which was a testing
+      modules during the early days of dnsjit.
+      It's a C module that generates empty objects for the receiver.
+
+    - `modules/filter-example`:
+      This filter example is C module that counts the number of objects
+      passed to it before sending it to the receiver.
+
+    - `modules/output-example`:
+      This output example is based on `dnsjit.output.null` which was a testing
+      modules during the early days of dnsjit.
+      It's a C module that will just discard objects it receives.
+
+    - `modules/lib-example`:
+      This example Lua module takes two `core_timespec_t` C objects and gives
+      the duration between them as a string.
+
+    - `stand-alone-tool`:
+      This example is based on `test_pcap_read.lua` and `test_throughput.lua`
+      which was previous located in `examples/`.
+      There are two installable Lua programs and shows how to depend on
+      a dnsjit version, depend on specific dnsjit modules and how to run
+      tests using `make test`.
+
+    All these examples can easily be copied and renamed to build and
+    distribute your own dnsjit modules and tools, using autotool for
+    `configure`, `make` and `make install`.
+
+    Development files will also be installed, or can be installed via
+    `dnsjit-dev`/`dnsjit-devel` packages. All C headers have been prefixed
+    with `dnsjit/` (for example `#include <dnsjit/version.h>`).
+
+    Thanks to this new setup, the module `output.dnssim` has been moved out
+    from dnsjit's repository and placed in DNS shotgun's:
+
+      https://gitlab.nic.cz/knot/shotgun/-/tree/master/replay/dnssim
+
+    This will help CZ.NIC to maintain and release both the module and tool
+    at the same time.
+
+    New modules:
+    - Added `input.zpcap`, module for reading LZ4/ZSTD compressed PCAPs
+    - Added `core.loader`, module for loading C modules using LuaJIT's `ffi` interface and `package.cpath`
+    - Added `core.file` with `core_file_exists()`, a C function to check if a file exists
+
+    Other changes:
+    - Add `<dnsjit/version.h>` for `DNSJIT_MAJOR_VERSION`, `DNSJIT_MINOR_VERSION`, `DNSJIT_PATCH_VERSION`
+    - `dnsjit`: Remove version print on start
+    - `dnsjit.input.zero`: Will `require("example.input.zero")` for backwards compatibility
+    - `dnsjit.output.null`: Will `require("example.output.null")` for backwards compatibility
+    - `core/timespec`: Add `:max_init()`, return a new object with maximum values set for seconds and nanoseconds.
+    - `output/pcap`:
+      - Update `open()` man-page, indicate usage of `pcap_dump_open()`
+      - Add `have_errors()` to check for write errors during/after dumping
+    - `input.fpcap`: Add `fadvise_sequential()` to advise sequential read of the file
+    - `examples/dumpdns.lua`: Add support for dumping compressed PCAPs
+
+    Bugfixes:
+    - `lib/getopt`: Fix short options, error if length is not 1
+    - `core/timespec`: Fix typo in struct documentation
+
+    892ac65 example lib
+    ae7e647 stand alone tool, dnsjit
+    2d937a5 Package
+    5c5ba74 Package
+    6059bb5 Package
+    48df46f zpcap
+    ff13586 Remove dnssim
+    389f274 filter example
+    45e0102 output example
+    9d76760 Example input
+    f823db8 Example modules - input
+    df12078 f/m-advise
+    31ee04d WIP: Advise kernel that inputs are read sequentially
+    eff6313 Output PCAP man-page, errors
+    ac60fec Timespec
+    cea7936 Bye Travis
+    a5c967f getopt
+    506ee99 getopt: detect incorrect short strings
+
+ -- Jerry Lundström <lundstrom.jerry@gmail.com>  Mon, 05 Jul 2021 13:28:18 +0200
+
 dnsjit (1.1.0-1~unstable+1) unstable; urgency=low
 
   * Release 1.1.0
