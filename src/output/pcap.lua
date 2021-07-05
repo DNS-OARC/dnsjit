@@ -60,6 +60,10 @@ end
 -- .I linktype
 -- and
 -- .IR snaplen .
+-- Uses
+-- .B pcap_dump_open()
+-- so you can pass "-" to it to open stdout, see it's man-page for more
+-- information.
 -- Returns 0 on success.
 function Pcap:open(file, linktype, snaplen)
     return C.output_pcap_open(self.obj, file, linktype, snaplen)
@@ -68,6 +72,16 @@ end
 -- Close the PCAP.
 function Pcap:close()
     C.output_pcap_close(self.obj)
+end
+
+-- Return true if the underlying
+-- .I FILE*
+-- indicates that there's been an error.
+function Pcap:have_errors()
+    if C.output_pcap_have_errors(self.obj) == 0 then
+        return false
+    end
+    return true
 end
 
 -- Return the C functions and context for receiving objects.

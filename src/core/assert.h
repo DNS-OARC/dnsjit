@@ -21,7 +21,7 @@
 #ifndef __dnsjit_core_assert_h
 #define __dnsjit_core_assert_h
 
-#include "core/log.h"
+#include <dnsjit/core/log.h>
 
 #define mlassert_self() \
     if (!self)          \

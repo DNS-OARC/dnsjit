@@ -24,7 +24,6 @@
 module(...,package.seeall)
 
 -- dnsjit.output.dnscli (3),
--- dnsjit.output.dnssim (3),
 -- dnsjit.output.null (3),
 -- dnsjit.output.pcap (3),
 -- dnsjit.output.respdiff (3),

@@ -18,11 +18,11 @@
  * along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "core/log.h"
-#include "core/receiver.h"
-#include "core/producer.h"
-#include "core/object/payload.h"
-#include "core/timespec.h"
+#include <dnsjit/core/log.h>
+#include <dnsjit/core/receiver.h>
+#include <dnsjit/core/producer.h>
+#include <dnsjit/core/object/payload.h>
+#include <dnsjit/core/timespec.h>
 
 #ifndef __dnsjit_output_udpcli_h
 #define __dnsjit_output_udpcli_h
@@ -30,6 +30,6 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 
-#include "output/udpcli.hh"
+#include <dnsjit/output/udpcli.hh>
 
 #endif

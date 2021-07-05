@@ -93,6 +93,5 @@ function Base64Url.decode(data)
     return ffi.string(buf, out_len)
 end
 
--- dnsjit.core.object.payload(3)
--- dnsjit.output.dnssim (3)
+-- dnsjit.core.object.payload (3)
 return Base64Url

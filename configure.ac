@@ -17,9 +17,9 @@
 # along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
 
 AC_PREREQ(2.64)
-AC_INIT([dnsjit], [1.1.0], [admin@dns-oarc.net], [dnsjit], [https://github.com/DNS-OARC/dnsjit/issues])
+AC_INIT([dnsjit], [1.2.0], [admin@dns-oarc.net], [dnsjit], [https://github.com/DNS-OARC/dnsjit/issues])
 AC_DEFINE([PACKAGE_MAJOR_VERSION], [1], [Define to the major version of this package.])
-AC_DEFINE([PACKAGE_MINOR_VERSION], [1], [Define to the minor version of this package.])
+AC_DEFINE([PACKAGE_MINOR_VERSION], [2], [Define to the minor version of this package.])
 AC_DEFINE([PACKAGE_PATCH_VERSION], [0], [Define to the patch version of this package.])
 AM_INIT_AUTOMAKE([-Wall -Werror foreign subdir-objects])
 AC_CONFIG_SRCDIR([src/dnsjit.c])
@@ -83,8 +83,6 @@ if test "x$ac_cv_path_LUAJIT" = "x"; then
 fi
 AC_CHECK_HEADERS([lmdb.h])
 AC_CHECK_LIB([lmdb], [mdb_env_create])
-PKG_CHECK_MODULES([libuv], [libuv])
-PKG_CHECK_MODULES([libnghttp2], [libnghttp2])
 PKG_CHECK_MODULES([ck], [ck >= 0], [
   AS_VAR_APPEND([CFLAGS], [" $ck_CFLAGS"])
   AS_VAR_APPEND([LIBS], [" $ck_LIBS"])
@@ -93,6 +91,8 @@ PKG_CHECK_MODULES([ck], [ck >= 0], [
   AC_CHECK_LIB([ck], [ck_array_init],, [AC_MSG_ERROR([libck not found])])
 ])
 AC_CHECK_LIB([gnutls], [gnutls_init],, [AC_MSG_ERROR([libgnutls not found])])
+PKG_CHECK_MODULES([liblz4], [liblz4 >= 1.8.0 liblz4 != 131], [AC_DEFINE([HAVE_LZ4], [], [Use liblz4])],:)
+PKG_CHECK_MODULES([libzstd], [libzstd >= 1.3.0], [AC_DEFINE([HAVE_ZSTD], [], [Use libzstd])],:)
 
 # Checks for sizes
 AC_CHECK_SIZEOF([void*])

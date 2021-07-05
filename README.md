@@ -1,6 +1,6 @@
 # Engine for capturing, parsing and replaying DNS
 
-[![Build Status](https://travis-ci.com/DNS-OARC/dnsjit.svg?branch=develop)](https://travis-ci.com/DNS-OARC/dnsjit) [![Total alerts](https://img.shields.io/lgtm/alerts/g/DNS-OARC/dnsjit.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/DNS-OARC/dnsjit/alerts/) [![Bugs](https://sonarcloud.io/api/project_badges/measure?project=dns-oarc%3Adnsjit&metric=bugs)](https://sonarcloud.io/dashboard?id=dns-oarc%3Adnsjit) [![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=dns-oarc%3Adnsjit&metric=security_rating)](https://sonarcloud.io/dashboard?id=dns-oarc%3Adnsjit)
+[![Total alerts](https://img.shields.io/lgtm/alerts/g/DNS-OARC/dnsjit.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/DNS-OARC/dnsjit/alerts/) [![Bugs](https://sonarcloud.io/api/project_badges/measure?project=dns-oarc%3Adnsjit&metric=bugs)](https://sonarcloud.io/dashboard?id=dns-oarc%3Adnsjit) [![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=dns-oarc%3Adnsjit&metric=security_rating)](https://sonarcloud.io/dashboard?id=dns-oarc%3Adnsjit)
 
 **dnsjit** is a combination of parts taken from **dsc**, **dnscap**, **drool**,
 and put together around Lua to create a script-based engine for easy
@@ -47,18 +47,19 @@ architectures because of LuaJIT.
 - [liblmdb](https://github.com/LMDB/lmdb)
 - [libck](https://github.com/concurrencykit/ck)
 - [libgnutls](https://www.gnutls.org/)
-- [libuv](http://libuv.org/)
-- [libnghttp2](https://www.nghttp2.org/)
+- [liblz4](http://www.lz4.org/)
+- [libzstd](http://www.zstd.net/)
 - [luajit](http://luajit.org/) (for building)
 - automake/autoconf/libtool/pkg-config (for building)
 
-Debian/Ubuntu: `apt-get install libluajit-5.1-dev libpcap-dev luajit liblmdb-dev libck-dev libgnutls28-dev libuv1-dev libnghttp2-dev`
+Debian/Ubuntu: `apt-get install libluajit-5.1-dev libpcap-dev luajit liblmdb-dev libck-dev libgnutls28-dev liblz4-dev libzstd-dev`
+- Note: On Xenial you'll need to install `libzstd1-dev`
 
-CentOS: `yum install luajit-devel libpcap-devel lmdb-devel ck-devel gnutls-devel libuv-devel libnghttp2-devel`
+CentOS: `yum install luajit-devel libpcap-devel lmdb-devel ck-devel gnutls-devel lz4-devel libzstd-devel`
 
-FreeBSD: `pkg install luajit libpcap lmdb gnutls concurrencykit libuv libnghttp2`
+FreeBSD: `pkg install luajit libpcap lmdb gnutls concurrencykit zstd liblz4`
 
-OpenBSD: `pkg_add luajit gnutls libuv nghttp2` + manual install of libpcap, liblmdb and libck
+OpenBSD: `pkg_add luajit gnutls lz4 zstd` + manual install of libpcap, liblmdb and libck
 
 On some version of SUSE Linux Enterprise moonjit is used as an compatible
 alternative to luajit.

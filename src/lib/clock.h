@@ -18,11 +18,11 @@
  * along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "core/timespec.h"
+#include <dnsjit/core/timespec.h>
 
 #ifndef __dnsjit_lib_clock_h
 #define __dnsjit_lib_clock_h
 
-#include "lib/clock.hh"
+#include <dnsjit/lib/clock.hh>
 
 #endif

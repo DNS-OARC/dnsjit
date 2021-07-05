@@ -100,9 +100,10 @@ for line in io.lines(arg[1]) do
 end
 
 print[[
-.SH AUTHORS
+.SH AUTHORS and CONTRIBUTORS
 Jerry Lundström (DNS-OARC),
-Tomáš Křížek (CZ.NIC)
+Tomáš Křížek (CZ.NIC),
+Petr Špaček (ISC)
 .LP
 Maintained by DNS-OARC
 .LP

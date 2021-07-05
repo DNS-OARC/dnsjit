@@ -18,13 +18,13 @@
  * along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "core/log.h"
-#include "core/receiver.h"
-#include "core/producer.h"
+#include <dnsjit/core/log.h>
+#include <dnsjit/core/receiver.h>
+#include <dnsjit/core/producer.h>
 
 #ifndef __dnsjit_filter_timing_h
 #define __dnsjit_filter_timing_h
 
-#include "filter/timing.hh"
+#include <dnsjit/filter/timing.hh>
 
 #endif

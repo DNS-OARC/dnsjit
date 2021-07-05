@@ -18,14 +18,14 @@
  * along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "core/log.h"
-#include "core/receiver.h"
-#include "core/producer.h"
-#include "core/object/pcap.h"
+#include <dnsjit/core/log.h>
+#include <dnsjit/core/receiver.h>
+#include <dnsjit/core/producer.h>
+#include <dnsjit/core/object/pcap.h>
 
 #ifndef __dnsjit_input_fpcap_h
 #define __dnsjit_input_fpcap_h
 
-#include "input/fpcap.hh"
+#include <dnsjit/input/fpcap.hh>
 
 #endif
