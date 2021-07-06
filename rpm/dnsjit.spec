@@ -12,12 +12,11 @@ Source0:        https://github.com/DNS-OARC/dnsjit/archive/v%{version}.tar.gz?/%
 
 BuildRequires:  libpcap-devel
 %if 0%{?suse_version} || 0%{?sle_version}
-BuildRequires:  moonjit-devel >= 2.0.0
 BuildRequires:  liblz4-devel
 %else
-BuildRequires:  luajit-devel >= 2.0.0
 BuildRequires:  lz4-devel
 %endif
+BuildRequires:  luajit-devel >= 2.0.0
 BuildRequires:  lmdb-devel
 BuildRequires:  ck-devel
 BuildRequires:  gnutls-devel
@@ -37,11 +36,7 @@ providing facilities for replaying DNS traffic.
 Summary:    Engine for capturing, parsing and replaying DNS - development files
 Group:      Development/Libraries/C and C++
 Requires:   libpcap-devel
-%if 0%{?suse_version} || 0%{?sle_version}
-Requires:   moonjit-devel >= 2.0.0
-%else
 Requires:   luajit-devel >= 2.0.0
-%endif
 Requires:   ck-devel
 Requires:   gnutls-devel
 
