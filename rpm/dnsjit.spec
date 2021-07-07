@@ -1,5 +1,5 @@
 Name:           dnsjit
-Version:        1.2.0
+Version:        1.2.1
 Release:        1%{?dist}
 Summary:        Engine for capturing, parsing and replaying DNS
 Group:          Productivity/Networking/DNS/Utilities
@@ -85,6 +85,13 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Wed Jul 07 2021 Jerry Lundström <lundstrom.jerry@gmail.com> 1.2.1-1
+- Release 1.2.1
+  * This patch release fixes packages for SLE/openSUSE and the generation
+    of an environment script for the stand-alone tool example.
+  * Commits:
+    9c6f630 SLE/openSUSE
+    f07ac4a Stand-alone tool example
 * Mon Jul 05 2021 Jerry Lundström <lundstrom.jerry@gmail.com> 1.2.0-1
 - Release 1.2.0
   * This release adds development files and autotool examples for C/Lua
