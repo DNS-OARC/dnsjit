@@ -1,3 +1,13 @@
+2021-07-07 Jerry Lundström
+
+    Release 1.2.1
+
+    This patch release fixes packages for SLE/openSUSE and the generation
+    of an environment script for the stand-alone tool example.
+
+    9c6f630 SLE/openSUSE
+    f07ac4a Stand-alone tool example
+
 2021-07-05 Jerry Lundström
 
     Release 1.2.0
