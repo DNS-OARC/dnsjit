@@ -20,6 +20,4 @@
 
 #include "config.h"
 
-#include <stdint.h>
-
-#include "core/compat.hh"
+#include "core/compat.h"
