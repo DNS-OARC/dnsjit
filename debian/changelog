@@ -1,3 +1,15 @@
+dnsjit (1.2.2-1~unstable+1) unstable; urgency=low
+
+  * Release 1.2.2
+
+    This patch release fixes a small issues with the generated
+    compatibility code and updates the package control files for Debian.
+
+    3cdd801 Fix compat
+    cb352c6 debhelper
+
+ -- Jerry Lundström <lundstrom.jerry@gmail.com>  Fri, 05 Nov 2021 10:16:22 +0100
+
 dnsjit (1.2.1-1~unstable+1) unstable; urgency=low
 
   * Release 1.2.1

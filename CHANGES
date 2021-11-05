@@ -1,3 +1,13 @@
+2021-11-05 Jerry Lundström
+
+    Release 1.2.2
+
+    This patch release fixes a small issues with the generated
+    compatibility code and updates the package control files for Debian.
+
+    3cdd801 Fix compat
+    cb352c6 debhelper
+
 2021-07-07 Jerry Lundström
 
     Release 1.2.1
