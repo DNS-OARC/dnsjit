@@ -1,5 +1,5 @@
 Name:           dnsjit
-Version:        1.2.1
+Version:        1.2.2
 Release:        1%{?dist}
 Summary:        Engine for capturing, parsing and replaying DNS
 Group:          Productivity/Networking/DNS/Utilities
@@ -85,6 +85,13 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Fri Nov 05 2021 Jerry Lundström <lundstrom.jerry@gmail.com> 1.2.2-1
+- Release 1.2.2
+  * This patch release fixes a small issues with the generated
+    compatibility code and updates the package control files for Debian.
+  * Commits:
+    3cdd801 Fix compat
+    cb352c6 debhelper
 * Wed Jul 07 2021 Jerry Lundström <lundstrom.jerry@gmail.com> 1.2.1-1
 - Release 1.2.1
   * This patch release fixes packages for SLE/openSUSE and the generation
