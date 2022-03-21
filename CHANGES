@@ -1,3 +1,11 @@
+2022-03-21 Jerry Lundström
+
+    Release 1.2.3
+
+    This patch release fixes compilation issues on FreeBSD for LLVM v12+.
+
+    4346a48 static inline
+
 2021-11-05 Jerry Lundström
 
     Release 1.2.2
