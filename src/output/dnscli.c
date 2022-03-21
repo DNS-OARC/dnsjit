@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2021, OARC, Inc.
+ * Copyright (c) 2018-2022, OARC, Inc.
  * All rights reserved.
  *
  * This file is part of dnsjit.
@@ -248,7 +248,7 @@ int output_dnscli_connect(output_dnscli_t* self, const char* host, const char* p
     return 0;
 }
 
-inline ssize_t _send_udp(output_dnscli_t* self, const uint8_t* payload, size_t len, size_t sent)
+static inline ssize_t _send_udp(output_dnscli_t* self, const uint8_t* payload, size_t len, size_t sent)
 {
     ssize_t n;
 
@@ -331,7 +331,7 @@ static void _receive_udp(output_dnscli_t* self, const core_object_t* obj)
     self->errs++;
 }
 
-inline ssize_t _send_tcp(output_dnscli_t* self, const uint8_t* payload, size_t len, size_t sent)
+static inline ssize_t _send_tcp(output_dnscli_t* self, const uint8_t* payload, size_t len, size_t sent)
 {
     ssize_t n;
 
@@ -432,7 +432,7 @@ static void _receive_tcp(output_dnscli_t* self, const core_object_t* obj)
     self->errs++;
 }
 
-inline ssize_t _send_tls(output_dnscli_t* self, const uint8_t* payload, size_t len, size_t sent)
+static inline ssize_t _send_tls(output_dnscli_t* self, const uint8_t* payload, size_t len, size_t sent)
 {
     ssize_t n;
 

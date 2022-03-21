@@ -1,5 +1,5 @@
 Name:           dnsjit
-Version:        1.2.2
+Version:        1.2.3
 Release:        1%{?dist}
 Summary:        Engine for capturing, parsing and replaying DNS
 Group:          Productivity/Networking/DNS/Utilities
@@ -85,6 +85,11 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Mon Mar 21 2022 Jerry Lundström <lundstrom.jerry@gmail.com> 1.2.3-1
+- Release 1.2.3
+  * This patch release fixes compilation issues on FreeBSD for LLVM v12+.
+  * Commits:
+    4346a48 static inline
 * Fri Nov 05 2021 Jerry Lundström <lundstrom.jerry@gmail.com> 1.2.2-1
 - Release 1.2.2
   * This patch release fixes a small issues with the generated
