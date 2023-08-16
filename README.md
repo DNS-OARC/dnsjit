@@ -56,6 +56,7 @@ Debian/Ubuntu: `apt-get install libluajit-5.1-dev libpcap-dev luajit liblmdb-dev
 - Note: On Xenial you'll need to install `libzstd1-dev`
 
 CentOS: `yum install luajit-devel libpcap-devel lmdb-devel ck-devel gnutls-devel lz4-devel libzstd-devel`
+- Note: You might need EPEL and/or PowerTools repositories enabled
 
 FreeBSD: `pkg install luajit libpcap lmdb gnutls concurrencykit zstd liblz4`
 
