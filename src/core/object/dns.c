@@ -95,6 +95,12 @@ void core_object_dns_free(core_object_dns_t* self)
     free(self);
 }
 
+void core_object_dns_reset(core_object_dns_t* self)
+{
+    mlassert_self();
+    *self = _defaults;
+}
+
 #define need8(v, p, l) \
     if (l < 1) {       \
         break;         \

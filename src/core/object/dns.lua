@@ -517,6 +517,11 @@ function Dns:free()
     C.core_object_dns_free(self)
 end
 
+-- Reset the object readying it for reuse.
+function Dns:reset()
+    C.core_object_dns_reset(self)
+end
+
 -- Return the Log object to control logging of this module.
 function Dns:log()
     return C.core_object_dns_log()
