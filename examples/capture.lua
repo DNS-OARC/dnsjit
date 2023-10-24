@@ -36,6 +36,10 @@ while true do
             protocol = protocol.obj_prev
         end
 
+        dns:reset()
+        if protocol ~= nil and protocol.obj_type == object.TCP then
+            dns.includes_dnslen = 1
+        end
         dns.obj_prev = obj
         if transport ~= nil and protocol ~= nil then
             transport = transport:cast()

@@ -121,6 +121,7 @@ while true do
     local object = producer(ctx)
     if object == nil then break end
     if object:type() == "payload" then
+        dns:reset()
         dns.obj_prev = object
         if dns:parse_header() == 0 then
             print(dns.id)
@@ -128,6 +129,9 @@ while true do
     end
 end
 ```
+
+Disclaimer, to keep the above example short it only works on pre-prepared
+PCAPs with only UDP DNS traffic in them.
 
 See more examples in the [examples](https://github.com/DNS-OARC/dnsjit/tree/develop/examples) directory.
 

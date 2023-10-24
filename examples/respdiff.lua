@@ -63,90 +63,92 @@ while true do
     if obj == nil then break end
     local payload = obj:cast()
     if obj:type() == "payload" and payload.len > 0 then
+        local transport = obj.obj_prev
+        while transport ~= nil do
+            if transport.obj_type == object.IP or transport.obj_type == object.IP6 then
+                break
+            end
+            transport = transport.obj_prev
+        end
+        local protocol = obj.obj_prev
+        while protocol ~= nil do
+            if protocol.obj_type == object.UDP or protocol.obj_type == object.TCP then
+                break
+            end
+            protocol = protocol.obj_prev
+        end
+
+        dns:reset()
+        if protocol ~= nil and protocol.obj_type == object.TCP then
+            dns.includes_dnslen = 1
+        end
         dns.obj_prev = obj
-        if dns:parse_header() == 0 then
-            local transport = obj.obj_prev
-            while transport ~= nil do
-                if transport.obj_type == object.IP or transport.obj_type == object.IP6 then
-                    break
-                end
-                transport = transport.obj_prev
-            end
-            local protocol = obj.obj_prev
-            while protocol ~= nil do
-                if protocol.obj_type == object.UDP or protocol.obj_type == object.TCP then
-                    break
-                end
-                protocol = protocol.obj_prev
-            end
+        if transport ~= nil and protocol ~= nil and dns:parse_header() == 0 then
+            transport = transport:cast()
+            protocol = protocol:cast()
 
-            if transport ~= nil and protocol ~= nil then
-                transport = transport:cast()
-                protocol = protocol:cast()
+            if dns.qr == 0 then
+                local k = string.format("%s %d %s %d", transport:source(), protocol.sport, transport:destination(), protocol.dport)
+                local q = {
+                    id = dns.id,
+                    proto = protocol:type(),
+                    payload = ffi.new("uint8_t[?]", payload.len),
+                    len = tonumber(payload.len)
+                }
+                ffi.copy(q.payload, payload.payload, payload.len)
+                queries[k] = q
+            else
+                local k = string.format("%s %d %s %d", transport:destination(), protocol.dport, transport:source(), protocol.sport)
+                local q = queries[k]
+                if q then
+                    queries[k] = nil
+                    clipayload.payload = q.payload
+                    clipayload.len = q.len
 
-                if dns.qr == 0 then
-                    local k = string.format("%s %d %s %d", transport:source(), protocol.sport, transport:destination(), protocol.dport)
-                    local q = {
-                        id = dns.id,
-                        proto = protocol:type(),
-                        payload = ffi.new("uint8_t[?]", payload.len),
-                        len = tonumber(payload.len)
-                    }
-                    ffi.copy(q.payload, payload.payload, payload.len)
-                    queries[k] = q
-                else
-                    local k = string.format("%s %d %s %d", transport:destination(), protocol.dport, transport:source(), protocol.sport)
-                    local q = queries[k]
-                    if q then
-                        queries[k] = nil
-                        clipayload.payload = q.payload
-                        clipayload.len = q.len
+                    local prod, pctx
 
-                        local prod, pctx
-
-                        if q.proto == "udp" then
-                            if not udpcli then
-                                udpcli = require("dnsjit.output.udpcli").new()
-                                udpcli:connect(host, port)
-                                udprecv, udpctx = udpcli:receive()
-                                udpprod, _ = udpcli:produce()
-                            end
-                            udprecv(udpctx, cliobject)
-                            prod = udpprod
-                            pctx = udpctx
-                        elseif q.proto == "tcp" then
-                            if not tcpcli then
-                                tcpcli = require("dnsjit.output.tcpcli").new()
-                                tcpcli:connect(host, port)
-                                tcprecv, tcpctx = tcpcli:receive()
-                                tcpprod, _ = tcpcli:produce()
-                            end
-                            tcprecv(tcpctx, cliobject)
-                            prod = tcpprod
-                            pctx = tcpctx
+                    if q.proto == "udp" then
+                        if not udpcli then
+                            udpcli = require("dnsjit.output.udpcli").new()
+                            udpcli:connect(host, port)
+                            udprecv, udpctx = udpcli:receive()
+                            udpprod, _ = udpcli:produce()
                         end
+                        udprecv(udpctx, cliobject)
+                        prod = udpprod
+                        pctx = udpctx
+                    elseif q.proto == "tcp" then
+                        if not tcpcli then
+                            tcpcli = require("dnsjit.output.tcpcli").new()
+                            tcpcli:connect(host, port)
+                            tcprecv, tcpctx = tcpcli:receive()
+                            tcpprod, _ = tcpcli:produce()
+                        end
+                        tcprecv(tcpctx, cliobject)
+                        prod = tcpprod
+                        pctx = tcpctx
+                    end
 
-                        while true do
-                            local response = prod(pctx)
-                            if response == nil then
-                                log.fatal("producer error")
-                            end
-                            local rpl = response:cast()
-                            if rpl.len == 0 then
-                                log.info("timed out")
-                            else
-                                dns.obj_prev = response
-                                if dns:parse_header() == 0 and dns.id == q.id then
-                                    query_payload.payload = q.payload
-                                    query_payload.len = q.len
-                                    original_payload.payload = payload.payload
-                                    original_payload.len = payload.len
-                                    response_payload.payload = rpl.payload
-                                    response_payload.len = rpl.len
+                    while true do
+                        local response = prod(pctx)
+                        if response == nil then
+                            log.fatal("producer error")
+                        end
+                        local rpl = response:cast()
+                        if rpl.len == 0 then
+                            log.info("timed out")
+                        else
+                            dns.obj_prev = response
+                            if dns:parse_header() == 0 and dns.id == q.id then
+                                query_payload.payload = q.payload
+                                query_payload.len = q.len
+                                original_payload.payload = payload.payload
+                                original_payload.len = payload.len
+                                response_payload.payload = rpl.payload
+                                response_payload.len = rpl.len
 
-                                    resprecv(respctx, query_payload_obj)
-                                    break
-                                end
+                                resprecv(respctx, query_payload_obj)
+                                break
                             end
                         end
                     end

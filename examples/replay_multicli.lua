@@ -120,6 +120,7 @@ while true do
             end
             local pl = obj:cast()
             if obj:type() == "payload" and pl.len > 0 then
+                query:reset()
                 query.obj_prev = obj
 
                 local trs = pl.obj_prev:cast()
