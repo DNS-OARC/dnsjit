@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2023, OARC, Inc.
+ * Copyright (c) 2018-2024 OARC, Inc.
  * All rights reserved.
  *
  * This file is part of dnsjit.
@@ -26,7 +26,9 @@
 typedef enum input_zpcap_type {
     input_zpcap_type_none,
     input_zpcap_type_lz4,
-    input_zpcap_type_zstd
+    input_zpcap_type_zstd,
+    input_zpcap_type_gzip,
+    input_zpcap_type_lzma
 } input_zpcap_type_t;
 
 typedef struct input_zpcap {

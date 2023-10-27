@@ -21,6 +21,8 @@ BuildRequires:  lmdb-devel
 BuildRequires:  ck-devel
 BuildRequires:  gnutls-devel
 BuildRequires:  libzstd-devel
+BuildRequires:  zlib-devel
+BuildRequires:  xz-devel
 BuildRequires:  autoconf >= 2.64
 BuildRequires:  automake
 BuildRequires:  libtool
@@ -37,8 +39,17 @@ Summary:    Engine for capturing, parsing and replaying DNS - development files
 Group:      Development/Libraries/C and C++
 Requires:   libpcap-devel
 Requires:   luajit-devel >= 2.0.0
+Requires:   lmdb-devel
 Requires:   ck-devel
 Requires:   gnutls-devel
+%if 0%{?suse_version} || 0%{?sle_version}
+Requires:   liblz4-devel
+%else
+Requires:   lz4-devel
+%endif
+Requires:   libzstd-devel
+Requires:   zlib-devel
+Requires:   xz-devel
 
 %description devel
 dnsjit is a combination of parts taken from dsc, dnscap, drool,

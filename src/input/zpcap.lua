@@ -1,4 +1,4 @@
--- Copyright (c) 2018-2023, OARC, Inc.
+-- Copyright (c) 2018-2024 OARC, Inc.
 -- All rights reserved.
 --
 -- This file is part of dnsjit.
@@ -117,6 +117,16 @@ end
 -- Use libzstd to decompress the input file/data.
 function Zpcap:zstd()
     self.obj.compression = "input_zpcap_type_zstd"
+end
+
+-- Use zlib/gzip to decompress the input file/data.
+function Zpcap:gzip()
+    self.obj.compression = "input_zpcap_type_gzip"
+end
+
+-- Use liblzma/xz to decompress the input file/data.
+function Zpcap:lzma()
+    self.obj.compression = "input_zpcap_type_lzma"
 end
 
 -- Return true if support for selected compression library is built in.
