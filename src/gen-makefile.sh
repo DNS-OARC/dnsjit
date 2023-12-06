@@ -1,6 +1,6 @@
 #!/bin/sh
 
-echo '# Copyright (c) 2018-2022, OARC, Inc.
+echo '# Copyright (c) 2018-2023, OARC, Inc.
 # All rights reserved.
 #
 # This file is part of dnsjit.
