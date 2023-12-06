@@ -18,4 +18,4 @@
 
 dist_doc_DATA = capture.lua dumpdns2pcap.lua dumpdns.lua dumpdns-qr.lua \
   filter_rcode.lua qr-multi-pcap-state.lua readme.lua replay.lua \
-  replay_multicli.lua respdiff.lua
+  replay_multicli.lua respdiff.lua pcap2tcpdns.lua

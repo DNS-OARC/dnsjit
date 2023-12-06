@@ -1,4 +1,5 @@
 #!/usr/bin/env dnsjit
+-- Author: Petr Špaček (ISC)
 
 -- Convert PCAP with IPv[46] & UDP payloads into TCP-stream binary format as
 -- specified by RFC 1035 section "4.2.2. TCP usage". Each packet is preceded by
