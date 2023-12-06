@@ -65,7 +65,9 @@ case "${enableval}" in
 esac])
 AC_HEADER_TIME
 AX_PTHREAD
-PKG_CHECK_MODULES([libpcap], [libpcap],, [AC_MSG_ERROR([libpcap not found])])
+PKG_CHECK_MODULES([libpcap], [libpcap],, [
+  AC_CHECK_LIB([pcap], [pcap_open_live], [], [AC_MSG_ERROR([libpcap not found])])
+])
 AC_CHECK_HEADERS([endian.h sys/endian.h machine/endian.h sys/time.h byteswap.h])
 AC_CHECK_HEADERS([net/ethernet.h])
 AC_CHECK_HEADERS([net/ethertypes.h])
@@ -85,7 +87,9 @@ PKG_CHECK_MODULES([ck], [ck >= 0], [
   AC_CHECK_HEADERS([ck_ring.h ck_pr.h],, [AC_MSG_ERROR([libck headers not found])])
   AC_CHECK_LIB([ck], [ck_array_init],, [AC_MSG_ERROR([libck not found])])
 ])
-PKG_CHECK_MODULES([gnutls], [gnutls],, [AC_MSG_ERROR([libgnutls not found])])
+PKG_CHECK_MODULES([gnutls], [gnutls],, [
+  AC_CHECK_LIB([gnutls], [gnutls_init],, [AC_MSG_ERROR([libgnutls not found])])
+])
 PKG_CHECK_MODULES([liblz4], [liblz4 >= 1.8.0 liblz4 != 131], [AC_DEFINE([HAVE_LZ4], [], [Use liblz4])],:)
 PKG_CHECK_MODULES([libzstd], [libzstd >= 1.3.0], [AC_DEFINE([HAVE_ZSTD], [], [Use libzstd])],:)
 
