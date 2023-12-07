@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2022, OARC, Inc.
+ * Copyright (c) 2018-2023, OARC, Inc.
  * All rights reserved.
  *
  * This file is part of dnsjit.
@@ -112,7 +112,7 @@ core_log_t* core_object_dns_log();
 core_object_dns_t* core_object_dns_new();
 core_object_dns_t* core_object_dns_copy(const core_object_dns_t* self);
 void               core_object_dns_free(core_object_dns_t* self);
-void               core_object_dns_reset(core_object_dns_t* self, const core_object_t* obj);
+void               core_object_dns_reset(core_object_dns_t* self);
 
 int core_object_dns_parse_header(core_object_dns_t* self);
 int core_object_dns_parse_q(core_object_dns_t* self, core_object_dns_q_t* q, core_object_dns_label_t* label, size_t labels);

@@ -26,6 +26,18 @@ while true do
     if obj == nil then break end
     local pl = obj:cast()
     if obj:type() == "payload" and pl.len > 0 then
+        local protocol = obj.obj_prev
+        while protocol ~= nil do
+            if protocol.obj_type == object.UDP or protocol.obj_type == object.TCP then
+                break
+            end
+            protocol = protocol.obj_prev
+        end
+
+        dns:reset()
+        if protocol ~= nil and protocol.obj_type == object.TCP then
+            dns.includes_dnslen = 1
+        end
         dns.obj_prev = obj
         if dns:parse_header() == 0 then
             receiver(rctx, obj)

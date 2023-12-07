@@ -1,6 +1,6 @@
 #!/bin/sh
 
-echo '# Copyright (c) 2018-2022, OARC, Inc.
+echo '# Copyright (c) 2018-2023, OARC, Inc.
 # All rights reserved.
 #
 # This file is part of dnsjit.
@@ -30,7 +30,8 @@ AM_CFLAGS = -Werror=attributes \
   $(SIMD_FLAGS) $(CPUEXT_FLAGS) \
   $(PTHREAD_CFLAGS) \
   $(luajit_CFLAGS) \
-  $(liblz4_CFLAGS) $(libzstd_CFLAGS)
+  $(liblz4_CFLAGS) $(libzstd_CFLAGS) \
+  $(libpcap_CFLAGS) $(gnutls_CFLAGS)
 
 EXTRA_DIST = gen-manpage.lua gen-compat.lua gen-errno.sh dnsjit.1in
 
@@ -44,7 +45,8 @@ dnsjitincludedir = $(includedir)/dnsjit
 nobase_dnsjitinclude_HEADERS = globals.h version.h
 lua_hobjects = core/compat.luaho
 lua_objects = core.luao lib.luao input.luao filter.luao output.luao
-dnsjit_LDADD = $(PTHREAD_LIBS) $(luajit_LIBS) $(liblz4_LIBS) $(libzstd_LIBS)
+dnsjit_LDADD = $(PTHREAD_LIBS) $(luajit_LIBS) $(liblz4_LIBS) $(libzstd_LIBS) \
+  $(libpcap_LIBS) $(gnutls_LIBS)
 
 # C source and headers';
 

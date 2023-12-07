@@ -56,6 +56,7 @@ Debian/Ubuntu: `apt-get install libluajit-5.1-dev libpcap-dev luajit liblmdb-dev
 - Note: On Xenial you'll need to install `libzstd1-dev`
 
 CentOS: `yum install luajit-devel libpcap-devel lmdb-devel ck-devel gnutls-devel lz4-devel libzstd-devel`
+- Note: You might need EPEL and/or PowerTools repositories enabled
 
 FreeBSD: `pkg install luajit libpcap lmdb gnutls concurrencykit zstd liblz4`
 
@@ -120,6 +121,7 @@ while true do
     local object = producer(ctx)
     if object == nil then break end
     if object:type() == "payload" then
+        dns:reset()
         dns.obj_prev = object
         if dns:parse_header() == 0 then
             print(dns.id)
@@ -128,11 +130,14 @@ while true do
 end
 ```
 
+Disclaimer, to keep the above example short it only works on pre-prepared
+PCAPs with only UDP DNS traffic in them.
+
 See more examples in the [examples](https://github.com/DNS-OARC/dnsjit/tree/develop/examples) directory.
 
 ## Copyright
 
-Copyright (c) 2018-2022, OARC, Inc.
+Copyright (c) 2018-2023, OARC, Inc.
 
 All rights reserved.
 

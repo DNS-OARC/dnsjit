@@ -155,6 +155,10 @@ while true do
             pcap = pcap.obj_prev
         end
 
+        dns:reset()
+        if protocol ~= nil and protocol.obj_type == object.TCP then
+            dns.includes_dnslen = 1
+        end
         dns.obj_prev = obj
         if pcap ~= nil and transport ~= nil and protocol ~= nil and dns:parse_header() == 0 then
             transport = transport:cast()

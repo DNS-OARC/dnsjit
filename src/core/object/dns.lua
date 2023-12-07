@@ -1,4 +1,4 @@
--- Copyright (c) 2018-2022, OARC, Inc.
+-- Copyright (c) 2018-2023, OARC, Inc.
 -- All rights reserved.
 --
 -- This file is part of dnsjit.
@@ -515,6 +515,11 @@ end
 -- Free the object, should only be used on copies or otherwise allocated.
 function Dns:free()
     C.core_object_dns_free(self)
+end
+
+-- Reset the object readying it for reuse.
+function Dns:reset()
+    C.core_object_dns_reset(self)
 end
 
 -- Return the Log object to control logging of this module.

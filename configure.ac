@@ -1,4 +1,4 @@
-# Copyright (c) 2018-2022, OARC, Inc.
+# Copyright (c) 2018-2023, OARC, Inc.
 # All rights reserved.
 #
 # This file is part of dnsjit.
@@ -17,10 +17,10 @@
 # along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
 
 AC_PREREQ(2.64)
-AC_INIT([dnsjit], [1.2.3], [admin@dns-oarc.net], [dnsjit], [https://github.com/DNS-OARC/dnsjit/issues])
+AC_INIT([dnsjit], [1.3.0], [admin@dns-oarc.net], [dnsjit], [https://github.com/DNS-OARC/dnsjit/issues])
 AC_DEFINE([PACKAGE_MAJOR_VERSION], [1], [Define to the major version of this package.])
-AC_DEFINE([PACKAGE_MINOR_VERSION], [2], [Define to the minor version of this package.])
-AC_DEFINE([PACKAGE_PATCH_VERSION], [3], [Define to the patch version of this package.])
+AC_DEFINE([PACKAGE_MINOR_VERSION], [3], [Define to the minor version of this package.])
+AC_DEFINE([PACKAGE_PATCH_VERSION], [0], [Define to the patch version of this package.])
 AM_INIT_AUTOMAKE([-Wall -Werror foreign subdir-objects])
 AC_CONFIG_SRCDIR([src/dnsjit.c])
 AC_CONFIG_HEADER([src/config.h])
@@ -65,13 +65,10 @@ case "${enableval}" in
 esac])
 AC_HEADER_TIME
 AX_PTHREAD
-AC_CHECK_LIB([pcap], [pcap_open_live], [], [AC_MSG_ERROR([libpcap not found])])
-AC_CHECK_HEADER([pcap/pcap.h], [], [AC_MSG_ERROR([libpcap header not found])])
+PKG_CHECK_MODULES([libpcap], [libpcap],, [
+  AC_CHECK_LIB([pcap], [pcap_open_live], [], [AC_MSG_ERROR([libpcap not found])])
+])
 AC_CHECK_HEADERS([endian.h sys/endian.h machine/endian.h sys/time.h byteswap.h])
-AC_CHECK_FUNCS([pcap_create pcap_set_tstamp_precision pcap_set_immediate_mode])
-AC_CHECK_FUNCS([pcap_set_tstamp_type pcap_setdirection sched_yield])
-AC_CHECK_FUNCS([pcap_open_offline_with_tstamp_precision pcap_activate])
-AC_CHECK_TYPES([pcap_direction_t], [], [], [[#include <pcap/pcap.h>]])
 AC_CHECK_HEADERS([net/ethernet.h])
 AC_CHECK_HEADERS([net/ethertypes.h])
 AC_SEARCH_LIBS([clock_gettime],[rt])
@@ -90,7 +87,9 @@ PKG_CHECK_MODULES([ck], [ck >= 0], [
   AC_CHECK_HEADERS([ck_ring.h ck_pr.h],, [AC_MSG_ERROR([libck headers not found])])
   AC_CHECK_LIB([ck], [ck_array_init],, [AC_MSG_ERROR([libck not found])])
 ])
-AC_CHECK_LIB([gnutls], [gnutls_init],, [AC_MSG_ERROR([libgnutls not found])])
+PKG_CHECK_MODULES([gnutls], [gnutls],, [
+  AC_CHECK_LIB([gnutls], [gnutls_init],, [AC_MSG_ERROR([libgnutls not found])])
+])
 PKG_CHECK_MODULES([liblz4], [liblz4 >= 1.8.0 liblz4 != 131], [AC_DEFINE([HAVE_LZ4], [], [Use liblz4])],:)
 PKG_CHECK_MODULES([libzstd], [libzstd >= 1.3.0], [AC_DEFINE([HAVE_ZSTD], [], [Use libzstd])],:)
 

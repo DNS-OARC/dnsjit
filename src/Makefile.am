@@ -1,4 +1,4 @@
-# Copyright (c) 2018-2022, OARC, Inc.
+# Copyright (c) 2018-2023, OARC, Inc.
 # All rights reserved.
 #
 # This file is part of dnsjit.
@@ -28,7 +28,8 @@ AM_CFLAGS = -Werror=attributes \
   $(SIMD_FLAGS) $(CPUEXT_FLAGS) \
   $(PTHREAD_CFLAGS) \
   $(luajit_CFLAGS) \
-  $(liblz4_CFLAGS) $(libzstd_CFLAGS)
+  $(liblz4_CFLAGS) $(libzstd_CFLAGS) \
+  $(libpcap_CFLAGS) $(gnutls_CFLAGS)
 
 EXTRA_DIST = gen-manpage.lua gen-compat.lua gen-errno.sh dnsjit.1in
 
@@ -42,7 +43,8 @@ dnsjitincludedir = $(includedir)/dnsjit
 nobase_dnsjitinclude_HEADERS = globals.h version.h
 lua_hobjects = core/compat.luaho
 lua_objects = core.luao lib.luao input.luao filter.luao output.luao
-dnsjit_LDADD = $(PTHREAD_LIBS) $(luajit_LIBS) $(liblz4_LIBS) $(libzstd_LIBS)
+dnsjit_LDADD = $(PTHREAD_LIBS) $(luajit_LIBS) $(liblz4_LIBS) $(libzstd_LIBS) \
+  $(libpcap_LIBS) $(gnutls_LIBS)
 
 # C source and headers
 dnsjit_SOURCES += core/channel.c core/compat.c core/file.c core/log.c core/object.c core/object/dns.c core/object/ether.c core/object/gre.c core/object/icmp6.c core/object/icmp.c core/object/ieee802.c core/object/ip6.c core/object/ip.c core/object/linuxsll.c core/object/loop.c core/object/null.c core/object/payload.c core/object/pcap.c core/object/tcp.c core/object/udp.c core/producer.c core/receiver.c core/thread.c filter/copy.c filter/ipsplit.c filter/layer.c filter/split.c filter/timing.c input/fpcap.c input/mmpcap.c input/pcap.c input/zpcap.c lib/base64url.c lib/clock.c lib/trie.c output/dnscli.c output/pcap.c output/respdiff.c output/tcpcli.c output/tlscli.c output/udpcli.c

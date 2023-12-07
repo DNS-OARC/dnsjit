@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2022, OARC, Inc.
+ * Copyright (c) 2018-2023, OARC, Inc.
  * All rights reserved.
  *
  * This file is part of dnsjit.
@@ -93,6 +93,12 @@ void core_object_dns_free(core_object_dns_t* self)
 {
     mlassert_self();
     free(self);
+}
+
+void core_object_dns_reset(core_object_dns_t* self)
+{
+    mlassert_self();
+    *self = _defaults;
 }
 
 #define need8(v, p, l) \

@@ -28,9 +28,20 @@ while true do
             end
             transport = transport.obj_prev
         end
+        local protocol = obj.obj_prev
+        while protocol ~= nil do
+            if protocol.obj_type == object.UDP or protocol.obj_type == object.TCP then
+                break
+            end
+            protocol = protocol.obj_prev
+        end
 
+        dns:reset()
+        if protocol ~= nil and protocol.obj_type == object.TCP then
+            dns.includes_dnslen = 1
+        end
         dns.obj_prev = obj
-        if transport and dns and dns:parse_header() == 0 and dns.have_rcode == 1 and dns.rcode == rcode then
+        if transport ~= nil and dns:parse_header() == 0 and dns.have_rcode == 1 and dns.rcode == rcode then
             transport = transport:cast()
             print(dns.id, transport:source().." -> "..transport:destination())
         end

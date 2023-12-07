@@ -1,3 +1,25 @@
+2023-12-07 Jerry Lundström
+
+    Release 1.3.0
+
+    This release adds `core.object.dns:reset()` to reset DNS objects so they
+    can be reused correctly.
+
+    Example scripts have been updated to reflect this along with correctly
+    setting `includes_dnslen` for TCP packets.
+
+    New example converter `pcap2tcpdns` added that can be used to create bin
+    files for replaying with `dnsperf -B`.
+
+    f0d0b39 pkg-config
+    464a198 pcap2tcpdns
+    b40ad6d example convertor from PCAP to TCP DNS format used by dnsperf -B option
+    ac51bfd pkg-config
+    198bae9 Copyright
+    5a87e37 DNS reset, dnslen TCP
+    f2d6b05 Doc
+    265a577 COPR fix
+
 2022-03-21 Jerry Lundström
 
     Release 1.2.3
