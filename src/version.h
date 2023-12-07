@@ -22,7 +22,7 @@
 #define __dnsjit_version_h
 
 #define DNSJIT_MAJOR_VERSION 1
-#define DNSJIT_MINOR_VERSION 2
-#define DNSJIT_PATCH_VERSION 3
+#define DNSJIT_MINOR_VERSION 3
+#define DNSJIT_PATCH_VERSION 0
 
 #endif
