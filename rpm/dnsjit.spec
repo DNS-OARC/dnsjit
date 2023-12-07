@@ -1,5 +1,5 @@
 Name:           dnsjit
-Version:        1.2.3
+Version:        1.3.0
 Release:        1%{?dist}
 Summary:        Engine for capturing, parsing and replaying DNS
 Group:          Productivity/Networking/DNS/Utilities
@@ -85,6 +85,23 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Thu Dec 07 2023 Jerry Lundström <lundstrom.jerry@gmail.com> 1.3.0-1
+- Release 1.3.0
+  * This release adds `core.object.dns:reset()` to reset DNS objects so they
+    can be reused correctly.
+  * Example scripts have been updated to reflect this along with correctly
+    setting `includes_dnslen` for TCP packets.
+  * New example converter `pcap2tcpdns` added that can be used to create bin
+    files for replaying with `dnsperf -B`.
+  * Commits:
+    f0d0b39 pkg-config
+    464a198 pcap2tcpdns
+    b40ad6d example convertor from PCAP to TCP DNS format used by dnsperf -B option
+    ac51bfd pkg-config
+    198bae9 Copyright
+    5a87e37 DNS reset, dnslen TCP
+    f2d6b05 Doc
+    265a577 COPR fix
 * Mon Mar 21 2022 Jerry Lundström <lundstrom.jerry@gmail.com> 1.2.3-1
 - Release 1.2.3
   * This patch release fixes compilation issues on FreeBSD for LLVM v12+.
