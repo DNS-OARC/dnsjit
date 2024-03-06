@@ -18,8 +18,8 @@
  * along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-//lua:require("dnsjit.core.log")
-//lua:require("dnsjit.core.receiver_h")
+// lua:require("dnsjit.core.log")
+// lua:require("dnsjit.core.receiver_h")
 
 typedef struct filter_ipsplit_recv filter_ipsplit_recv_t;
 struct filter_ipsplit_recv {

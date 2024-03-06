@@ -27,50 +27,16 @@
 #include <lualib.h>
 #include <lauxlib.h>
 
-#include <pthread.h>
-#include <signal.h>
-#include <string.h>
 #include <stdio.h>
-
-static void* _sighthr(void* arg)
-{
-    sigset_t* set = (sigset_t*)arg;
-    int       sig = 0, err;
-
-    if ((err = sigwait(set, &sig))) {
-        gldebug("sigwait %d", err);
-    }
-    glfatal("signal %d", sig);
-
-    return 0;
-}
 
 int main(int argc, char* argv[])
 {
     lua_State* L;
     int        n, err;
-    sigset_t   set;
-    pthread_t  sighthr;
 
     if (argc < 2) {
         fprintf(stderr, "usage: %s <file.lua> ...\n", argv[0]);
         exit(1);
-    }
-
-    sigfillset(&set);
-    if ((err = pthread_sigmask(SIG_BLOCK, &set, 0))) {
-        glfatal("Unable to set blocked signals with pthread_sigmask()");
-        return 2;
-    }
-
-    sigemptyset(&set);
-    sigaddset(&set, SIGTERM);
-    sigaddset(&set, SIGQUIT);
-    sigaddset(&set, SIGINT);
-
-    if ((err = pthread_create(&sighthr, 0, _sighthr, &set))) {
-        glfatal("Unable to start signal thread with pthread_create()");
-        return 2;
     }
 
     L = luaL_newstate();

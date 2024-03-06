@@ -18,8 +18,8 @@
  * along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-//lua:require("dnsjit.core.object_h")
-//lua:require("dnsjit.core.timespec_h")
+// lua:require("dnsjit.core.object_h")
+// lua:require("dnsjit.core.timespec_h")
 
 typedef struct core_object_pcap {
     const core_object_t* obj_prev;

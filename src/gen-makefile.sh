@@ -87,7 +87,7 @@ echo 'CLEANFILES += *.3in $(man3_MANS)
 .hh.luah:
 	@mkdir -p `dirname "$@"`
 	@echo '"'"'module(...,package.seeall);'"'"' > "$@"
-	@cat "$<" | grep '"'"'^//lua:'"'"' | sed '"'"'s%^//lua:%%'"'"' >> "$@"
+	@cat "$<" | grep '"'"'^// *lua:'"'"' | sed '"'"'s%^// *lua:%%'"'"' >> "$@"
 	@echo '"'"'require("ffi").cdef[['"'"' >> "$@"
 	@cat "$<" | grep -v '"'"'^#'"'"' >> "$@"
 	@echo '"'"']]'"'"' >> "$@"

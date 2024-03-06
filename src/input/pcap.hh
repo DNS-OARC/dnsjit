@@ -22,10 +22,10 @@
 typedef struct pcap {} pcap_t;
 #endif
 
-//lua:require("dnsjit.core.log")
-//lua:require("dnsjit.core.receiver_h")
-//lua:require("dnsjit.core.producer_h")
-//lua:require("dnsjit.core.object.pcap_h")
+// lua:require("dnsjit.core.log")
+// lua:require("dnsjit.core.receiver_h")
+// lua:require("dnsjit.core.producer_h")
+// lua:require("dnsjit.core.object.pcap_h")
 
 typedef struct input_pcap {
     core_log_t      _log;

@@ -18,7 +18,7 @@
  * along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-//lua:require("dnsjit.core.timespec_h")
+// lua:require("dnsjit.core.timespec_h")
 
 typedef enum lib_clock_clkid {
     LIB_CLOCK_REALTIME,
