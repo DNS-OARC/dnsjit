@@ -27,8 +27,8 @@ struct core_thread_item {
     void*               ptr;
     char *              type, *module;
 
-    char*   str;
-    int64_t i64;
+    char*      str;
+    lua_Number num;
 };
 
 typedef struct core_thread {
@@ -52,5 +52,5 @@ int                       core_thread_start(core_thread_t* self, const char* byt
 int                       core_thread_stop(core_thread_t* self);
 void                      core_thread_push(core_thread_t* self, void* ptr, const char* type, size_t type_len, const char* module, size_t module_len);
 void                      core_thread_push_string(core_thread_t* self, const char* str, size_t len);
-void                      core_thread_push_int64(core_thread_t* self, int64_t i64);
+void                      core_thread_push_number(core_thread_t* self, lua_Number num);
 const core_thread_item_t* core_thread_pop(core_thread_t* self);
