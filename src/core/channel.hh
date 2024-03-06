@@ -19,8 +19,8 @@
  */
 
 //lua:require("dnsjit.core.compat_h")
-//lua:require("dnsjit.core.log")
-//lua:require("dnsjit.core.receiver_h")
+// lua:require("dnsjit.core.log")
+// lua:require("dnsjit.core.receiver_h")
 
 typedef struct core_channel {
     core_log_t        _log;

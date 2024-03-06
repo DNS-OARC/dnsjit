@@ -18,6 +18,6 @@
  * along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-//lua:require("dnsjit.core.object_h")
+// lua:require("dnsjit.core.object_h")
 
 typedef void (*core_receiver_t)(void* ctx, const core_object_t* obj);
