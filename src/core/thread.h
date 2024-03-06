@@ -25,6 +25,7 @@
 
 #include <pthread.h>
 #include <unistd.h>
+#include <lua.h>
 
 #include <dnsjit/core/thread.hh>
 
