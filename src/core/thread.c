@@ -185,7 +185,7 @@ void core_thread_push_string(core_thread_t* self, const char* str, size_t len)
     _push(self, item);
 }
 
-void core_thread_push_number(core_thread_t* self, lua_Number num)
+void core_thread_push_number(core_thread_t* self, double num)
 {
     core_thread_item_t* item;
     mlassert_self();
