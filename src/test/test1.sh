@@ -1,5 +1,5 @@
-#!/bin/sh -e
-# Copyright (c) 2018-2023, OARC, Inc.
+#!/bin/sh -ex
+# Copyright (c) 2018-2024 OARC, Inc.
 # All rights reserved.
 #
 # This file is part of dnsjit.
@@ -27,5 +27,30 @@ if echo "$support"|grep -q lz4; then
 fi
 if echo "$support"|grep -q zstd; then
     ../dnsjit "$srcdir/../../examples/dumpdns.lua" dns.pcap.zst-dist zstd >test1.out
+    diff "$srcdir/test1.gold" test1.out
+fi
+if echo "$support"|grep -q lzma; then
+    ../dnsjit "$srcdir/../../examples/dumpdns.lua" dns.pcap.xz-dist xz >test1.out
+    diff "$srcdir/test1.gold" test1.out
+fi
+if echo "$support"|grep -q gzip; then
+    ../dnsjit "$srcdir/../../examples/dumpdns.lua" dns.pcap.gz-dist gz >test1.out
+    diff "$srcdir/test1.gold" test1.out
+fi
+
+if echo "$support"|grep -q lz4; then
+    ../dnsjit "$srcdir/../../examples/dumpdns.lua" dns.pcap.lz4-dist lz4 mmap >test1.out
+    diff "$srcdir/test1.gold" test1.out
+fi
+if echo "$support"|grep -q zstd; then
+    ../dnsjit "$srcdir/../../examples/dumpdns.lua" dns.pcap.zst-dist zstd mmap >test1.out
+    diff "$srcdir/test1.gold" test1.out
+fi
+if echo "$support"|grep -q lzma; then
+    ../dnsjit "$srcdir/../../examples/dumpdns.lua" dns.pcap.xz-dist xz mmap >test1.out
+    diff "$srcdir/test1.gold" test1.out
+fi
+if echo "$support"|grep -q gzip; then
+    ../dnsjit "$srcdir/../../examples/dumpdns.lua" dns.pcap.gz-dist gz mmap >test1.out
     diff "$srcdir/test1.gold" test1.out
 fi

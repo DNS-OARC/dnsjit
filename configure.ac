@@ -1,4 +1,4 @@
-# Copyright (c) 2018-2023, OARC, Inc.
+# Copyright (c) 2018-2024 OARC, Inc.
 # All rights reserved.
 #
 # This file is part of dnsjit.
@@ -92,6 +92,8 @@ PKG_CHECK_MODULES([gnutls], [gnutls],, [
 ])
 PKG_CHECK_MODULES([liblz4], [liblz4 >= 1.8.0 liblz4 != 131], [AC_DEFINE([HAVE_LZ4], [], [Use liblz4])],:)
 PKG_CHECK_MODULES([libzstd], [libzstd >= 1.3.0], [AC_DEFINE([HAVE_ZSTD], [], [Use libzstd])],:)
+AC_CHECK_LIB([z], [gzopen],, [AC_MSG_ERROR([zlib not found])])
+PKG_CHECK_MODULES([liblzma], [liblzma >= 5.2.0], [AC_DEFINE([HAVE_LZMA], [], [Use liblzma])],:)
 
 # Checks for sizes
 AC_CHECK_SIZEOF([void*])

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2023, OARC, Inc.
+ * Copyright (c) 2018-2024 OARC, Inc.
  * All rights reserved.
  *
  * This file is part of dnsjit.
@@ -53,6 +53,7 @@
 #endif
 #include <pcap/pcap.h>
 #include <string.h>
+#include <unistd.h>
 
 #ifdef HAVE_LZ4
 #include <lz4frame.h>
@@ -62,6 +63,7 @@ struct _lz4_ctx {
 };
 #define lz4 ((struct _lz4_ctx*)self->comp_ctx)
 #endif
+
 #ifdef HAVE_ZSTD
 #include <zstd.h>
 struct _zstd_ctx {
@@ -70,6 +72,21 @@ struct _zstd_ctx {
     ZSTD_outBuffer out;
 };
 #define zstd ((struct _zstd_ctx*)self->comp_ctx)
+#endif
+
+#include <zlib.h>
+struct _gzip_ctx {
+    gzFile fp;
+};
+#define gzip ((struct _gzip_ctx*)self->comp_ctx)
+
+#ifdef HAVE_LZMA
+#include <lzma.h>
+struct _lzma_ctx {
+    lzma_stream strm;
+};
+static lzma_stream lzma_stream_init = LZMA_STREAM_INIT;
+#define lzma ((struct _lzma_ctx*)self->comp_ctx)
 #endif
 
 #define MAX_SNAPLEN 0x40000
@@ -108,10 +125,8 @@ void input_zpcap_destroy(input_zpcap_t* self)
     case input_zpcap_type_lz4: {
         LZ4F_errorCode_t code;
 
-        if (lz4) {
-            if (lz4->ctx && (code = LZ4F_freeDecompressionContext(lz4->ctx))) {
-                lfatal("LZ4F_freeDecompressionContext() failed: %s", LZ4F_getErrorName(code));
-            }
+        if (lz4 && lz4->ctx && (code = LZ4F_freeDecompressionContext(lz4->ctx))) {
+            lfatal("LZ4F_freeDecompressionContext() failed: %s", LZ4F_getErrorName(code));
         }
         free(lz4);
         free(self->in);
@@ -121,13 +136,26 @@ void input_zpcap_destroy(input_zpcap_t* self)
 #endif
 #ifdef HAVE_ZSTD
     case input_zpcap_type_zstd:
-        if (zstd) {
-            if (zstd->ctx) {
-                ZSTD_freeDCtx(zstd->ctx);
-            }
+        if (zstd && zstd->ctx) {
+            ZSTD_freeDCtx(zstd->ctx);
         }
         free(zstd);
         free(self->in);
+        free(self->out);
+        break;
+#endif
+    case input_zpcap_type_gzip:
+        if (gzip && gzip->fp) {
+            gzclose(gzip->fp);
+        }
+        free(gzip);
+        break;
+#ifdef HAVE_LZMA
+    case input_zpcap_type_lzma:
+        if (lzma) {
+            lzma_end(&lzma->strm);
+        }
+        free(lzma);
         free(self->out);
         break;
 #endif
@@ -148,7 +176,7 @@ static ssize_t _read(input_zpcap_t* self, void* dst, size_t len, void** dstp)
     case input_zpcap_type_lz4: {
         size_t need = len;
 
-        if (dstp && self->out_have > need) {
+        if (dstp && self->out_have >= need) {
             *dstp = self->out + self->out_at;
             self->out_have -= need;
             self->out_at += need;
@@ -156,7 +184,7 @@ static ssize_t _read(input_zpcap_t* self, void* dst, size_t len, void** dstp)
         }
 
         for (;;) {
-            if (self->out_have > need) {
+            if (self->out_have >= need) {
                 memcpy(dst, self->out + self->out_at, need);
                 self->out_have -= need;
                 self->out_at += need;
@@ -201,7 +229,7 @@ static ssize_t _read(input_zpcap_t* self, void* dst, size_t len, void** dstp)
     case input_zpcap_type_zstd: {
         size_t need = len;
 
-        if (dstp && self->out_have > need) {
+        if (dstp && self->out_have >= need) {
             *dstp = self->out + self->out_at;
             self->out_have -= need;
             self->out_at += need;
@@ -209,7 +237,7 @@ static ssize_t _read(input_zpcap_t* self, void* dst, size_t len, void** dstp)
         }
 
         for (;;) {
-            if (self->out_have > need) {
+            if (self->out_have >= need) {
                 memcpy(dst, self->out + self->out_at, need);
                 self->out_have -= need;
                 self->out_at += need;
@@ -241,6 +269,59 @@ static ssize_t _read(input_zpcap_t* self, void* dst, size_t len, void** dstp)
         }
     }
 #endif
+    case input_zpcap_type_gzip:
+        return gzfread(dst, 1, len, gzip->fp);
+#ifdef HAVE_LZMA
+    case input_zpcap_type_lzma: {
+        size_t need = len;
+
+        if (dstp && self->out_have >= need) {
+            *dstp = self->out + self->out_at;
+            self->out_have -= need;
+            self->out_at += need;
+            return len;
+        }
+
+        lzma_action action = LZMA_RUN;
+        uint8_t     inbuf[BUFSIZ];
+        for (;;) {
+            if (self->out_have >= need) {
+                memcpy(dst, self->out + self->out_at, need);
+                self->out_have -= need;
+                self->out_at += need;
+                return len;
+            }
+
+            memcpy(dst, self->out + self->out_at, self->out_have);
+            need -= self->out_have;
+            dst += self->out_have;
+
+            ssize_t n = fread(inbuf, 1, sizeof(inbuf), self->file);
+            if (n < 0) {
+                return n;
+            }
+            if (!n) {
+                action = LZMA_FINISH;
+            }
+
+            lzma->strm.next_in   = inbuf;
+            lzma->strm.avail_in  = n;
+            lzma->strm.next_out  = self->out;
+            lzma->strm.avail_out = self->out_size;
+
+            lzma_ret ret = lzma_code(&lzma->strm, action);
+            if (ret != LZMA_OK) {
+                if (ret == LZMA_STREAM_END) {
+                    return 0;
+                }
+                lfatal("lzma_code() failed: %d", ret);
+            }
+
+            self->out_at   = 0;
+            self->out_have = self->out_size - lzma->strm.avail_out;
+        }
+    }
+#endif
     default:
         return 0;
     }
@@ -265,10 +346,8 @@ static int _open(input_zpcap_t* self)
     case input_zpcap_type_lz4: {
         LZ4F_errorCode_t code;
 
-        if (lz4) {
-            if (lz4->ctx && (code = LZ4F_freeDecompressionContext(lz4->ctx))) {
-                lfatal("LZ4F_freeDecompressionContext() failed: %s", LZ4F_getErrorName(code));
-            }
+        if (lz4 && lz4->ctx && (code = LZ4F_freeDecompressionContext(lz4->ctx))) {
+            lfatal("LZ4F_freeDecompressionContext() failed: %s", LZ4F_getErrorName(code));
         }
         free(lz4);
         free(self->in);
@@ -290,10 +369,8 @@ static int _open(input_zpcap_t* self)
 #endif
 #ifdef HAVE_ZSTD
     case input_zpcap_type_zstd:
-        if (zstd) {
-            if (zstd->ctx) {
-                ZSTD_freeDCtx(zstd->ctx);
-            }
+        if (zstd && zstd->ctx) {
+            ZSTD_freeDCtx(zstd->ctx);
         }
         free(zstd);
         free(self->in);
@@ -309,6 +386,39 @@ static int _open(input_zpcap_t* self)
         zstd->in.src   = self->in;
         zstd->out.dst  = self->out;
         zstd->out.size = self->out_size;
+        break;
+#endif
+    case input_zpcap_type_gzip:
+        free(gzip);
+
+        lfatal_oom(self->comp_ctx = calloc(1, sizeof(struct _gzip_ctx)));
+
+        int fd = dup(fileno((FILE*)self->file));
+        if (!(gzip->fp = gzdopen(fd, "rb"))) {
+            lcritical("gzdopen(%d) error: %s", fd, core_log_errstr(errno));
+            close(fd);
+            return -1;
+        }
+        break;
+#ifdef HAVE_LZMA
+    case input_zpcap_type_lzma:
+        if (lzma) {
+            lzma_end(&lzma->strm);
+        }
+        free(lzma);
+        free(self->out);
+
+        lfatal_oom(self->comp_ctx = calloc(1, sizeof(struct _lzma_ctx)));
+        lzma->strm   = lzma_stream_init;
+        lzma_ret ret = lzma_stream_decoder(&lzma->strm, UINT64_MAX, LZMA_CONCATENATED);
+        if (ret != LZMA_OK) {
+            lcritical("lzma_stream_decoder() error: %d", ret);
+            return -1;
+        }
+
+        self->out_size = 256 * 1024;
+        lfatal_oom(self->out = malloc(self->out_size));
+
         break;
 #endif
     default:
@@ -393,6 +503,7 @@ static int _open(input_zpcap_t* self)
         self->linktype = self->network;
     }
 
+    free(self->buf);
     lfatal_oom(self->buf = malloc(self->snaplen));
     self->prod_pkt.snaplen    = self->snaplen;
     self->prod_pkt.linktype   = self->linktype;
@@ -506,6 +617,12 @@ int input_zpcap_have_support(input_zpcap_t* self)
 #endif
 #ifdef HAVE_ZSTD
     case input_zpcap_type_zstd:
+        return 1;
+#endif
+    case input_zpcap_type_gzip:
+        return 1;
+#ifdef HAVE_LZMA
+    case input_zpcap_type_lzma:
         return 1;
 #endif
     default:
