@@ -272,7 +272,7 @@ static ssize_t _read(input_zmmpcap_t* self, void* dst, size_t len, void** dstp)
             need -= self->out_have;
             dst += self->out_have;
 
-            if (gzip->strm.avail_in <= gzip->strm.total_in) {
+            if (gzip->strm.avail_in <= 0) {
                 return 0;
             }
 
@@ -319,7 +319,7 @@ static ssize_t _read(input_zmmpcap_t* self, void* dst, size_t len, void** dstp)
             need -= self->out_have;
             dst += self->out_have;
 
-            if (lzma->strm.avail_in <= lzma->strm.total_in) {
+            if (lzma->strm.avail_in <= 0) {
                 return 0;
             }
 
