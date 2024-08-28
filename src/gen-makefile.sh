@@ -1,6 +1,6 @@
 #!/bin/sh
 
-echo '# Copyright (c) 2018-2023, OARC, Inc.
+echo '# Copyright (c) 2018-2024 OARC, Inc.
 # All rights reserved.
 #
 # This file is part of dnsjit.
@@ -31,7 +31,8 @@ AM_CFLAGS = -Werror=attributes \
   $(PTHREAD_CFLAGS) \
   $(luajit_CFLAGS) \
   $(liblz4_CFLAGS) $(libzstd_CFLAGS) \
-  $(libpcap_CFLAGS) $(gnutls_CFLAGS)
+  $(libpcap_CFLAGS) $(gnutls_CFLAGS) \
+  $(liblzma_CFLAGS)
 
 EXTRA_DIST = gen-manpage.lua gen-compat.lua gen-errno.sh dnsjit.1in
 
@@ -46,7 +47,7 @@ nobase_dnsjitinclude_HEADERS = globals.h version.h
 lua_hobjects = core/compat.luaho
 lua_objects = core.luao lib.luao input.luao filter.luao output.luao
 dnsjit_LDADD = $(PTHREAD_LIBS) $(luajit_LIBS) $(liblz4_LIBS) $(libzstd_LIBS) \
-  $(libpcap_LIBS) $(gnutls_LIBS)
+  $(libpcap_LIBS) $(gnutls_LIBS) $(liblzma_LIBS)
 
 # C source and headers';
 
@@ -87,7 +88,7 @@ echo 'CLEANFILES += *.3in $(man3_MANS)
 .hh.luah:
 	@mkdir -p `dirname "$@"`
 	@echo '"'"'module(...,package.seeall);'"'"' > "$@"
-	@cat "$<" | grep '"'"'^//lua:'"'"' | sed '"'"'s%^//lua:%%'"'"' >> "$@"
+	@cat "$<" | grep '"'"'^// *lua:'"'"' | sed '"'"'s%^// *lua:%%'"'"' >> "$@"
 	@echo '"'"'require("ffi").cdef[['"'"' >> "$@"
 	@cat "$<" | grep -v '"'"'^#'"'"' >> "$@"
 	@echo '"'"']]'"'"' >> "$@"

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2023, OARC, Inc.
+ * Copyright (c) 2018-2024 OARC, Inc.
  * All rights reserved.
  *
  * This file is part of dnsjit.
@@ -22,10 +22,10 @@
 typedef struct pcap {} pcap_t;
 #endif
 
-//lua:require("dnsjit.core.log")
-//lua:require("dnsjit.core.receiver_h")
-//lua:require("dnsjit.core.producer_h")
-//lua:require("dnsjit.core.object.pcap_h")
+// lua:require("dnsjit.core.log")
+// lua:require("dnsjit.core.receiver_h")
+// lua:require("dnsjit.core.producer_h")
+// lua:require("dnsjit.core.object.pcap_h")
 
 typedef struct input_pcap {
     core_log_t      _log;

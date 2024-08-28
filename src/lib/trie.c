@@ -39,17 +39,17 @@ enum knot_error {
         && __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)
 
 /*!
-	 * \brief Use a pointer alignment hack to save memory.
-	 *
-	 * When on, isbranch() relies on the fact that in leaf_t the first pointer
-	 * is aligned on multiple of 4 bytes and that the flags bitfield is
-	 * overlaid over the lowest two bits of that pointer.
-	 * Neither is really guaranteed by the C standards; the second part should
-	 * be OK with x86_64 ABI and most likely any other little-endian platform.
-	 * It would be possible to manipulate the right bits portably, but it would
-	 * complicate the code nontrivially. C++ doesn't even guarantee type-punning.
-	 * In debug mode we check this works OK when creating a new trie instance.
-	 */
+ * \brief Use a pointer alignment hack to save memory.
+ *
+ * When on, isbranch() relies on the fact that in leaf_t the first pointer
+ * is aligned on multiple of 4 bytes and that the flags bitfield is
+ * overlaid over the lowest two bits of that pointer.
+ * Neither is really guaranteed by the C standards; the second part should
+ * be OK with x86_64 ABI and most likely any other little-endian platform.
+ * It would be possible to manipulate the right bits portably, but it would
+ * complicate the code nontrivially. C++ doesn't even guarantee type-punning.
+ * In debug mode we check this works OK when creating a new trie instance.
+ */
 #define FLAGS_HACK 1
 #else
 #define FLAGS_HACK 0
@@ -490,6 +490,10 @@ static int ns_longer_alloc(nstack_t* ns)
             memcpy(st, ns->stack, ns->len * sizeof(node_t*));
     } else {
         st = realloc(ns->stack, new_size);
+        if (st == NULL) {
+            free(ns->stack); // left behind by realloc, callers bail out
+            ns->stack = NULL;
+        }
     }
     if (st == NULL)
         return KNOT_ENOMEM;
@@ -732,8 +736,8 @@ int trie_get_leq(trie_t* tbl, const uint8_t* key, uint32_t len, trie_val_t** val
         // but try the previous child if key was less (it may not exist)
         bitmap_t b = twigbit(t, key, len);
         int      i = hastwig(t, b)
-                    ? twigoff(t, b) - (un_key < un_leaf)
-                    : twigoff(t, b) - 1 /*twigoff returns successor when !hastwig*/;
+                         ? twigoff(t, b) - (un_key < un_leaf)
+                         : twigoff(t, b) - 1 /*twigoff returns successor when !hastwig*/;
         if (i >= 0) {
             ERR_RETURN(ns_longer(ns));
             ns->stack[ns->len++] = twig(t, i);

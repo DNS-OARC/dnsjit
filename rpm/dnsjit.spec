@@ -1,5 +1,5 @@
 Name:           dnsjit
-Version:        1.3.0
+Version:        1.4.0
 Release:        1%{?dist}
 Summary:        Engine for capturing, parsing and replaying DNS
 Group:          Productivity/Networking/DNS/Utilities
@@ -21,6 +21,8 @@ BuildRequires:  lmdb-devel
 BuildRequires:  ck-devel
 BuildRequires:  gnutls-devel
 BuildRequires:  libzstd-devel
+BuildRequires:  zlib-devel
+BuildRequires:  xz-devel
 BuildRequires:  autoconf >= 2.64
 BuildRequires:  automake
 BuildRequires:  libtool
@@ -37,8 +39,17 @@ Summary:    Engine for capturing, parsing and replaying DNS - development files
 Group:      Development/Libraries/C and C++
 Requires:   libpcap-devel
 Requires:   luajit-devel >= 2.0.0
+Requires:   lmdb-devel
 Requires:   ck-devel
 Requires:   gnutls-devel
+%if 0%{?suse_version} || 0%{?sle_version}
+Requires:   liblz4-devel
+%else
+Requires:   lz4-devel
+%endif
+Requires:   libzstd-devel
+Requires:   zlib-devel
+Requires:   xz-devel
 
 %description devel
 dnsjit is a combination of parts taken from dsc, dnscap, drool,
@@ -85,6 +96,32 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Wed Aug 28 2024 Jerry Lundström <lundstrom.jerry@gmail.com> 1.4.0-1
+- Release 1.4.0
+  * This release adds a new module `input.zmmpcap` to read compressed PCAPs
+    using `mmap()`, changes how `core.thread` push/pop, removes signal
+    blocking and squashes a few bugs.
+  * For `core.thread`, the `push()`/`pop()` now uses `double` instead of
+    `int64_t` to match the conversion table of LuaJIT and to support
+    floating point numbers.
+  * Updates:
+    - `examples/dumpdns`:
+      - Add support for reading PCAPs using `mmpcap` or `zmmpcap`
+      - Add support for reading PCAPs from stdin
+    - `zpcap`: Add support for reading zlib/lzma compressed PCAPs
+  * Fixes:
+    - Fix #234: Remove signal blocking
+    - Fix #233: floating point numbers not supported by `dnsjit.core.thread` push/pop
+    - Fix a potential memory leak in trie
+    - `zpcap`: Fix incorrect check if having enough to read
+  * Commits:
+    b376ac9 Fix a potential memory leak in trie
+    dfeb20e Badges
+    e4fa047 Fix zzmpcap
+    88b5ccf Compressed PCAPs, Copyright
+    36b8266 thread push number
+    0056736 thread push number
+    0247ec6 Signals, code format
 * Thu Dec 07 2023 Jerry Lundström <lundstrom.jerry@gmail.com> 1.3.0-1
 - Release 1.3.0
   * This release adds `core.object.dns:reset()` to reset DNS objects so they

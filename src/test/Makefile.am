@@ -1,4 +1,4 @@
-# Copyright (c) 2018-2023, OARC, Inc.
+# Copyright (c) 2018-2024 OARC, Inc.
 # All rights reserved.
 #
 # This file is part of dnsjit.
@@ -23,7 +23,8 @@ CLEANFILES = test*.log test*.trs test*.out \
 TESTS = test1.sh test2.sh test3.sh test4.sh test6.sh test-ipsplit.sh \
   test-trie.sh test-base64url.sh
 
-test1.sh: dns.pcap-dist dns.pcap.lz4-dist dns.pcap.zst-dist
+test1.sh: dns.pcap-dist dns.pcap.lz4-dist dns.pcap.zst-dist \
+  dns.pcap.xz-dist dns.pcap.gz-dist
 
 test2.sh: dns.pcap-dist
 
@@ -46,7 +47,13 @@ test-trie.sh: pellets.pcap-dist dns.pcap-dist
 .zst.zst-dist:
 	cp "$<" "$@"
 
+.xz.xz-dist:
+	cp "$<" "$@"
+
+.gz.gz-dist:
+	cp "$<" "$@"
+
 EXTRA_DIST = $(TESTS) \
   dns.pcap pellets.pcap test_ipsplit.lua test_trie.lua test_base64url.lua \
   test1.gold test2.gold test3.gold test4.gold test_compressupport.lua \
-  dns.pcap.lz4 dns.pcap.zst
+  dns.pcap.lz4 dns.pcap.zst dns.pcap.xz dns.pcap.gz

@@ -1,4 +1,4 @@
--- Copyright (c) 2018-2023, OARC, Inc.
+-- Copyright (c) 2018-2024 OARC, Inc.
 -- All rights reserved.
 --
 -- This file is part of dnsjit.
@@ -87,7 +87,7 @@ function Thread:push(...)
         if t == "string" then
             C.core_thread_push_string(self, obj, #obj)
         elseif t == "number" then
-            C.core_thread_push_int64(self, obj)
+            C.core_thread_push_number(self, obj)
         else
             local ptr, type, module = obj:share()
             C.core_thread_push(self, ptr, type, #type, module, #module)
@@ -108,7 +108,7 @@ function Thread:pop(num)
         end
         if item.ptr == nil then
             if item.str == nil then
-                return tonumber(item.i64)
+                return tonumber(item.num)
             end
             return ffi.string(item.str)
         end
@@ -123,7 +123,7 @@ function Thread:pop(num)
 
         if item.ptr == nil then
             if item.str == nil then
-                table.insert(ret, tonumber(item.i64))
+                table.insert(ret, tonumber(item.num))
             else
                 table.insert(ret, ffi.string(item.str))
             end

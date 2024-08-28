@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2023, OARC, Inc.
+ * Copyright (c) 2018-2024 OARC, Inc.
  * All rights reserved.
  *
  * This file is part of dnsjit.
@@ -242,7 +242,7 @@ static const core_object_t* _produce_block(output_udpcli_t* self)
     p.fd      = self->fd;
     p.events  = POLLIN;
     p.revents = 0;
-    to        = (self->timeout.sec * 1e3) + (self->timeout.nsec / 1e6); //NOSONAR
+    to        = (self->timeout.sec * 1e3) + (self->timeout.nsec / 1e6); // NOSONAR
     if (!to) {
         to = 1;
     }

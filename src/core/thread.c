@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2023, OARC, Inc.
+ * Copyright (c) 2018-2024 OARC, Inc.
  * All rights reserved.
  *
  * This file is part of dnsjit.
@@ -185,7 +185,7 @@ void core_thread_push_string(core_thread_t* self, const char* str, size_t len)
     _push(self, item);
 }
 
-void core_thread_push_int64(core_thread_t* self, int64_t i64)
+void core_thread_push_number(core_thread_t* self, double num)
 {
     core_thread_item_t* item;
     mlassert_self();
@@ -194,7 +194,7 @@ void core_thread_push_int64(core_thread_t* self, int64_t i64)
     item->next = 0;
     item->ptr  = 0;
     item->str  = 0;
-    item->i64  = i64;
+    item->num  = num;
 
     _push(self, item);
 }

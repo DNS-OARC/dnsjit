@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2023, OARC, Inc.
+ * Copyright (c) 2018-2024 OARC, Inc.
  * All rights reserved.
  *
  * This file is part of dnsjit.
@@ -18,23 +18,23 @@
  * along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-//lua:require("dnsjit.core.log")
-//lua:require("dnsjit.core.receiver_h")
-//lua:require("dnsjit.core.producer_h")
-//lua:require("dnsjit.core.object.pcap_h")
-//lua:require("dnsjit.core.object.null_h")
-//lua:require("dnsjit.core.object.ether_h")
-//lua:require("dnsjit.core.object.loop_h")
-//lua:require("dnsjit.core.object.linuxsll_h")
-//lua:require("dnsjit.core.object.ieee802_h")
-//lua:require("dnsjit.core.object.ip_h")
-//lua:require("dnsjit.core.object.ip6_h")
-//lua:require("dnsjit.core.object.gre_h")
-//lua:require("dnsjit.core.object.icmp_h")
-//lua:require("dnsjit.core.object.icmp6_h")
-//lua:require("dnsjit.core.object.udp_h")
-//lua:require("dnsjit.core.object.tcp_h")
-//lua:require("dnsjit.core.object.payload_h")
+// lua:require("dnsjit.core.log")
+// lua:require("dnsjit.core.receiver_h")
+// lua:require("dnsjit.core.producer_h")
+// lua:require("dnsjit.core.object.pcap_h")
+// lua:require("dnsjit.core.object.null_h")
+// lua:require("dnsjit.core.object.ether_h")
+// lua:require("dnsjit.core.object.loop_h")
+// lua:require("dnsjit.core.object.linuxsll_h")
+// lua:require("dnsjit.core.object.ieee802_h")
+// lua:require("dnsjit.core.object.ip_h")
+// lua:require("dnsjit.core.object.ip6_h")
+// lua:require("dnsjit.core.object.gre_h")
+// lua:require("dnsjit.core.object.icmp_h")
+// lua:require("dnsjit.core.object.icmp6_h")
+// lua:require("dnsjit.core.object.udp_h")
+// lua:require("dnsjit.core.object.tcp_h")
+// lua:require("dnsjit.core.object.payload_h")
 
 typedef struct filter_layer {
     core_log_t      _log;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2023, OARC, Inc.
+ * Copyright (c) 2018-2024 OARC, Inc.
  * All rights reserved.
  *
  * This file is part of dnsjit.
@@ -212,7 +212,7 @@ int output_dnscli_connect(output_dnscli_t* self, const char* host, const char* p
         }
         if (self->timeout.sec > 0 || self->timeout.nsec > 0) {
             self->poll.fd      = self->fd;
-            self->poll_timeout = (self->timeout.sec * 1e3) + (self->timeout.nsec / 1e6); //NOSONAR
+            self->poll_timeout = (self->timeout.sec * 1e3) + (self->timeout.nsec / 1e6); // NOSONAR
             if (!self->poll_timeout) {
                 self->poll_timeout = 1;
             }

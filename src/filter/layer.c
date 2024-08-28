@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2023, OARC, Inc.
+ * Copyright (c) 2018-2024 OARC, Inc.
  * All rights reserved.
  *
  * This file is part of dnsjit.
@@ -180,7 +180,7 @@ static inline uint32_t _need32(const void* ptr)
     p += x;                \
     l -= x
 
-//static int _ip(filter_layer_t* self, const core_object_t* obj, const unsigned char* pkt, size_t len);
+// static int _ip(filter_layer_t* self, const core_object_t* obj, const unsigned char* pkt, size_t len);
 
 static inline int _proto(filter_layer_t* self, uint8_t proto, const core_object_t* obj, const unsigned char* pkt, size_t len)
 {

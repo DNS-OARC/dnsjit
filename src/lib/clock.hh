@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2023, OARC, Inc.
+ * Copyright (c) 2018-2024 OARC, Inc.
  * All rights reserved.
  *
  * This file is part of dnsjit.
@@ -18,7 +18,7 @@
  * along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-//lua:require("dnsjit.core.timespec_h")
+// lua:require("dnsjit.core.timespec_h")
 
 typedef enum lib_clock_clkid {
     LIB_CLOCK_REALTIME,

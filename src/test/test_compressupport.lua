@@ -8,3 +8,11 @@ zpcap:zstd()
 if zpcap:have_support() then
     print("zstd")
 end
+zpcap:lzma()
+if zpcap:have_support() then
+    print("lzma")
+end
+zpcap:gzip()
+if zpcap:have_support() then
+    print("gzip")
+end
