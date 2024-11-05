@@ -27,6 +27,12 @@ BuildRequires:  autoconf >= 2.64
 BuildRequires:  automake
 BuildRequires:  libtool
 
+# luajit dependency is not built for all platforms.
+ExcludeArch:    riscv64 ppc64 ppc64le
+# luajit support for s390x were recently added (rhbz#2222911), but does not build correctly
+# /usr/bin/luajit: /usr/share/luajit-2.1/jit/bcsave.lua:243: assertion failed! (rhbz#2323980)
+ExcludeArch:    s390x
+
 %description
 dnsjit is a combination of parts taken from dsc, dnscap, drool,
 and put together around Lua to create a script-based engine for easy
