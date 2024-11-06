@@ -35,8 +35,10 @@ providing facilities for replaying DNS traffic.
 
 
 %package devel
+BuildArch:  noarch
 Summary:    Engine for capturing, parsing and replaying DNS - development files
 Group:      Development/Libraries/C and C++
+Requires:   %{name}%{?_isa} = %{version}
 Requires:   libpcap-devel
 Requires:   luajit-devel >= 2.0.0
 Requires:   lmdb-devel
@@ -67,31 +69,24 @@ This package includes development files needed to create dnsjit modules.
 %build
 sh autogen.sh
 %configure
-make %{?_smp_mflags}
+%make_build
 
 
 %install
-rm -rf $RPM_BUILD_ROOT
-make install DESTDIR=$RPM_BUILD_ROOT
+%make_install
 
 
 %check
-make test
-
-
-%clean
-rm -rf $RPM_BUILD_ROOT
+%make_build test
 
 
 %files
-%defattr(-,root,root,-)
 %{_bindir}/*
 %{_datadir}/doc/*
 %{_mandir}/man1/*
 %{_mandir}/man3/*
 
 %files devel
-%defattr(-,root,root,-)
 %{_includedir}/*
 
 
