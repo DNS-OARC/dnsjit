@@ -38,7 +38,7 @@ providing facilities for replaying DNS traffic.
 BuildArch:  noarch
 Summary:    Engine for capturing, parsing and replaying DNS - development files
 Group:      Development/Libraries/C and C++
-Requires:   %{name}%{?_isa} = %{version}
+Requires:   %{name}%{?_isa} = %{version}-%{release}
 Requires:   libpcap-devel
 Requires:   luajit-devel >= 2.0.0
 Requires:   lmdb-devel
