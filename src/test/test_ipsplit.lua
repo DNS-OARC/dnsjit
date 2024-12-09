@@ -81,17 +81,29 @@ while true do
     if i == 1 then
         assert(dns_msgid(obj) == 0x0a31, "pkt 1: client 1, pkt 1 -> out1")
         assert(ip_pkt(obj):source() == "2001:0db8:beef:feed:0000:0000:0000:0003")
-        assert(ip_pkt(obj):destination() == "0100:0000:0000:0000:0000:0000:0000:0001")
+        if ffi.abi("be") then
+            assert(ip_pkt(obj):destination() == "0000:0001:0000:0000:0000:0000:0000:0001")
+        else
+            assert(ip_pkt(obj):destination() == "0100:0000:0000:0000:0000:0000:0000:0001")
+        end
     end
     if i == 2 then
         assert(dns_msgid(obj) == 0xb3e8, "pkt 3: client 3, pkt 1 -> out1")
         assert(ip_pkt(obj):source() == "2001:0db8:beef:feed:0000:0000:0000:0005")
-        assert(ip_pkt(obj):destination() == "0200:0000:0000:0000:0000:0000:0000:0001")
+        if ffi.abi("be") then
+            assert(ip_pkt(obj):destination() == "0000:0002:0000:0000:0000:0000:0000:0001")
+        else
+            assert(ip_pkt(obj):destination() == "0200:0000:0000:0000:0000:0000:0000:0001")
+        end
     end
     if i == 3 then
         assert(dns_msgid(obj) == 0xb3e9, "pkt 4: client 3, pkt 2 -> out1")
         assert(ip_pkt(obj):source() == "2001:0db8:beef:feed:0000:0000:0000:0005")
-        assert(ip_pkt(obj):destination() == "0200:0000:0000:0000:0000:0000:0000:0001")
+        if ffi.abi("be") then
+            assert(ip_pkt(obj):destination() == "0000:0002:0000:0000:0000:0000:0000:0001")
+        else
+            assert(ip_pkt(obj):destination() == "0200:0000:0000:0000:0000:0000:0000:0001")
+        end
     end
     if i == 13 then assert(dns_msgid(obj) == 0x4a05, "pkt 16: client 7, pkt 1 -> out1") end
     if i == 14 then assert(dns_msgid(obj) == 0x4a06, "pkt 17: client 7, pkt 2 -> out1") end
@@ -288,7 +300,11 @@ while true do
     i = i + 1
     if i == 1 then
         assert(dns_msgid(obj) == 0xe7af)
-        assert(ip_pkt(obj):source() == "1.0.0.0")
+        if ffi.abi("be") then
+            assert(ip_pkt(obj):source() == "0.0.0.1")
+        else
+            assert(ip_pkt(obj):source() == "1.0.0.0")
+        end
         assert(ip_pkt(obj):destination() == "8.8.8.8")
     end
 end
