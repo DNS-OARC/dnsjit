@@ -14,7 +14,7 @@ local ffi = require("ffi")
 local input = require("dnsjit.input.pcap").new()
 local layer = require("dnsjit.filter.layer").new()
 local object = require("dnsjit.core.objects")
-local log = require("dnsjit.core.log").new("extract-clients.lua")
+local log = require("dnsjit.core.log").new("pcap2tcpdns")
 local getopt = require("dnsjit.lib.getopt").new({
 	{ "r", "read", "-", "input file to read, use - for stdin", "?" },
 })
