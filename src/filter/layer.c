@@ -251,8 +251,8 @@ static inline int _proto(filter_layer_t* self, uint8_t proto, const core_object_
         payload->obj_prev = (core_object_t*)udp;
 
         /* Check for padding */
-        if (len > udp->ulen) {
-            payload->padding = len - udp->ulen;
+        if (len > (udp->ulen - 8)) {
+            payload->padding = len - (udp->ulen - 8);
             payload->len     = len - payload->padding;
         } else {
             payload->padding = 0;
