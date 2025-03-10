@@ -58,6 +58,9 @@
 -- rtdst
 -- Destination address found in the routing extension header.
 -- .TP
+-- hlen
+-- The length of the header with all extensions, in bytes.
+-- .TP
 -- payload
 -- A pointer to the payload.
 -- .TP
