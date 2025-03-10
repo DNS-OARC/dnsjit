@@ -287,11 +287,11 @@ static inline int _proto(filter_layer_t* self, uint8_t proto, const core_object_
         payload->obj_prev = (core_object_t*)tcp;
 
         /* Check for padding */
-        if (obj->obj_type == CORE_OBJECT_IP && len > (((const core_object_ip_t*)obj)->len - (((const core_object_ip_t*)obj)->hl * 4))) {
-            payload->padding = len - (((const core_object_ip_t*)obj)->len - (((const core_object_ip_t*)obj)->hl * 4));
+        if (obj->obj_type == CORE_OBJECT_IP && len > (((const core_object_ip_t*)obj)->len - (((const core_object_ip_t*)obj)->hl * 4) - (tcp->off * 4))) {
+            payload->padding = len - (((const core_object_ip_t*)obj)->len - (((const core_object_ip_t*)obj)->hl * 4) - (tcp->off * 4));
             payload->len     = len - payload->padding;
-        } else if (obj->obj_type == CORE_OBJECT_IP6 && len > ((const core_object_ip6_t*)obj)->plen) {
-            payload->padding = len - ((const core_object_ip6_t*)obj)->plen;
+        } else if (obj->obj_type == CORE_OBJECT_IP6 && len > (((const core_object_ip6_t*)obj)->plen - ((const core_object_ip6_t*)obj)->hlen - (tcp->off * 4))) {
+            payload->padding = len - (((const core_object_ip6_t*)obj)->plen - ((const core_object_ip6_t*)obj)->hlen - (tcp->off * 4));
             payload->len     = len - payload->padding;
         } else {
             payload->padding = 0;
@@ -381,6 +381,7 @@ static inline int _ip(filter_layer_t* self, const core_object_t* obj, const unsi
             need8(ip6->hlim, pkt, len);
             needxb(&ip6->src, 16, pkt, len);
             needxb(&ip6->dst, 16, pkt, len);
+            ip6->hlen = 4 + 2 + 1 + 1 + 16 + 16; // total bytes of above
 
             /* Check reported length for missing payload */
             if (len < ip6->plen) {
@@ -401,6 +402,7 @@ static inline int _ip(filter_layer_t* self, const core_object_t* obj, const unsi
                  */
                 if (ext.ip6e_len) {
                     advancexb(ext.ip6e_len * 8, pkt, len);
+                    ip6->hlen += ext.ip6e_len * 8;
                 }
 
                 /* TODO: Store IPv6 headers? */
@@ -454,8 +456,8 @@ static inline int _ip(filter_layer_t* self, const core_object_t* obj, const unsi
                 payload->obj_prev = (core_object_t*)ip6;
 
                 /* Check for padding */
-                if (len > ip6->plen) {
-                    payload->padding = len - ip6->plen;
+                if (len > (ip6->plen - ip6->hlen)) {
+                    payload->padding = len - (ip6->plen - ip6->hlen);
                     payload->len     = len - payload->padding;
                 } else {
                     payload->padding = 0;

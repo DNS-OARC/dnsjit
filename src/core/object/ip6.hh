@@ -36,6 +36,8 @@ typedef struct core_object_ip6 {
     uint16_t frag_offlg;
     uint16_t frag_ident;
     uint8_t  rtdst[16];
+
+    uint16_t hlen;
 } core_object_ip6_t;
 
 core_object_ip6_t* core_object_ip6_copy(const core_object_ip6_t* self);
