@@ -230,3 +230,59 @@ ip	760	(len)
 udp	740
 payload	732	(len)
 payload	0	(padding)
+
+type	length
+pcap	66	(len)
+pcap	66	(caplen)
+ip6	25	(plen)
+udp	25
+payload	17	(len)
+payload	1	(padding)
+
+type	length
+pcap	80	(len)
+pcap	80	(caplen)
+ip6	40	(plen)
+tcp
+payload	0	(len)
+payload	0	(padding)
+
+type	length
+pcap	80	(len)
+pcap	80	(caplen)
+ip6	40	(plen)
+tcp
+payload	0	(len)
+payload	0	(padding)
+
+type	length
+pcap	114	(len)
+pcap	114	(caplen)
+ip6	74	(plen)
+tcp
+payload	42	(len)
+payload	0	(padding)
+
+type	length
+pcap	1200	(len)
+pcap	1200	(caplen)
+ip6	1159	(plen)
+tcp
+payload	1127	(len)
+payload	1	(padding)
+
+type	length
+pcap	72	(len)
+pcap	72	(caplen)
+ip6	32	(plen)
+tcp
+payload	0	(len)
+payload	0	(padding)
+
+type	length
+pcap	72	(len)
+pcap	72	(caplen)
+ip6	32	(plen)
+tcp
+payload	0	(len)
+payload	0	(padding)

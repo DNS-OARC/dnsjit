@@ -19,4 +19,6 @@
 
 ../dnsjit "$srcdir/test_padding.lua" -r 46vs45.pcap-dist >test_padding.out
 ../dnsjit "$srcdir/test_padding.lua" -r tcp-response-with-trailing-junk.pcap-dist >>test_padding.out
+../dnsjit "$srcdir/test_padding.lua" -r ip6-udp-padd.pcap-dist >>test_padding.out
+../dnsjit "$srcdir/test_padding.lua" -r ip6-tcp-padd.pcap-dist >>test_padding.out
 diff "$srcdir/test_padding.gold" test_padding.out

@@ -38,7 +38,8 @@ test-ipsplit.sh: pellets.pcap-dist dns.pcap-dist
 
 test-trie.sh: pellets.pcap-dist dns.pcap-dist
 
-test-padding.sh: 46vs45.pcap-dist tcp-response-with-trailing-junk.pcap-dist
+test-padding.sh: 46vs45.pcap-dist tcp-response-with-trailing-junk.pcap-dist \
+  ip6-udp-padd.pcap-dist ip6-tcp-padd.pcap-dist
 
 .pcap.pcap-dist:
 	cp "$<" "$@"
@@ -59,4 +60,5 @@ EXTRA_DIST = $(TESTS) \
   dns.pcap pellets.pcap test_ipsplit.lua test_trie.lua test_base64url.lua \
   test1.gold test2.gold test3.gold test4.gold test_compressupport.lua \
   dns.pcap.lz4 dns.pcap.zst dns.pcap.xz dns.pcap.gz \
-  46vs45.pcap tcp-response-with-trailing-junk.pcap test_padding.gold test_padding.lua
+  46vs45.pcap tcp-response-with-trailing-junk.pcap test_padding.gold \
+  test_padding.lua ip6-udp-padd.pcap ip6-tcp-padd.pcap

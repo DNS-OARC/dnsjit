@@ -381,7 +381,7 @@ static inline int _ip(filter_layer_t* self, const core_object_t* obj, const unsi
             need8(ip6->hlim, pkt, len);
             needxb(&ip6->src, 16, pkt, len);
             needxb(&ip6->dst, 16, pkt, len);
-            ip6->hlen = 4 + 2 + 1 + 1 + 16 + 16; // total bytes of above
+            ip6->hlen = 0;
 
             /* Check reported length for missing payload */
             if (len < ip6->plen) {
