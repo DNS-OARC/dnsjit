@@ -117,3 +117,5 @@ void               core_object_dns_reset(core_object_dns_t* self);
 int core_object_dns_parse_header(core_object_dns_t* self);
 int core_object_dns_parse_q(core_object_dns_t* self, core_object_dns_q_t* q, core_object_dns_label_t* label, size_t labels);
 int core_object_dns_parse_rr(core_object_dns_t* self, core_object_dns_rr_t* rr, core_object_dns_label_t* label, size_t labels);
+
+const char* core_object_dns_torfc1035(const char* str, size_t len);
