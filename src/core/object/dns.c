@@ -51,6 +51,7 @@
 #define bswap_64(x) bswap64(x)
 #endif
 #endif
+#include <ctype.h>
 
 #define _ERR_MALFORMED -2
 #define _ERR_NEEDLABELS -3
@@ -474,4 +475,33 @@ int core_object_dns_parse_rr(core_object_dns_t* self, core_object_dns_rr_t* rr, 
 
     // TODO: error here on malformed/truncated? could be quite spammy
     return _ERR_MALFORMED;
+}
+
+const char* core_object_dns_torfc1035(const char* str, size_t len)
+{
+    mlassert(str, "str is nil");
+    static char res[512];
+
+    size_t i, j = 0;
+    for (i = 0; i < len; i++) {
+        if (j + 4 >= sizeof(res) - 1) {
+            return 0;
+        }
+
+        if (isalnum(str[i]) || str[i] == '-' || str[i] == '_') {
+            res[j++] = str[i];
+        } else if (isprint(str[i])) {
+            res[j++] = '\\';
+            res[j++] = str[i];
+        } else {
+            res[j++] = '\\';
+            res[j++] = '0' + (((unsigned char)str[i] >> 6) & 0x07);
+            res[j++] = '0' + (((unsigned char)str[i] >> 3) & 0x07);
+            res[j++] = '0' + ((unsigned char)str[i] & 0x07);
+        }
+    }
+
+    res[j] = 0;
+
+    return res;
 }
