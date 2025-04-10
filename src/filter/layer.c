@@ -74,6 +74,7 @@ static filter_layer_t _defaults = {
     CORE_OBJECT_ETHER_INIT(0),
     CORE_OBJECT_LOOP_INIT(0),
     CORE_OBJECT_LINUXSLL_INIT(0),
+    CORE_OBJECT_LINUXSLL2_INIT(0),
     0, { CORE_OBJECT_IEEE802_INIT(0), CORE_OBJECT_IEEE802_INIT(0), CORE_OBJECT_IEEE802_INIT(0) },
     CORE_OBJECT_IP_INIT(0),
     CORE_OBJECT_IP6_INIT(0),
@@ -625,6 +626,33 @@ static inline int _link(filter_layer_t* self, const core_object_pcap_t* pcap)
         case ETHERTYPE_IP:
         case ETHERTYPE_IPV6:
             return _ip(self, (core_object_t*)linuxsll, pkt, len);
+
+        default:
+            break;
+        }
+        break;
+    }
+    case DLT_LINUX_SLL2: {
+        core_object_linuxsll2_t* linuxsll2 = &self->linuxsll2;
+        linuxsll2->obj_prev                = (core_object_t*)pcap;
+
+        need16(linuxsll2->protocol_type, pkt, len);
+        need16(linuxsll2->reserved, pkt, len);
+        need32(linuxsll2->interface_index, pkt, len);
+        need16(linuxsll2->arphrd_type, pkt, len);
+        need8(linuxsll2->packet_type, pkt, len);
+        need8(linuxsll2->link_layer_address_length, pkt, len);
+        needxb(linuxsll2->link_layer_address, 8, pkt, len);
+
+        switch (linuxsll2->protocol_type) {
+        case 0x8100: /* 802.1q */
+        case 0x88a8: /* 802.1ad */
+        case 0x9100: /* 802.1 QinQ non-standard */
+            return _ieee802(self, linuxsll2->protocol_type, (core_object_t*)linuxsll2, pkt, len);
+
+        case ETHERTYPE_IP:
+        case ETHERTYPE_IPV6:
+            return _ip(self, (core_object_t*)linuxsll2, pkt, len);
 
         default:
             break;

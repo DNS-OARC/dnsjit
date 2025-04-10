@@ -41,6 +41,7 @@ require("dnsjit.core.object.ether_h")
 require("dnsjit.core.object.null_h")
 require("dnsjit.core.object.loop_h")
 require("dnsjit.core.object.linuxsll_h")
+require("dnsjit.core.object.linuxsll2_h")
 require("dnsjit.core.object.ieee802_h")
 require("dnsjit.core.object.gre_h")
 require("dnsjit.core.object.ip_h")
@@ -65,6 +66,7 @@ local Object = {
     LINUXSLL = 13,
     IEEE802 = 14,
     GRE = 15,
+    LINUXSLL2 = 16,
     IP = 20,
     IP6 = 21,
     ICMP = 22,
@@ -83,6 +85,7 @@ _type[Object.LOOP] = "loop"
 _type[Object.LINUXSLL] = "linuxsll"
 _type[Object.IEEE802] = "ieee802"
 _type[Object.GRE] = "gre"
+_type[Object.LINUXSLL2] = "linuxsll2"
 _type[Object.IP] = "ip"
 _type[Object.IP6] = "ip6"
 _type[Object.ICMP] = "icmp"
@@ -112,6 +115,7 @@ _cast[Object.LOOP] = "core_object_loop_t*"
 _cast[Object.LINUXSLL] = "core_object_linuxsll_t*"
 _cast[Object.IEEE802] = "core_object_ieee802_t*"
 _cast[Object.GRE] = "core_object_gre_t*"
+_cast[Object.LINUXSLL2] = "core_object_linuxsll2_t*"
 _cast[Object.IP] = "core_object_ip_t*"
 _cast[Object.IP6] = "core_object_ip6_t*"
 _cast[Object.ICMP] = "core_object_icmp_t*"
@@ -164,6 +168,7 @@ core_object_t = ffi.metatype(t_name, { __index = Object })
 -- dnsjit.core.object.null (3),
 -- dnsjit.core.object.loop (3),
 -- dnsjit.core.object.linuxsll (3),
+-- dnsjit.core.object.linuxsll2 (3),
 -- dnsjit.core.object.ieee802 (3),
 -- dnsjit.core.object.gre (3),
 -- dnsjit.core.object.ip (3),

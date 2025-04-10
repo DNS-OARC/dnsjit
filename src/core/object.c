@@ -27,6 +27,7 @@
 #include "core/object/null.h"
 #include "core/object/loop.h"
 #include "core/object/linuxsll.h"
+#include "core/object/linuxsll2.h"
 #include "core/object/ieee802.h"
 #include "core/object/gre.h"
 #include "core/object/ip.h"
@@ -57,6 +58,8 @@ core_object_t* core_object_copy(const core_object_t* self)
         return (core_object_t*)core_object_ieee802_copy((core_object_ieee802_t*)self);
     case CORE_OBJECT_GRE:
         return (core_object_t*)core_object_gre_copy((core_object_gre_t*)self);
+    case CORE_OBJECT_LINUXSLL2:
+        return (core_object_t*)core_object_linuxsll2_copy((core_object_linuxsll2_t*)self);
     case CORE_OBJECT_IP:
         return (core_object_t*)core_object_ip_copy((core_object_ip_t*)self);
     case CORE_OBJECT_IP6:
@@ -104,6 +107,9 @@ void core_object_free(core_object_t* self)
         break;
     case CORE_OBJECT_GRE:
         core_object_gre_free((core_object_gre_t*)self);
+        break;
+    case CORE_OBJECT_LINUXSLL2:
+        core_object_linuxsll2_free((core_object_linuxsll2_t*)self);
         break;
     case CORE_OBJECT_IP:
         core_object_ip_free((core_object_ip_t*)self);
