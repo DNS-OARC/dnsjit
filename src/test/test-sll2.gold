@@ -1,0 +1,33 @@
+udp 238.0.0.1:37273 -> 238.0.0.2:53
+id:	20793
+	qr:	0
+	opcode:	QUERY
+	flags:	RD AD
+	rcode:	NOERROR
+	qdcount:	1
+	ancount:	0
+	nscount:	0
+	arcount:	1
+questions:	class	type	labels
+	IN	A	<12>,..
+additionals:	class	type	ttl	labels	RR labels
+	UNKNOWN(1232)	OPT	32768	
+udp 238.0.0.2:53 -> 238.0.0.1:37273
+id:	20793
+	qr:	1
+	opcode:	QUERY
+	flags:	RD RA
+	rcode:	NXDOMAIN
+	qdcount:	1
+	ancount:	0
+	nscount:	4
+	arcount:	1
+questions:	class	type	labels
+	IN	A	<12>,..
+authorities:	class	type	ttl	labels	RR labels
+	IN	SOA	5		<31>a.<33>root-servers.<46>net.
+	IN	RRSIG	5		
+	IN	RRSIG	5		
+	IN	NSEC	5		<678>aaa.
+additionals:	class	type	ttl	labels	RR labels
+	UNKNOWN(1220)	OPT	32768	

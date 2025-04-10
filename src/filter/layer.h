@@ -26,6 +26,7 @@
 #include <dnsjit/core/object/ether.h>
 #include <dnsjit/core/object/loop.h>
 #include <dnsjit/core/object/linuxsll.h>
+#include <dnsjit/core/object/linuxsll2.h>
 #include <dnsjit/core/object/ieee802.h>
 #include <dnsjit/core/object/ip.h>
 #include <dnsjit/core/object/ip6.h>

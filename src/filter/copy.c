@@ -100,6 +100,9 @@ void filter_copy_set(filter_copy_t* self, int32_t obj_type)
     case CORE_OBJECT_DNS:
         self->copy |= 0x8000;
         break;
+    case CORE_OBJECT_LINUXSLL2:
+        self->copy |= 0x10000;
+        break;
     default:
         lfatal("unknown type %d", obj_type);
     }
@@ -142,6 +145,8 @@ uint64_t filter_copy_get(filter_copy_t* self, int32_t obj_type)
         return self->copy & 0x4000;
     case CORE_OBJECT_DNS:
         return self->copy & 0x8000;
+    case CORE_OBJECT_LINUXSLL2:
+        return self->copy & 0x10000;
     default:
         lfatal("unknown type %d", obj_type);
     }
