@@ -1,5 +1,5 @@
 Name:           dnsjit
-Version:        1.4.0
+Version:        1.5.0
 Release:        1%{?dist}
 Summary:        Engine for capturing, parsing and replaying DNS
 Group:          Productivity/Networking/DNS/Utilities
@@ -91,6 +91,41 @@ sh autogen.sh
 
 
 %changelog
+* Wed Apr 16 2025 Jerry Lundström <lundstrom.jerry@gmail.com> 1.5.0-1
+- Release v1.5.0
+  * This releases adds a new function to return a label quoted as described
+    in RFC 1035, adds support for link-type Linux cooked v2 and fixes
+    padding calculations for UDP, IPv4 and IPv6 packets.
+  * New:
+    - `core.object.dns.label`: Add `torfc1035()`
+    - `core.object`: Add `linuxsll2` object
+    - `filter.layer`: Add support for DLT_LINUX_SLL2
+    - `filter.copy`: Add support for DLT_LINUX_SLL2
+  * Fixes:
+    - Fix #250: handle endian in tests
+    - Fix #252
+      - `core.object.ip6`: Add `hlen` for total length of header with all extensions
+      - `filter.layer`:
+        - correct UDP padding calculation
+        - Fix padding calculation for IPv4 packet when options exists
+        - Fix padding calculation for IPv6 packets
+        - Store `hlen` for IPv6 packets
+      - Add test for padding
+  * Other changes:
+    - Simplify and speedup pcap2tcpdns example
+  * Commits:
+    d03a184 DLT_LINUX_SLL2
+    1cd3836 torfc1035
+    8d8746f Fix IPv6 hlen
+    75b634b Padding
+    b8bfcf8 Simplify and speedup pcap2tcpdns example
+    e37bb92 Fix log name in examples/pcap2tcpdns.lua
+    80b7c34 UDP padding
+    9a28aee ipsplit endian
+    375e9e8 SPEC
+    c82c0ca RPM
+    74fbda2 COPR tweaks
+    3691bd8 RPM spec
 * Wed Aug 28 2024 Jerry Lundström <lundstrom.jerry@gmail.com> 1.4.0-1
 - Release 1.4.0
   * This release adds a new module `input.zmmpcap` to read compressed PCAPs

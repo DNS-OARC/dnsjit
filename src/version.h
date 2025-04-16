@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2024 OARC, Inc.
+ * Copyright (c) 2018-2025 OARC, Inc.
  * All rights reserved.
  *
  * This file is part of dnsjit.
@@ -22,7 +22,7 @@
 #define __dnsjit_version_h
 
 #define DNSJIT_MAJOR_VERSION 1
-#define DNSJIT_MINOR_VERSION 4
+#define DNSJIT_MINOR_VERSION 5
 #define DNSJIT_PATCH_VERSION 0
 
 #endif
