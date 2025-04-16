@@ -137,7 +137,7 @@ See more examples in the [examples](https://github.com/DNS-OARC/dnsjit/tree/deve
 
 ## Copyright
 
-Copyright (c) 2018-2024 OARC, Inc.
+Copyright (c) 2018-2025 OARC, Inc.
 
 All rights reserved.
 
