@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2024 OARC, Inc.
+ * Copyright (c) 2018-2025 OARC, Inc.
  * All rights reserved.
  *
  * This file is part of dnsjit.
@@ -37,6 +37,7 @@
             { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, \
             0, 0, 0, 0,                                         \
             { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, \
+            0,                                                  \
     }
 
 #endif

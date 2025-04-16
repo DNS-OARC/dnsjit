@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2024 OARC, Inc.
+ * Copyright (c) 2018-2025 OARC, Inc.
  * All rights reserved.
  *
  * This file is part of dnsjit.
@@ -74,6 +74,7 @@ static filter_layer_t _defaults = {
     CORE_OBJECT_ETHER_INIT(0),
     CORE_OBJECT_LOOP_INIT(0),
     CORE_OBJECT_LINUXSLL_INIT(0),
+    CORE_OBJECT_LINUXSLL2_INIT(0),
     0, { CORE_OBJECT_IEEE802_INIT(0), CORE_OBJECT_IEEE802_INIT(0), CORE_OBJECT_IEEE802_INIT(0) },
     CORE_OBJECT_IP_INIT(0),
     CORE_OBJECT_IP6_INIT(0),
@@ -251,8 +252,8 @@ static inline int _proto(filter_layer_t* self, uint8_t proto, const core_object_
         payload->obj_prev = (core_object_t*)udp;
 
         /* Check for padding */
-        if (len > udp->ulen) {
-            payload->padding = len - udp->ulen;
+        if (len > (udp->ulen - 8)) {
+            payload->padding = len - (udp->ulen - 8);
             payload->len     = len - payload->padding;
         } else {
             payload->padding = 0;
@@ -287,11 +288,11 @@ static inline int _proto(filter_layer_t* self, uint8_t proto, const core_object_
         payload->obj_prev = (core_object_t*)tcp;
 
         /* Check for padding */
-        if (obj->obj_type == CORE_OBJECT_IP && len > (((const core_object_ip_t*)obj)->len - (((const core_object_ip_t*)obj)->hl * 4))) {
-            payload->padding = len - (((const core_object_ip_t*)obj)->len - (((const core_object_ip_t*)obj)->hl * 4));
+        if (obj->obj_type == CORE_OBJECT_IP && len > (((const core_object_ip_t*)obj)->len - (((const core_object_ip_t*)obj)->hl * 4) - (tcp->off * 4))) {
+            payload->padding = len - (((const core_object_ip_t*)obj)->len - (((const core_object_ip_t*)obj)->hl * 4) - (tcp->off * 4));
             payload->len     = len - payload->padding;
-        } else if (obj->obj_type == CORE_OBJECT_IP6 && len > ((const core_object_ip6_t*)obj)->plen) {
-            payload->padding = len - ((const core_object_ip6_t*)obj)->plen;
+        } else if (obj->obj_type == CORE_OBJECT_IP6 && len > (((const core_object_ip6_t*)obj)->plen - ((const core_object_ip6_t*)obj)->hlen - (tcp->off * 4))) {
+            payload->padding = len - (((const core_object_ip6_t*)obj)->plen - ((const core_object_ip6_t*)obj)->hlen - (tcp->off * 4));
             payload->len     = len - payload->padding;
         } else {
             payload->padding = 0;
@@ -381,6 +382,7 @@ static inline int _ip(filter_layer_t* self, const core_object_t* obj, const unsi
             need8(ip6->hlim, pkt, len);
             needxb(&ip6->src, 16, pkt, len);
             needxb(&ip6->dst, 16, pkt, len);
+            ip6->hlen = 0;
 
             /* Check reported length for missing payload */
             if (len < ip6->plen) {
@@ -401,6 +403,7 @@ static inline int _ip(filter_layer_t* self, const core_object_t* obj, const unsi
                  */
                 if (ext.ip6e_len) {
                     advancexb(ext.ip6e_len * 8, pkt, len);
+                    ip6->hlen += ext.ip6e_len * 8;
                 }
 
                 /* TODO: Store IPv6 headers? */
@@ -454,8 +457,8 @@ static inline int _ip(filter_layer_t* self, const core_object_t* obj, const unsi
                 payload->obj_prev = (core_object_t*)ip6;
 
                 /* Check for padding */
-                if (len > ip6->plen) {
-                    payload->padding = len - ip6->plen;
+                if (len > (ip6->plen - ip6->hlen)) {
+                    payload->padding = len - (ip6->plen - ip6->hlen);
                     payload->len     = len - payload->padding;
                 } else {
                     payload->padding = 0;
@@ -623,6 +626,33 @@ static inline int _link(filter_layer_t* self, const core_object_pcap_t* pcap)
         case ETHERTYPE_IP:
         case ETHERTYPE_IPV6:
             return _ip(self, (core_object_t*)linuxsll, pkt, len);
+
+        default:
+            break;
+        }
+        break;
+    }
+    case DLT_LINUX_SLL2: {
+        core_object_linuxsll2_t* linuxsll2 = &self->linuxsll2;
+        linuxsll2->obj_prev                = (core_object_t*)pcap;
+
+        need16(linuxsll2->protocol_type, pkt, len);
+        need16(linuxsll2->reserved, pkt, len);
+        need32(linuxsll2->interface_index, pkt, len);
+        need16(linuxsll2->arphrd_type, pkt, len);
+        need8(linuxsll2->packet_type, pkt, len);
+        need8(linuxsll2->link_layer_address_length, pkt, len);
+        needxb(linuxsll2->link_layer_address, 8, pkt, len);
+
+        switch (linuxsll2->protocol_type) {
+        case 0x8100: /* 802.1q */
+        case 0x88a8: /* 802.1ad */
+        case 0x9100: /* 802.1 QinQ non-standard */
+            return _ieee802(self, linuxsll2->protocol_type, (core_object_t*)linuxsll2, pkt, len);
+
+        case ETHERTYPE_IP:
+        case ETHERTYPE_IPV6:
+            return _ip(self, (core_object_t*)linuxsll2, pkt, len);
 
         default:
             break;

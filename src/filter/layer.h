@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2024 OARC, Inc.
+ * Copyright (c) 2018-2025 OARC, Inc.
  * All rights reserved.
  *
  * This file is part of dnsjit.
@@ -26,6 +26,7 @@
 #include <dnsjit/core/object/ether.h>
 #include <dnsjit/core/object/loop.h>
 #include <dnsjit/core/object/linuxsll.h>
+#include <dnsjit/core/object/linuxsll2.h>
 #include <dnsjit/core/object/ieee802.h>
 #include <dnsjit/core/object/ip.h>
 #include <dnsjit/core/object/ip6.h>

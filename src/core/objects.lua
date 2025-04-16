@@ -1,4 +1,4 @@
--- Copyright (c) 2018-2024 OARC, Inc.
+-- Copyright (c) 2018-2025 OARC, Inc.
 -- All rights reserved.
 --
 -- This file is part of dnsjit.
@@ -31,6 +31,7 @@ require("dnsjit.core.object.ether")
 require("dnsjit.core.object.null")
 require("dnsjit.core.object.loop")
 require("dnsjit.core.object.linuxsll")
+require("dnsjit.core.object.linuxsll2")
 require("dnsjit.core.object.ieee802")
 require("dnsjit.core.object.gre")
 require("dnsjit.core.object.ip")
@@ -48,6 +49,7 @@ require("dnsjit.core.object.dns")
 -- dnsjit.core.object.null (3),
 -- dnsjit.core.object.loop (3),
 -- dnsjit.core.object.linuxsll (3),
+-- dnsjit.core.object.linuxsll2 (3),
 -- dnsjit.core.object.ieee802 (3),
 -- dnsjit.core.object.gre (3),
 -- dnsjit.core.object.ip (3),

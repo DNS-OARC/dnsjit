@@ -1,4 +1,4 @@
--- Copyright (c) 2018-2024 OARC, Inc.
+-- Copyright (c) 2018-2025 OARC, Inc.
 -- All rights reserved.
 --
 -- This file is part of dnsjit.
@@ -57,6 +57,9 @@
 -- .TP
 -- rtdst
 -- Destination address found in the routing extension header.
+-- .TP
+-- hlen
+-- The length of extension headers, in bytes.
 -- .TP
 -- payload
 -- A pointer to the payload.

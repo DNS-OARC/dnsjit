@@ -1,4 +1,4 @@
--- Copyright (c) 2018-2024 OARC, Inc.
+-- Copyright (c) 2018-2025 OARC, Inc.
 -- All rights reserved.
 --
 -- This file is part of dnsjit.
@@ -67,8 +67,16 @@ function Label.new(size)
 end
 
 -- Returns labels as a string and an offset to the next label.
--- The string may be nil if the first label was an offset.
--- The offset may be nil if the last label was an extension bits or end marker.
+-- Takes argument
+-- .IR labels ,
+-- an array of labels returned by any of the parse functions, and
+-- .IR num_labels ,
+-- number of labels in the array.
+-- Optional
+-- .I offset_labels
+-- can be used to skip labels at the start.
+-- The return string may be nil if the first label was an offset.
+-- The return offset may be nil if the last label was an extension bits or end marker.
 function Label.tostring(dns, labels, num_labels, offset_labels)
     if offset_labels == nil then
         offset_labels = 0
@@ -91,9 +99,50 @@ function Label.tostring(dns, labels, num_labels, offset_labels)
     return dn, nil
 end
 
+-- Returns a RFC1035 domain name of the labels and an offset to the next label.
+-- Takes argument
+-- .IR labels ,
+-- an array of labels returned by any of the parse functions, and
+-- .IR num_labels ,
+-- number of labels in the array.
+-- Optional
+-- .I offset_labels
+-- can be used to skip labels at the start.
+-- The return string may be nil if the first label was an offset.
+-- The return offset may be nil if the last label was an extension bits or end marker.
+function Label.torfc1035(dns, labels, num_labels, offset_labels)
+    if offset_labels == nil then
+        offset_labels = 0
+    end
+    local dn
+    for n = 1, tonumber(num_labels) do
+        local label = labels[n - 1 + offset_labels]
+
+        if label.have_dn == 1 then
+            if dn == nil then
+                dn = ""
+            end
+            dn = dn .. ffi.string(ffi.C.core_object_dns_torfc1035(dns.payload + label.offset + 1, label.length)) .. "."
+        elseif label.have_offset == 1 then
+            return dn, label.offset
+        else
+            return dn, nil
+        end
+    end
+    return dn, nil
+end
+
 -- Returns labels as a string which also includes a textual notation of the
 -- offset in the form of
 -- .IR "<offset>label" .
+-- Takes argument
+-- .IR labels ,
+-- an array of labels returned by any of the parse functions, and
+-- .IR num_labels ,
+-- number of labels in the array.
+-- Optional
+-- .I offset_labels
+-- can be used to skip labels at the start.
 function Label.tooffstr(dns, labels, num_labels, offset_labels)
     if offset_labels == nil then
         offset_labels = 0

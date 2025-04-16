@@ -3,18 +3,20 @@
 
 -- Convert PCAP with IPv[46] & UDP payloads into TCP-stream binary format as
 -- specified by RFC 1035 section "4.2.2. TCP usage". Each packet is preceded by
--- 2-byte pre‐ambule which specifies length of the following DNS packet in
--- network byte order, immediately followed by raw bytes of the packet.
+-- 2-byte pre‐ambule which specifies length of the following DNS message in
+-- network byte order, immediately followed by raw bytes of the DNS message.
+--
+-- Outputs raw binary to stdout!
 --
 -- This script does not do any filtering or input sanitation.
--- Outputs raw binary to stdout!
+-- For filtering capabilities look at dnscap -o dump_format=tcpdns
 
 local bit = require("bit")
 local ffi = require("ffi")
 local input = require("dnsjit.input.pcap").new()
 local layer = require("dnsjit.filter.layer").new()
 local object = require("dnsjit.core.objects")
-local log = require("dnsjit.core.log").new("extract-clients.lua")
+local log = require("dnsjit.core.log").new("pcap2tcpdns")
 local getopt = require("dnsjit.lib.getopt").new({
 	{ "r", "read", "-", "input file to read, use - for stdin", "?" },
 })
@@ -54,27 +56,23 @@ local produce, pctx = layer:produce()
 -- set up output
 io.stdout:setvbuf("full")
 
-local obj, obj_pcap_in, obj_ip, obj_udp, obj_pl
-local npacketsin = 0
+local obj, obj_udp, obj_pl
+local npacketsout = 0
+local npacketsskip = 0
+local UDP_ID = object.UDP
 while true do
 	obj = produce(pctx)
 	if obj == nil then break end
-	npacketsin = npacketsin + 1
 
-	obj_ip = obj:cast_to(object.IP)
-	if obj_ip == nil then
-		obj_ip = obj:cast_to(object.IP6)
-	end
-
-	obj_udp = obj:cast_to(object.UDP)
 	obj_pl = obj:cast_to(object.PAYLOAD)
-	obj_pcap_in = obj:cast_to(object.PCAP)
-	if obj_ip ~= nil and obj_udp ~= nil and obj_pl ~= nil and obj_pcap_in ~= nil then
-		-- UDP header length is 8 bytes and is included in the ulen field below.
+	if obj_pl ~= nil and obj_pl.len <= 65535 and obj_pl:prev().obj_type == UDP_ID then
 		-- RFC 1035 framing has just the DNS message size as two bytes (big-endian).
-		put_uint16_be(tmpbuf, 0, obj_udp.ulen - 8)
+		put_uint16_be(tmpbuf, 0, obj_pl.len)
 		io.stdout:write(ffi.string(tmpbuf, 2))
 		io.stdout:write(ffi.string(obj_pl.payload, obj_pl.len))
+		npacketsout = npacketsout + 1
+	else
+		npacketsskip = npacketsskip + 1
 	end
 end
-log:info(string.format("processed %d packets", npacketsin))
+log:info(string.format("%d packets copied, %d skipped", npacketsout, npacketsskip))

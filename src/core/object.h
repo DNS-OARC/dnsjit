@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2024 OARC, Inc.
+ * Copyright (c) 2018-2025 OARC, Inc.
  * All rights reserved.
  *
  * This file is part of dnsjit.
@@ -30,6 +30,7 @@
 #define CORE_OBJECT_LINUXSLL 13
 #define CORE_OBJECT_IEEE802 14
 #define CORE_OBJECT_GRE 15
+#define CORE_OBJECT_LINUXSLL2 16
 /* protocol objects */
 #define CORE_OBJECT_IP 20
 #define CORE_OBJECT_IP6 21
