@@ -18,6 +18,7 @@
 
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 CLEANFILES = *.gcda *.gcno *.gcov
+CLEANFILES += core/*.gcda core/*.gcno core/*.gcov core/object/*.gcda core/object/*.gcno core/object/*.gcov core/object/dns/*.gcda core/object/dns/*.gcno core/object/dns/*.gcov filter/*.gcda filter/*.gcno filter/*.gcov input/*.gcda input/*.gcno input/*.gcov lib/*.gcda lib/*.gcno lib/*.gcov lib/trie/*.gcda lib/trie/*.gcno lib/trie/*.gcov output/*.gcda output/*.gcno output/*.gcov
 
 SUBDIRS = test
 

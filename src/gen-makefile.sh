@@ -19,8 +19,11 @@ echo '# Copyright (c) 2018-2025 OARC, Inc.
 # along with dnsjit.  If not, see <http://www.gnu.org/licenses/>.
 
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
-CLEANFILES = *.gcda *.gcno *.gcov
+CLEANFILES = *.gcda *.gcno *.gcov';
 
+echo CLEANFILES +=`find core lib input filter output -type d | sort | while read line; do echo -n " $line/*.gcda $line/*.gcno $line/*.gcov"; done`
+
+echo '
 SUBDIRS = test
 
 AM_CFLAGS = -Werror=attributes \
@@ -51,18 +54,18 @@ dnsjit_LDADD = $(PTHREAD_LIBS) $(luajit_LIBS) $(liblz4_LIBS) $(libzstd_LIBS) \
 
 # C source and headers';
 
-echo "dnsjit_SOURCES +=`find core lib input filter output -type f -name '*.c' | sort | while read line; do echo -n " $line"; done`"
-echo "nobase_dnsjitinclude_HEADERS +=`find core lib input filter output -type f -name '*.h' | sort | while read line; do echo -n " $line"; done`"
+echo dnsjit_SOURCES +=`find core lib input filter output -type f -name '*.c' | sort | while read line; do echo -n " $line"; done`
+echo nobase_dnsjitinclude_HEADERS +=`find core lib input filter output -type f -name '*.h' | sort | while read line; do echo -n " $line"; done`
 
 echo '
 # Lua headers'
-echo "nobase_dnsjitinclude_HEADERS +=`find core lib input filter output -type f -name '*.hh' | sort | while read line; do echo -n " $line"; done`"
-echo "lua_hobjects +=`find core lib input filter output -type f -name '*.hh' | sed -e 's%.hh%.luaho%g' | sort | while read line; do echo -n " $line"; done`"
+echo nobase_dnsjitinclude_HEADERS +=`find core lib input filter output -type f -name '*.hh' | sort | while read line; do echo -n " $line"; done`
+echo lua_hobjects +=`find core lib input filter output -type f -name '*.hh' | sed -e 's%.hh%.luaho%g' | sort | while read line; do echo -n " $line"; done`
 
 echo '
 # Lua sources'
-echo "dist_dnsjit_SOURCES +=`find core lib input filter output -type f -name '*.lua' | sort | while read line; do echo -n " $line"; done`"
-echo "lua_objects +=`find core lib input filter output -type f -name '*.lua' | sed -e 's%.lua%.luao%g' | sort | while read line; do echo -n " $line"; done`"
+echo dist_dnsjit_SOURCES +=`find core lib input filter output -type f -name '*.lua' | sort | while read line; do echo -n " $line"; done`
+echo lua_objects +=`find core lib input filter output -type f -name '*.lua' | sed -e 's%.lua%.luao%g' | sort | while read line; do echo -n " $line"; done`
 
 echo '
 dnsjit_LDFLAGS = -Wl,-E
@@ -73,7 +76,7 @@ man1_MANS = dnsjit.1
 CLEANFILES += $(man1_MANS)
 
 man3_MANS = dnsjit.core.3 dnsjit.lib.3 dnsjit.input.3 dnsjit.filter.3 dnsjit.output.3';
-echo "man3_MANS +=`find core lib input filter output -type f -name '*.lua' | sed -e 's%.lua%.3%g' | sed -e 's%/%.%g' | sort | while read line; do echo -n " dnsjit.$line"; done`"
+echo man3_MANS +=`find core lib input filter output -type f -name '*.lua' | sed -e 's%.lua%.3%g' | sed -e 's%/%.%g' | sort | while read line; do echo -n " dnsjit.$line"; done`
 
 echo 'CLEANFILES += *.3in $(man3_MANS)
 
