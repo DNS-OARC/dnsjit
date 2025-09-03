@@ -27,7 +27,7 @@ More information may be found here:
 - https://www.dns-oarc.net/tools/dnsjit
 
 Issues should be reported here:
-- https://github.com/DNS-OARC/dnsjit/issues
+- https://codeberg.org/DNS-OARC/dnsjit/issues
 
 General support and discussion:
 - Mattermost: https://chat.dns-oarc.net/community/channels/oarc-software
@@ -68,7 +68,7 @@ alternative to luajit.
 ## Build
 
 ```shell
-git clone https://github.com/DNS-OARC/dnsjit
+git clone https://codeberg.org/DNS-OARC/dnsjit
 cd dnsjit
 sh autogen.sh
 ./configure
@@ -133,7 +133,7 @@ end
 Disclaimer, to keep the above example short it only works on pre-prepared
 PCAPs with only UDP DNS traffic in them.
 
-See more examples in the [examples](https://github.com/DNS-OARC/dnsjit/tree/develop/examples) directory.
+See more examples in the [examples](https://codeberg.org/DNS-OARC/dnsjit/tree/develop/examples) directory.
 
 ## Copyright
 

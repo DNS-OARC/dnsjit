@@ -1,6 +1,6 @@
 Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: dnsjit
-Source: https://github.com/DNS-OARC/dnsjit
+Source: https://codeberg.org/DNS-OARC/dnsjit
 
 Files: *
 Copyright: 2018-2025 OARC, Inc.
