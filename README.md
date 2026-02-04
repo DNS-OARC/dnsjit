@@ -1,3 +1,5 @@
+# NOTE: Moved to https://codeberg.org/DNS-OARC/dnsjit
+
 # Engine for capturing, parsing and replaying DNS
 
 [![Bugs](https://sonarcloud.io/api/project_badges/measure?project=dns-oarc%3Adnsjit&metric=bugs)](https://sonarcloud.io/summary/new_code?id=dns-oarc%3Adnsjit) [![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=dns-oarc%3Adnsjit&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=dns-oarc%3Adnsjit)
